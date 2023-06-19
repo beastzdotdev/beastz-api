@@ -1,1 +1,1 @@
-# Api for Gorillalock application
+# Api for GorillaVault application

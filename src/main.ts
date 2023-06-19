@@ -17,5 +17,5 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
 
   // log misc stuff
   const apiUrl: string = await app.getUrl();
-  logger.verbose(`Gorillalock api listening on --- ${apiUrl}`);
+  logger.verbose(`GorillaVault api listening on --- ${apiUrl}`);
 });
