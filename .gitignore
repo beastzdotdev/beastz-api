@@ -35,3 +35,6 @@ test/coverage
 .classpath
 *.launch
 *.sublime-workspace
+
+
+# Custom
