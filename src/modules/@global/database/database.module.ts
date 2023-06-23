@@ -1,13 +1,8 @@
 import { DynamicModule, Global, Logger, Module, Provider } from '@nestjs/common';
 import { DatabaseService } from './database.service';
-import { Kysely, PostgresDialect, sql } from 'kysely';
-import { KYSELY_MODULE_CONNECTION_TOKEN } from './database.constants';
-import { ConfigModule } from '@nestjs/config';
-import { Pool, PoolConfig } from 'pg';
-
-interface AsyncConfig {
-  poolConfig: PoolConfig;
-}
+import { Kysely, KyselyConfig, sql } from 'kysely';
+import { KYSELY_MODULE_CONNECTION_TOKEN, KYSELY_MODULE_OPTIONS_TOKEN } from './database.constants';
+import { DatabseKyselyModuleAsyncOptions } from './database.interface';
 
 @Global()
 @Module({
@@ -17,17 +12,18 @@ interface AsyncConfig {
 export class DatabaseModule {
   public static readonly databaseLogger = new Logger('Kysely Databse Logger');
 
-  public static forRootAsync<DB>(configs: AsyncConfig): DynamicModule {
-    const provider: Provider = {
-      provide: KYSELY_MODULE_CONNECTION_TOKEN,
-      useFactory: async () => {
-        const dialect = new PostgresDialect({
-          pool: new Pool(configs.poolConfig),
-        });
+  public static forRootAsync<DB>(configs: DatabseKyselyModuleAsyncOptions): DynamicModule {
+    const optionsProvider: Provider = {
+      inject: configs.inject,
+      provide: KYSELY_MODULE_OPTIONS_TOKEN,
+      useFactory: configs.useFactory,
+    };
 
-        const db = new Kysely<DB>({
-          dialect,
-        });
+    const connectionProvider: Provider = {
+      inject: [KYSELY_MODULE_OPTIONS_TOKEN],
+      provide: KYSELY_MODULE_CONNECTION_TOKEN,
+      useFactory: async (config: KyselyConfig) => {
+        const db = new Kysely<DB>(config);
 
         try {
           await sql`select 1`.execute(db);
@@ -42,10 +38,10 @@ export class DatabaseModule {
     };
 
     return {
-      imports: [ConfigModule],
+      imports: configs.imports,
       module: DatabaseModule,
-      providers: [provider],
-      exports: [provider],
+      providers: [optionsProvider, connectionProvider],
+      exports: [connectionProvider],
     };
   }
 }
