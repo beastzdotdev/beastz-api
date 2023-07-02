@@ -1,19 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { InjectKysely } from './@global/database/database.decorator';
-
-// create table users
-// (
-//     id            serial
-//     is_online     boolean      default false             not null,
-//     email         varchar(255)                           not null,
-//     user_name     varchar(255)                           not null,
-//     birth_date    timestamp(3)                           not null,
-//     gender        gender                                 not null,
-//     password_hash varchar(255)                           not null,
-//     created_at    timestamp(3) default CURRENT_TIMESTAMP not null,
-//     socket_id     varchar(32)                            not null
-// );
+import { EnvService } from './@global/env/env.service';
+import { InjectEnv } from './@global/env/env.decorator';
 
 interface User {
   id: string;
@@ -36,10 +25,16 @@ export class AppController {
   constructor(
     @InjectKysely()
     private readonly db: Kysely<MainDatabase>,
+
+    @InjectEnv()
+    private readonly envService: EnvService,
   ) {}
 
   @Get('/health')
   getHello() {
-    return this.db.selectFrom('users').selectAll().execute();
+    return {
+      users: this.db.selectFrom('users').selectAll().execute(),
+      dbPort: this.envService.get('DATABASE_PORT'),
+    };
   }
 }

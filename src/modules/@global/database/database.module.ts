@@ -10,9 +10,11 @@ import { DatabseKyselyModuleAsyncOptions } from './database.interface';
   exports: [DatabaseService],
 })
 export class DatabaseModule {
-  public static readonly databaseLogger = new Logger('Kysely Databse Logger');
+  public static readonly databaseLogger = new Logger(DatabaseModule.name);
 
   public static forRootAsync<DB>(configs: DatabseKyselyModuleAsyncOptions): DynamicModule {
+    this.databaseLogger.verbose('Started initializing database connection');
+
     const optionsProvider: Provider = {
       inject: configs.inject,
       provide: KYSELY_MODULE_OPTIONS_TOKEN,

@@ -25,7 +25,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --detectOpenHandles --forceExit",
-    "test:e2e:cov": "jest --config ./test/jest-e2e.json --coverage --detectOpenHandles --forceExit"
+    "test:e2e:cov": "jest --config ./test/jest-e2e.json --coverage --detectOpenHandles --forceExit",
+    "migration:create": "ts-node ./commands/migration-create.ts",
+    "migration:run": "ts-node ./commands/migration-latest.ts",
+    "migration:up:one": "ts-node ./commands/migration-up-one.ts",
+    "migration:down:one": "ts-node ./commands/migration-down-one.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.3",
@@ -35,17 +39,21 @@
     "@types/pg": "^8.10.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "dotenv": "^16.3.1",
     "kysely": "^0.25.0",
     "pg": "^8.11.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^5.0.1",
     "rxjs": "^7.8.1",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "yargs": "^17.7.2",
+    "zod": "^3.21.4"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.3",
     "@nestjs/schematics": "^10.0.1",
     "@nestjs/testing": "^10.0.3",
+    "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.17",
     "@types/jest": "29.5.2",
     "@types/node": "^20.3.1",
