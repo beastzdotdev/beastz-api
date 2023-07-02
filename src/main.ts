@@ -5,7 +5,7 @@ import { AppModule } from './modules/app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
-import { migrateCommand } from './common/migrate';
+import { getMigrations, migrateCommand } from './common/migrate';
 import { PoolConfig } from 'pg';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
@@ -27,10 +27,14 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
     max: envService.get('DATABASE_MAX_POOL'),
   };
 
-  // run auto migrate
-  await migrateCommand(config, 'latest', {
-    dontExit: true,
-  });
+  if (envService.get('RUN_AUTO_MIGRATE')) {
+    // run auto migrate
+    await migrateCommand(config, 'latest', {
+      dontExit: true,
+    });
+  } else {
+    await getMigrations(config);
+  }
 
   await app.listen(envService.get('PORT'));
 

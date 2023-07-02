@@ -86,24 +86,7 @@ export function createMigrationFile(migrationName: string) {
   migrationLogger.verbose(path.relative(process.cwd(), filePath)); // relative path from src
 }
 
-function getMigrator(config: PoolConfig): { migrator: Migrator; db: Kysely<unknown> } {
-  const db = new Kysely<unknown>({
-    dialect: new PostgresDialect({ pool: new Pool(config) }),
-  });
-
-  const migrator = new Migrator({
-    db,
-    provider: new FileMigrationProvider({
-      fs: fs.promises,
-      path,
-      migrationFolder,
-    }),
-  });
-
-  return { migrator, db };
-}
-
-async function getMigrations(config: PoolConfig) {
+export async function getMigrations(config: PoolConfig) {
   const { db, migrator } = getMigrator(config);
 
   const migrationResult = await migrator.getMigrations();
@@ -122,6 +105,23 @@ async function getMigrations(config: PoolConfig) {
   }
 
   await db.destroy();
+}
+
+function getMigrator(config: PoolConfig): { migrator: Migrator; db: Kysely<unknown> } {
+  const db = new Kysely<unknown>({
+    dialect: new PostgresDialect({ pool: new Pool(config) }),
+  });
+
+  const migrator = new Migrator({
+    db,
+    provider: new FileMigrationProvider({
+      fs: fs.promises,
+      path,
+      migrationFolder,
+    }),
+  });
+
+  return { migrator, db };
 }
 
 async function checkConnection(db: Kysely<unknown>, dbName: string) {
