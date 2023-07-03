@@ -6,8 +6,7 @@ import { EnvironmentVariables } from './env.dto';
 import { getAllErrorConstraints } from '../../../common/helper';
 import { EnvService } from './env.service';
 import { ENV_SERVICE_TOKEN } from './env.constants';
-
-type EnvModuleOptions = ConfigModuleOptions;
+import { EnvModuleOptions } from './env.interface';
 
 @Global()
 @Module({})
