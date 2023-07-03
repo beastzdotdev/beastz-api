@@ -20,7 +20,7 @@ import { KYSELY_MODULE_CONNECTION_TOKEN } from '../src/modules/@global/database/
 describe('App (e2e)', () => {
   jest.setTimeout(120_000);
 
-  const useLogger = true; // toggle to true if u want to see nestjs logs
+  const useLogger = false; // toggle to true if u want to see nestjs logs
 
   //TODO add database interface
   let app: NestExpressApplication;

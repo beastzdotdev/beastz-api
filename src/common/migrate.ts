@@ -17,9 +17,6 @@ export async function migrateCommand(
   const { db, migrator } = getMigrator(config);
   let migrationResult: MigrationResultSet | null = null;
 
-  // check database existence
-  // await checkDatabaseExistence(config);
-
   // check connection
   await checkConnection(db, config.database as string);
 
@@ -135,40 +132,5 @@ async function checkConnection(db: Kysely<unknown>, dbName: string) {
     migrationLogger.verbose(`Database connection to ${dbName} sucessfull `);
   } catch (error) {
     migrationLogger.error('Connection error');
-  }
-}
-
-async function checkDatabaseExistence(config: PoolConfig) {
-  const db = new Kysely<unknown>({
-    dialect: new PostgresDialect({
-      pool: new Pool({
-        database: 'postgres',
-        host: config.host,
-        user: config.user,
-        password: config.password,
-        port: config.port,
-        max: config.max,
-      }),
-    }),
-  });
-
-  try {
-    await sql`select 1`.execute(db);
-  } catch (error) {
-    migrationLogger.error(`Connection to database postgres for checking ${config.database} existence error`);
-  }
-
-  // check database existence (if not create it)
-  try {
-    const dbs = (await sql`select datname from pg_database;`.execute(db)) as QueryResult<{ datname: string }>;
-    const dbNames = dbs.rows.map(e => e.datname);
-
-    if (!dbNames.includes(config.database || '')) {
-      migrationLogger.error(`Migration with name ${config.database} does not exist`);
-      process.exit(0);
-    }
-  } catch (error) {
-    console.log(error);
-    process.exit(0);
   }
 }
