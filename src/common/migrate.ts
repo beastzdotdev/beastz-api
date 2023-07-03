@@ -18,7 +18,7 @@ export async function migrateCommand(
   let migrationResult: MigrationResultSet | null = null;
 
   // check database existence
-  await checkDatabaseExistence(config);
+  // await checkDatabaseExistence(config);
 
   // check connection
   await checkConnection(db, config.database as string);
@@ -75,6 +75,10 @@ export async function migrateCommand(
 export function createMigrationFile(migrationName: string) {
   const fileName = `${Date.now()}-${migrationName}.ts`;
   const filePath = `${migrationFolder}/${fileName}`;
+
+  if (!fs.existsSync(migrationFolder)) {
+    fs.mkdirSync(migrationFolder, { recursive: true });
+  }
 
   // Create the migration file
   fs.writeFileSync(

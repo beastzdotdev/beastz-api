@@ -15,7 +15,7 @@ export class AppController {
   ) {}
 
   @Get('/health')
-  getHello() {
+  async getHello() {
     return {
       tables: this.db.introspection.getTables(),
       dbPort: this.envService.get('DATABASE_PORT'),
