@@ -6,7 +6,8 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 
-//TODO checkout testing all and if not needed remove jest config from package.json
+//TODO Copy auth from cards-backend but not use @nestjs/jwt not needed and move refresh token to separate module
+//TODO Implement lock in user (add locked in user identity table)
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);

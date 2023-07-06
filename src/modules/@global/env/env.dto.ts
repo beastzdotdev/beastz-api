@@ -16,7 +16,7 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsExactBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
-  RUN_AUTO_MIGRATE = true;
+  DATABASE_LOG_QUERY = true;
 
   @IsNotEmpty()
   @IsString()

@@ -1,0 +1,10 @@
+.dockerignore
+dist
+upload
+.env
+.env.example
+Dockerfile
+README.md
+
+node_modules
+!node_modules/.prisma/*

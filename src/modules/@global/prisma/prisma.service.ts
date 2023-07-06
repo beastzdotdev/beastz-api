@@ -12,9 +12,9 @@ export class PrismaService
 
   constructor(
     @InjectEnv()
-    readonly envService: EnvService,
+    private readonly envService: EnvService,
   ) {
-    super({
+    let config: Prisma.PrismaClientOptions = {
       datasources: {
         db: {
           url: envService.get('DATABASE_URL'),
@@ -28,23 +28,32 @@ export class PrismaService
           level: 'info',
         },
       ],
+    };
+
+    if (envService.get('DATABASE_LOG_QUERY')) {
+      config.log?.push('query');
+    }
+
+    super(config);
+  }
+
+  async onModuleInit() {
+    await this.$connect().then(async () => {
+      this.logger.verbose('Database connection successfull');
+      this.logger.verbose('Database log query enabled: ' + this.envService.get('DATABASE_LOG_QUERY'));
     });
 
     this.$on('info', e => {
       this.logger.verbose(e.message);
     });
 
-    this.$on('query', e => {
-      this.logger.debug('Query: ' + e.query);
-      this.logger.debug('Params: ' + e.params);
-      this.logger.debug('Duration: ' + e.duration + 'ms');
-    });
-  }
-
-  async onModuleInit() {
-    await this.$connect().then(async () => {
-      this.logger.verbose('Database connection successfull');
-    });
+    if (this.envService.get('DATABASE_LOG_QUERY')) {
+      this.$on('query', e => {
+        this.logger.debug('Query: ' + e.query);
+        this.logger.debug('Params: ' + e.params);
+        this.logger.debug('Duration: ' + e.duration + 'ms');
+      });
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

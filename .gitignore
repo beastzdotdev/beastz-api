@@ -21,7 +21,9 @@ newrelic_agent.log
 .DS_Store
 
 # Tests
-test/coverage
+test/e2e/coverage
+test/unit/coverage
+
 /.nyc_output
 
 # IDEs and editors

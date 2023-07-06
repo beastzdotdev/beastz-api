@@ -1,17 +1,15 @@
 import * as bodyParser from 'body-parser';
-import * as request from 'supertest';
 
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from 'testcontainers';
 import { Test, TestingModule } from '@nestjs/testing';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe } from '@nestjs/common';
 
-import { EnvironmentVariables } from '../src/modules/@global/env/env.dto';
-import { EnvironmentType } from '../src/modules/@global/env/env.interface';
-import { AppModule } from '../src/modules/app.module';
 import { ConfigService } from '@nestjs/config';
-import { ENV_SERVICE_TOKEN } from '../src/modules/@global/env/env.constants';
-import { EnvService } from '../src/modules/@global/env/env.service';
+import { EnvironmentVariables } from '../../src/modules/@global/env/env.dto';
+import { EnvironmentType } from '../../src/modules/@global/env/env.interface';
+import { AppModule } from '../../src/modules/app.module';
+import { AppController } from '../../src/modules/app.controller';
 
 describe('App (e2e)', () => {
   jest.setTimeout(120_000);
@@ -19,9 +17,8 @@ describe('App (e2e)', () => {
   const useLogger = false; // toggle to true if u want to see nestjs logs
 
   let app: NestExpressApplication;
-  let envService: EnvService;
   let postgreSqlContainer: StartedPostgreSqlContainer;
-  let http: request.SuperTest<request.Test>;
+  let appController: AppController;
 
   beforeAll(async () => {
     jest.setTimeout(10000); // Set the timeout to 10 seconds
@@ -30,9 +27,9 @@ describe('App (e2e)', () => {
 
     const envValues: EnvironmentVariables = {
       DATABASE_URL: postgreSqlContainer.getConnectionUri(),
+      DATABASE_LOG_QUERY: true,
       DEBUG: EnvironmentType.Dev,
       PORT: 4000,
-      RUN_AUTO_MIGRATE: true,
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({ imports: [AppModule] })
@@ -41,8 +38,6 @@ describe('App (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication<NestExpressApplication>({ autoFlushLogs: false, bufferLogs: true });
-
-    envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
 
     if (useLogger) {
       app.useLogger(new Logger('app-e2e-test'));
@@ -53,10 +48,9 @@ describe('App (e2e)', () => {
     app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
     app.useGlobalPipes(new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }));
 
-    await app.init();
+    appController = app.get(AppController);
 
-    // initialize http first
-    http = request(app.getHttpServer());
+    await app.init();
   });
 
   afterAll(async () => {
@@ -68,10 +62,10 @@ describe('App (e2e)', () => {
   it('Should be defined', () => {
     expect(app).toBeDefined();
     expect(postgreSqlContainer).toBeDefined();
-    expect(http).toBeDefined();
   });
 
   it('Health check', () => {
-    return http.get('/health').expect(200);
+    const result = appController.healthCheck();
+    expect(result).toBe('ok');
   });
 });
