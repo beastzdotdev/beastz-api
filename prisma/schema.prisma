@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+
+  @@map("gender")
+}
+
+enum Review {
+  VERY_BAD
+  BAD
+  NORMAL
+  GOOD
+  VERY_GOOD
+
+  @@map("emotion")
+}
+
+enum LegalDocumentType {
+  PRIVACY_POLICY
+  TERMS_OF_SERVICE
+
+  @@map("legal_document_type")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  isOnline  Boolean  @default(false) @map("is_online")
+  email     String   @unique @db.VarChar(255)
+  userName  String   @map("user_name") @db.VarChar(255)
+  birthDate DateTime @map("birth_date")
+  gender    Gender
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  socketId         String   @map("socket_id") @db.VarChar(32)
+  profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
+
+  refreshTokens       RefreshToken[]
+  feedbacks           Feedback[]
+  recoverPassword     RecoverPassword?
+  accountVerification AccountVerification?
+  userIdentity        UserIdentity?
+
+  @@index([email])
+  @@map("users")
+}
+
+model UserIdentity {
+  id       Int    @id @default(autoincrement())
+  password String @map("password") @db.VarChar(255)
+  userId   Int    @unique @map("user_id")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_identity")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([value], type: Hash)
+  @@map("refresh_tokens")
+}
+
+model AccountVerification {
+  id          Int      @id @default(autoincrement())
+  isVerified  Boolean  @default(false) @map("is_verified")
+  oneTimeCode Int      @map("one_time_code")
+  userId      Int      @unique @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("account_verification")
+}
+
+model RecoverPassword {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  oneTimeCode Int      @map("one_time_code")
+  isVerified  Boolean  @default(false) @map("is_verified")
+  uuid        String?  @unique @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("recover_passwords")
+}
+
+model LegalDocument {
+  id        Int               @id @default(autoincrement())
+  title     String            @db.VarChar(255)
+  type      LegalDocumentType @unique
+  updatedAt DateTime          @updatedAt @map("updated_at")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  paragraphs LegalDocumentParagraph[]
+
+  @@map("legal_documents")
+}
+
+model LegalDocumentParagraph {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(255)
+  content   String   @db.Text
+  index     Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  legalDocument   LegalDocument @relation(fields: [legalDocumentId], references: [id])
+  legalDocumentId Int           @map("legal_document_id")
+
+  @@map("legal_document_paragraphs")
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.Text
+  review    Review
+  images    String[]
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("feedbacks")
+}

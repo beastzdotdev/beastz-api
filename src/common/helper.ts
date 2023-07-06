@@ -24,7 +24,7 @@ export function getBoolExact(value: unknown): boolean | null {
 }
 
 export function clone<T>(value: unknown): T {
-  return JSON.parse(JSON.stringify(value));
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 export function exists<T>(value: T): value is NonNullable<T> {
