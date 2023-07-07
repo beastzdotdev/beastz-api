@@ -1,4 +1,4 @@
 export type CreateRefreshTokenParams = {
-  readonly value: string;
-  readonly userId: number;
+  value: string;
+  userId: number;
 };

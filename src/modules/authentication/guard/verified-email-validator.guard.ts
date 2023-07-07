@@ -1,16 +1,16 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AccountVerificationService } from '../account-verification/account-verification.service';
-import { JwtHelper } from '../helper/jwt.helper';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { NO_EMAIL_VERIFY_VALIDATE } from '../../../decorator/no-email-verify-validate.decorator';
 import { ExceptionMessageCode } from '../../../exceptions/exception-message-code.enum';
+import { JwtUtilService } from '../../../common/modules/jwt-util/jwt-util.service';
 
 @Injectable()
 export class VerifiedEmailValidatorGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly jwtHelper: JwtHelper,
+    private readonly jwtUtilService: JwtUtilService,
     private readonly accountVerificationService: AccountVerificationService,
   ) {}
 
@@ -44,7 +44,7 @@ export class VerifiedEmailValidatorGuard implements CanActivate {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    const payload = this.jwtHelper.getUserPayload(accessToken);
+    const payload = this.jwtUtilService.getUserPayload(accessToken);
 
     if (!payload) {
       throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);

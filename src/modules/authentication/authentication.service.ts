@@ -10,17 +10,19 @@ import {
   SignInParams,
   SignUpWithTokenParams,
 } from './authentication.types';
-import { JwtHelper } from './helper/jwt.helper';
-import { PasswordEncoder } from './helper/password.encoder';
 import { RecoverPasswordService } from './recover-password/recover-password.service';
 import { RandomService } from '../../common/modules/random/random.service';
+import { EncoderService } from '../../common/modules/encoder/encoder.service';
+import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
+import { RefreshTokenService } from './refresh-token/refresh-token.service';
 
 @Injectable()
 export class AuthenticationService {
   constructor(
     private readonly userService: UserService,
-    private readonly passwordEncoder: PasswordEncoder,
-    private readonly jwtHelper: JwtHelper,
+    private readonly refreshTokenService: RefreshTokenService,
+    private readonly encoderService: EncoderService,
+    private readonly jwtUtilService: JwtUtilService,
     private readonly randomService: RandomService,
     private readonly recoverPasswordService: RecoverPasswordService,
     private readonly accountVerificationService: AccountVerificationService,
@@ -32,7 +34,7 @@ export class AuthenticationService {
     }
 
     const { password, ...otherParams } = params;
-    const hashedPassword = await this.passwordEncoder.encode(password);
+    const hashedPassword = await this.encoderService.encode(password);
     const user = await this.userService.create({
       ...otherParams,
       isOnline: false,
@@ -40,10 +42,10 @@ export class AuthenticationService {
     });
     // passwordHash: hashedPassword,
 
-    const { accessToken, refreshToken } = this.jwtHelper.generateAuthenticationTokens({
+    const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
       userId: user.id,
     });
-    await this.userService.addRefreshTokenByUserId(user.id, refreshToken);
+    await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);
 
     return { accessToken, refreshToken, hasEmailVerified: false };
   }
@@ -55,16 +57,16 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }
 
-    // const passwordMatches = await this.passwordEncoder.matches(params.password, user.passwordHash);
+    // const passwordMatches = await this.encoderService.matches(params.password, user.passwordHash);
 
     // if (!passwordMatches) {
     //   throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     // }
 
-    const { accessToken, refreshToken } = this.jwtHelper.generateAuthenticationTokens({
+    const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
       userId: user.id,
     });
-    await this.userService.addRefreshTokenByUserId(user.id, refreshToken);
+    await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);
 
     const hasEmailVerified = await this.accountVerificationService.getIsVerifiedByUserId(user.id);
 
@@ -73,32 +75,38 @@ export class AuthenticationService {
 
   async refreshToken(oldRefreshToken: string): Promise<AuthenticationPayloadResponseDto> {
     //TODO check only for token validity (not for expiration !) ↓
-    const isRefreshTokenValid = await this.jwtHelper.isRefreshTokenValid(oldRefreshToken);
+    const isRefreshTokenValid = await this.jwtUtilService.isRefreshTokenValid(oldRefreshToken);
 
     if (!isRefreshTokenValid) {
       throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
     }
 
-    const user = await this.userService.findByRefreshToken(oldRefreshToken);
+    const userId = await this.refreshTokenService.getUserIdByRefreshToken(oldRefreshToken);
+
+    if (!userId) {
+      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
+    }
+
+    const user = await this.userService.getById(userId);
 
     if (!user) {
-      const decodedPayload = this.jwtHelper.getUserPayload(oldRefreshToken);
+      const decodedPayload = this.jwtUtilService.getUserPayload(oldRefreshToken);
 
       if (!decodedPayload) {
         throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
       }
 
-      await this.userService.clearRefreshTokensForUser(decodedPayload.userId);
+      await this.refreshTokenService.clearRefreshTokensForUser(decodedPayload.userId);
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
     }
 
     //TODO check for expiration only
 
-    const { accessToken, refreshToken } = this.jwtHelper.generateAuthenticationTokens({
+    const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
       userId: user.id,
     });
-    await this.userService.deleteRefreshToken(oldRefreshToken);
-    await this.userService.addRefreshTokenByUserId(user.id, refreshToken);
+    await this.refreshTokenService.deleteRefreshToken(oldRefreshToken);
+    await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);
 
     return { accessToken, refreshToken };
   }
@@ -156,7 +164,7 @@ export class AuthenticationService {
       throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_INVALID);
     }
 
-    const hashedPassword = await this.passwordEncoder.encode(password);
+    const hashedPassword = await this.encoderService.encode(password);
 
     await this.recoverPasswordService.deleteById(uuid);
     // await this.userService.updatePasswordById(recoverPasswordRequest.userId, hashedPassword);

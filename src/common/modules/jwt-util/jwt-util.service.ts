@@ -4,12 +4,12 @@ import { Injectable, InternalServerErrorException, UnauthorizedException } from 
 import { Socket } from 'socket.io';
 import { JwtPayload } from '../../../model/jwt-payload.type';
 import { ExceptionMessageCode } from '../../../exceptions/exception-message-code.enum';
-import { InjectEnv } from '../../@global/env/env.decorator';
-import { EnvService } from '../../@global/env/env.service';
 import { UserPayload } from '../../../model/user-payload.type';
+import { InjectEnv } from '../../../modules/@global/env/env.decorator';
+import { EnvService } from '../../../modules/@global/env/env.service';
 
 @Injectable()
-export class JwtHelper {
+export class JwtUtilService {
   constructor(
     @InjectEnv()
     private readonly envService: EnvService,

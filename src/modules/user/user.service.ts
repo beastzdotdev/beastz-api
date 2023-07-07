@@ -1,47 +1,16 @@
+import { User } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
-import { User } from '@prisma/client';
-
 import { ExceptionMessageCode } from '../../exceptions/exception-message-code.enum';
-import { RefreshTokenRepository } from '../authentication/refresh-token/refresh-token.repository';
 import { UserRepository } from './user.repository';
 import { RandomService } from '../../common/modules/random/random.service';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly refreshTokenRepository: RefreshTokenRepository,
-    private readonly randomService: RandomService,
-  ) {}
+  constructor(private readonly userRepository: UserRepository, private readonly randomService: RandomService) {}
 
   async getByEmail(email: string): Promise<User | null> {
     return this.userRepository.getByEmail(email);
-  }
-
-  async findByRefreshToken(refreshToken: string): Promise<UserWithRelations | null> {
-    const userId = await this.refreshTokenRepository.getUserIdByValue(refreshToken);
-
-    if (!userId) {
-      return null;
-    }
-
-    return this.userRepository.getById(userId);
-  }
-
-  async clearRefreshTokensForUser(userId: number): Promise<void> {
-    return this.refreshTokenRepository.deleteAllByUserId(userId);
-  }
-
-  async addRefreshTokenByUserId(userId: number, value: string) {
-    await this.refreshTokenRepository.createEntity({
-      userId,
-      value,
-    });
-  }
-
-  async deleteRefreshToken(refreshToken: string) {
-    return this.refreshTokenRepository.deleteByValue(refreshToken);
   }
 
   async existsByEmail(email: string): Promise<boolean> {

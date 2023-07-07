@@ -1,12 +1,12 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtHelper } from '../helper/jwt.helper';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../exceptions/exception-message-code.enum';
+import { JwtUtilService } from '../../../common/modules/jwt-util/jwt-util.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector, private readonly jwtHelper: JwtHelper) {}
+  constructor(private readonly reflector: Reflector, private readonly jwtUtilService: JwtUtilService) {}
 
   canActivate(context: ExecutionContext) {
     const noAuth = this.reflector.getAllAndOverride<boolean>(NO_AUTH_KEY, [context.getHandler(), context.getClass()]);
@@ -29,6 +29,6 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    return this.jwtHelper.validateAccessToken(accessToken);
+    return this.jwtUtilService.validateAccessToken(accessToken);
   }
 }
