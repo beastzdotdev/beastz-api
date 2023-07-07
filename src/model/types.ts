@@ -10,3 +10,4 @@ export type SafeCallResult<T> = { success: boolean; error: ExceptionType | null;
 
 // Pagination
 export type PageOptionParams = { page: number; pageSize: number };
+export type DataPage<T> = { data: T[]; total: number };

@@ -52,6 +52,10 @@ export function getBoolExact(value: unknown): boolean | null {
   return null;
 }
 
+export function enumMessage(prop: string, enumValue: any) {
+  return `${prop} should be valid: (${Object.values(enumValue).join(', ')})`;
+}
+
 export function clone<T>(value: unknown): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -113,6 +117,16 @@ export function formatDate(date: Date) {
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
   return `${year}-${month}-${day}/${hours}:${minutes}`;
+}
+
+export function todayStartEndDates(): { startDate: Date; endDate: Date } {
+  const startDate = new Date();
+  startDate.setUTCHours(0, 0, 0, 0);
+
+  const endDate = new Date();
+  endDate.setUTCHours(23, 59, 59, 999);
+
+  return { startDate, endDate };
 }
 
 export function generateFileName(

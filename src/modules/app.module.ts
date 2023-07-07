@@ -10,6 +10,8 @@ import { JwtUtilModule } from '../common/modules/jwt-util/jwt-util.module';
 import { UserModule } from './user/user.module';
 import { AccountVerificationModule } from './authentication/modules/account-verification/account-verification.module';
 import { AuthenticationModule } from './authentication/authentication.module';
+import { FeedbackModule } from './feedback/feedback.module';
+import { LegalDocumentModule } from './legal-document/legal-document.module';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { AuthenticationModule } from './authentication/authentication.module';
     PrismaModule,
     UserModule,
     AuthenticationModule,
+    FeedbackModule,
+    LegalDocumentModule,
   ],
   controllers: [AppController],
   providers: [
