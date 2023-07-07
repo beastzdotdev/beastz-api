@@ -3,10 +3,11 @@
 import { plainToInstance } from 'class-transformer';
 import { ClassConstructor } from 'class-transformer/types/interfaces';
 import { ValidationError } from 'class-validator';
+import { extname } from 'path';
 
-export function mapArray<T>(cls: ClassConstructor<T>, plain: Array<any>) {
-  return plain.map((item: any) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
-}
+export const plainArrayToInstance = <T>(cls: ClassConstructor<T>, plain: Array<unknown>): T[] => {
+  return clone<T[]>(plain).map((item: any) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
+};
 
 export function getBoolExact(value: unknown): boolean | null {
   const valueIsTrue = value === 'true' || value === true;
@@ -30,6 +31,7 @@ export function clone<T>(value: unknown): T {
 export function exists<T>(value: T): value is NonNullable<T> {
   return value != undefined && value != null && !Number.isNaN(value);
 }
+
 export function notExists<T>(value: T): boolean {
   return !exists(value);
 }
@@ -80,3 +82,16 @@ export function formatDate(date: Date) {
 
   return `${year}-${month}-${day}/${hours}:${minutes}`;
 }
+
+export const generateFileName = (req, file, callback) => {
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+
+  const fileExtName = extname(file.originalname);
+  const fileName = `${uniqueSuffix}${fileExtName || '.jpg'}`;
+
+  callback(null, fileName);
+};
+
+export const hasDuplicates = (array: Array<any>): boolean => {
+  return new Set(array).size !== array.length;
+};
