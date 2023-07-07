@@ -13,6 +13,10 @@ export class UserService {
     return this.userRepository.getByEmail(email);
   }
 
+  async getByEmailIncludeIdentity(email: string): Promise<UserWithRelations | null> {
+    return this.userRepository.getByEmailIncludeIdentity(email);
+  }
+
   async existsByEmail(email: string): Promise<boolean> {
     return this.userRepository.existsByEmail(email);
   }

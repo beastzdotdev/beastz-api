@@ -19,7 +19,7 @@ export class AccountVerificationService {
     const isVerified = await this.accountVerificationRepository.getIsVerifiedByUserId(userId);
 
     if (isVerified === undefined || isVerified === null) {
-      throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFFICATION_REQUEST_NOT_FOUND);
+      throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
     }
 
     return isVerified;

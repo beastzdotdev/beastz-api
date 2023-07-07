@@ -16,10 +16,15 @@ import { AccountVerificationService } from './modules/account-verification/accou
 import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
 import { RefreshTokenService } from './modules/refresh-token/refresh-token.service';
 import { UserIdentityService } from '../user-identity/user-identity.service';
+import { EnvService } from '../@global/env/env.service';
+import { InjectEnv } from '../@global/env/env.decorator';
 
 @Injectable()
 export class AuthenticationService {
   constructor(
+    @InjectEnv()
+    private readonly envService: EnvService,
+
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly encoderService: EncoderService,
@@ -57,26 +62,34 @@ export class AuthenticationService {
   }
 
   async signInWithToken(params: SignInParams): Promise<AuthenticationPayloadResponseDto> {
-    const user = await this.userService.getByEmail(params.email);
+    const user = await this.userService.getByEmailIncludeIdentity(params.email);
 
     if (!user) {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }
 
-    // const passwordMatches = await this.encoderService.matches(params.password, user.passwordHash);
+    if (!user.userIdentity) {
+      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
+    }
 
-    // if (!passwordMatches) {
-    //   throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
-    // }
+    const passwordMatches = await this.encoderService.matches(params.password, user.userIdentity.password);
 
-    const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
-      userId: user.id,
-    });
-    await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);
+    if (!passwordMatches) {
+      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
 
-    const hasEmailVerified = await this.accountVerificationService.getIsVerifiedByUserId(user.id);
+    const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({ userId: user.id });
 
-    return { accessToken, refreshToken, hasEmailVerified };
+    const [hasEmailVerified] = await Promise.all([
+      this.accountVerificationService.getIsVerifiedByUserId(user.id),
+      this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
+      hasEmailVerified,
+    };
   }
 
   async refreshToken(oldRefreshToken: string): Promise<AuthenticationPayloadResponseDto> {
@@ -130,7 +143,7 @@ export class AuthenticationService {
       oneTimeCode,
       userId: user.id,
       isVerified: false,
-      uuid: null,
+      uuid: genUUID(),
     });
 
     //TODO send one time code to user on mail
@@ -148,9 +161,12 @@ export class AuthenticationService {
     }
 
     // if 30 minute is passed
-    // if (Date.now() - recoverPasswordRequest.createdAt.getTime() > environment.recoverPasswordRequestTimeoutInMillis) {
-    //   throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_TIMED_OUT);
-    // }
+    if (
+      Date.now() - recoverPasswordRequest.createdAt.getTime() >
+      this.envService.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_MILLIS')
+    ) {
+      throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_TIMED_OUT);
+    }
 
     const uuid = genUUID();
 
@@ -173,7 +189,7 @@ export class AuthenticationService {
     const hashedPassword = await this.encoderService.encode(password);
 
     await this.recoverPasswordService.deleteById(uuid);
-    // await this.userService.updatePasswordById(recoverPasswordRequest.userId, hashedPassword);
+    await this.userIdentityService.updatePasswordById(recoverPasswordRequest.userId, hashedPassword);
   }
 
   async sendAccountVerificationCode(userId: number) {
@@ -188,17 +204,20 @@ export class AuthenticationService {
     const accountVerification = await this.accountVerificationService.getByUserId(userId);
 
     if (!accountVerification) {
-      throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFFICATION_REQUEST_NOT_FOUND);
+      throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
     }
 
     if (accountVerification.oneTimeCode !== code) {
-      throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFFICATION_REQUEST_INVALID_CODE);
+      throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_INVALID_CODE);
     }
 
     // if 30 minute is passed
-    // if (Date.now() - accountVerification.createdAt.getTime() > environment.accountVerificationRequestTimeoutInMillis) {
-    //   throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFFICATION_REQUEST_TIMED_OUT);
-    // }
+    if (
+      Date.now() - accountVerification.createdAt.getTime() >
+      this.envService.get('ACCOUNT_VERIFICATION_REQUEST_TIMEOUT_IN_MILLIS')
+    ) {
+      throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_TIMED_OUT);
+    }
 
     await this.accountVerificationService.updateIsVerified(userId, true);
   }

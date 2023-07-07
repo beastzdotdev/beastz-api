@@ -11,6 +11,13 @@ export class UserRepository {
     return this.prismaService.user.findUnique({ where: { email } });
   }
 
+  async getByEmailIncludeIdentity(email: string): Promise<UserWithRelations | null> {
+    return this.prismaService.user.findUnique({
+      where: { email },
+      include: { userIdentity: true },
+    });
+  }
+
   async existsByEmail(email: string): Promise<boolean> {
     const count = await this.prismaService.user.count({ where: { email } });
 

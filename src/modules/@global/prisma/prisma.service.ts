@@ -21,23 +21,34 @@ export class PrismaService
         },
       },
       log: [
-        'warn',
-        'error',
         {
           emit: 'event',
           level: 'info',
+        },
+        {
+          emit: 'event',
+          level: 'warn',
+        },
+        {
+          emit: 'event',
+          level: 'error',
         },
       ],
     };
 
     if (envService.get('DATABASE_LOG_QUERY')) {
-      config.log?.push('query');
+      config.log?.push({
+        emit: 'event',
+        level: 'query',
+      });
     }
 
     super(config);
   }
 
   async onModuleInit() {
+    //TODO save this logs in database
+
     await this.$connect().then(async () => {
       this.logger.verbose('Database connection successfull');
       this.logger.verbose('Database log query enabled: ' + this.envService.get('DATABASE_LOG_QUERY'));
@@ -45,6 +56,14 @@ export class PrismaService
 
     this.$on('info', e => {
       this.logger.verbose(e.message);
+    });
+
+    this.$on('warn', e => {
+      this.logger.warn(e.message);
+    });
+
+    this.$on('error', e => {
+      this.logger.error(e.message);
     });
 
     if (this.envService.get('DATABASE_LOG_QUERY')) {
