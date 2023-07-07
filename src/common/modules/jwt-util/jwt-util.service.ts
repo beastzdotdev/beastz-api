@@ -7,6 +7,7 @@ import { ExceptionMessageCode } from '../../../exceptions/exception-message-code
 import { UserPayload } from '../../../model/user-payload.type';
 import { InjectEnv } from '../../../modules/@global/env/env.decorator';
 import { EnvService } from '../../../modules/@global/env/env.service';
+import { DecodedJwtPayload } from './jwt-util.type';
 
 @Injectable()
 export class JwtUtilService {
@@ -20,7 +21,7 @@ export class JwtUtilService {
     refreshToken: string;
   } {
     return {
-      accessToken: jwt.sign(payload, this.envService.get('ACCESS_TOKEN_EXPIRATION').toString(), {
+      accessToken: jwt.sign(payload, this.envService.get('ACCESS_TOKEN_SECRET').toString(), {
         expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION'),
       }),
       refreshToken: jwt.sign(payload, this.envService.get('REFRESH_TOKEN_SECRET').toString(), {
@@ -34,9 +35,7 @@ export class JwtUtilService {
       return false;
     }
     try {
-      jwt.verify(token, this.envService.get('REFRESH_TOKEN_SECRET'), {
-        ignoreExpiration: false,
-      });
+      jwt.verify(token, this.envService.get('REFRESH_TOKEN_SECRET'), { ignoreExpiration: false });
 
       return true;
     } catch (_) {}
@@ -49,15 +48,7 @@ export class JwtUtilService {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    jwt.verify(refreshToken, this.envService.get('REFRESH_TOKEN_SECRET'), (err: jwt.VerifyErrors | null) => {
-      if (err instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedException(ExceptionMessageCode.EXPIRED_TOKEN);
-      }
-
-      if (err) {
-        throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-      }
-    });
+    jwt.verify(refreshToken, this.envService.get('REFRESH_TOKEN_SECRET'), this.jwtVerifyError);
 
     return true;
   }
@@ -67,21 +58,13 @@ export class JwtUtilService {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    jwt.verify(accessToken, this.envService.get('ACCESS_TOKEN_SECRET'), (err: jwt.VerifyErrors | null) => {
-      if (err instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedException(ExceptionMessageCode.EXPIRED_TOKEN);
-      }
-
-      if (err) {
-        throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-      }
-    });
+    jwt.verify(accessToken, this.envService.get('ACCESS_TOKEN_SECRET'), this.jwtVerifyError);
 
     return true;
   }
 
-  getUserPayload(jwtToken: string): UserPayload | null {
-    const payload = jwt.decode(jwtToken, { json: true }) as (jwt.JwtPayload & JwtPayload) | null;
+  getUserPayload(token: string): UserPayload | null {
+    const payload = <DecodedJwtPayload>jwt.decode(token, { json: true });
 
     if (
       !payload ||
@@ -102,8 +85,7 @@ export class JwtUtilService {
 
   userSocketPayload(socket: Socket): UserPayload {
     const token = socket.handshake?.auth?.token;
-
-    const payload = jwt.decode(token, { json: true }) as (jwt.JwtPayload & JwtPayload) | null;
+    const payload = <DecodedJwtPayload>jwt.decode(token, { json: true });
 
     if (!payload) {
       throw new InternalServerErrorException('Something went wrong with socket payload decode');
@@ -114,5 +96,23 @@ export class JwtUtilService {
       expirationTime: payload?.exp,
       issuedAt: payload?.iat,
     };
+  }
+
+  private jwtVerifyError(err: jwt.VerifyErrors | null) {
+    if (err instanceof jwt.TokenExpiredError) {
+      throw new UnauthorizedException(ExceptionMessageCode.EXPIRED_TOKEN);
+    }
+
+    if (err instanceof jwt.NotBeforeError) {
+      throw new UnauthorizedException(ExceptionMessageCode.NOT_BEFORE_CLAIM_TOKEN);
+    }
+
+    if (err instanceof jwt.JsonWebTokenError) {
+      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
+    }
+
+    if (err) {
+      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
+    }
   }
 }

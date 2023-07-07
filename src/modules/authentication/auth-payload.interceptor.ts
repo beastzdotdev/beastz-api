@@ -7,7 +7,7 @@ import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
 export class AuthPayloadInterceptor implements NestInterceptor {
   constructor(private readonly jwtUtilService: JwtUtilService) {}
 
-  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     const request = context.switchToHttp().getRequest<AuthPayloadRequest>();
 
     const authorizationHeader = request.headers['authorization'] || request.headers['Authorization'];

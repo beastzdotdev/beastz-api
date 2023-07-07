@@ -27,6 +27,7 @@ export class AuthenticationController {
   }
 
   @NoAuth()
+  @HttpCode(HttpStatus.OK)
   @Post('sign-in')
   async signIn(@Body() body: SignInBodyDto): Promise<AuthenticationPayloadResponseDto> {
     return this.authenticationService.signInWithToken(body);

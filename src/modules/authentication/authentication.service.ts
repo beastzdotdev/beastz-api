@@ -15,6 +15,7 @@ import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
 import { AccountVerificationService } from './modules/account-verification/account-verification.service';
 import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
 import { RefreshTokenService } from './modules/refresh-token/refresh-token.service';
+import { UserIdentityService } from '../user-identity/user-identity.service';
 
 @Injectable()
 export class AuthenticationService {
@@ -26,6 +27,7 @@ export class AuthenticationService {
     private readonly randomService: RandomService,
     private readonly recoverPasswordService: RecoverPasswordService,
     private readonly accountVerificationService: AccountVerificationService,
+    private readonly userIdentityService: UserIdentityService,
   ) {}
 
   async signUpWithToken(params: SignUpWithTokenParams): Promise<AuthenticationPayloadResponseDto> {
@@ -35,17 +37,21 @@ export class AuthenticationService {
 
     const { password, ...otherParams } = params;
     const hashedPassword = await this.encoderService.encode(password);
+
     const user = await this.userService.create({
       ...otherParams,
       isOnline: false,
       profileImagePath: null,
     });
-    // passwordHash: hashedPassword,
 
     const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
       userId: user.id,
     });
-    await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);
+
+    await Promise.all([
+      this.userIdentityService.create({ password: hashedPassword, userId: user.id }),
+      this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken),
+    ]);
 
     return { accessToken, refreshToken, hasEmailVerified: false };
   }

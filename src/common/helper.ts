@@ -92,6 +92,6 @@ export const generateFileName = (req, file, callback) => {
   callback(null, fileName);
 };
 
-export const hasDuplicates = (array: Array<any>): boolean => {
+export const hasDuplicates = (array: Array<unknown>): boolean => {
   return new Set(array).size !== array.length;
 };

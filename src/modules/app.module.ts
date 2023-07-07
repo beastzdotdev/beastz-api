@@ -9,9 +9,17 @@ import { VerifiedEmailValidatorGuard } from './authentication/guard/verified-ema
 import { JwtUtilModule } from '../common/modules/jwt-util/jwt-util.module';
 import { UserModule } from './user/user.module';
 import { AccountVerificationModule } from './authentication/modules/account-verification/account-verification.module';
+import { AuthenticationModule } from './authentication/authentication.module';
 
 @Module({
-  imports: [EnvModule.forRoot(), JwtUtilModule, AccountVerificationModule, PrismaModule, UserModule],
+  imports: [
+    EnvModule.forRoot(),
+    JwtUtilModule,
+    AccountVerificationModule,
+    PrismaModule,
+    UserModule,
+    AuthenticationModule,
+  ],
   controllers: [AppController],
   providers: [
     {

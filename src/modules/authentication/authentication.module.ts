@@ -8,6 +8,7 @@ import { JwtUtilModule } from '../../common/modules/jwt-util/jwt-util.module';
 import { AccountVerificationModule } from './modules/account-verification/account-verification.module';
 import { RecoverPasswordModule } from './modules/recover-password/recover-password.module';
 import { RefreshTokenModule } from './modules/refresh-token/refresh-tokem.module';
+import { UserIdentityModule } from '../user-identity/user-identity.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RefreshTokenModule } from './modules/refresh-token/refresh-tokem.module
     AccountVerificationModule,
     RandomModule,
     EncoderModule,
+    UserIdentityModule,
   ],
   controllers: [AuthenticationController],
   providers: [AuthenticationService],

@@ -31,7 +31,7 @@ export const ApiFiles = (fieldName: string) => {
 };
 
 class FileToBodyInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest();
 
     if (req.body && req.file?.fieldname) {

@@ -1,7 +1,7 @@
 import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength, MinLength } from '@nestjs/class-validator';
 import { Gender } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEmailCustom } from '../../../decorator/validation/is-email.decorator';
+import { IsEmailCustom } from '../../../decorator/class-validator.decorator';
 
 export class SignUpBodyDto {
   @IsNotEmpty()

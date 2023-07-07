@@ -1,5 +1,5 @@
 import { IsString, MaxLength, MinLength } from '@nestjs/class-validator';
-import { IsEmailCustom } from '../../../decorator/validation/is-email.decorator';
+import { IsEmailCustom } from '../../../decorator/class-validator.decorator';
 
 export class SignInBodyDto {
   @IsString()
