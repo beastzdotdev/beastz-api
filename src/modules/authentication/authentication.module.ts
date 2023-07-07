@@ -2,13 +2,12 @@ import { Module } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import { AuthenticationController } from './autnentication.controller';
 import { UserModule } from '../user/user.module';
-import { RecoverPasswordModule } from './recover-password/recover-password.module';
-import { AccountVerificationModule } from './account-verification/account-verification.module';
 import { RandomModule } from '../../common/modules/random/random.module';
-import { UserIdentityModule } from './user-identity/user-identity.module';
 import { EncoderModule } from '../../common/modules/encoder/encoder.module';
 import { JwtUtilModule } from '../../common/modules/jwt-util/jwt-util.module';
-import { RefreshTokenModule } from './refresh-token/refresh-tokem.module';
+import { AccountVerificationModule } from './modules/account-verification/account-verification.module';
+import { RecoverPasswordModule } from './modules/recover-password/recover-password.module';
+import { RefreshTokenModule } from './modules/refresh-token/refresh-tokem.module';
 
 @Module({
   imports: [
@@ -18,7 +17,6 @@ import { RefreshTokenModule } from './refresh-token/refresh-tokem.module';
     RecoverPasswordModule,
     AccountVerificationModule,
     RandomModule,
-    UserIdentityModule,
     EncoderModule,
   ],
   controllers: [AuthenticationController],

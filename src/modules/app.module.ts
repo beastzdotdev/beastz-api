@@ -7,8 +7,8 @@ import { AuthPayloadInterceptor } from './authentication/auth-payload.intercepto
 import { JwtAuthGuard } from './authentication/guard/jwt-auth.guard';
 import { VerifiedEmailValidatorGuard } from './authentication/guard/verified-email-validator.guard';
 import { JwtUtilModule } from '../common/modules/jwt-util/jwt-util.module';
-import { AccountVerificationModule } from './authentication/account-verification/account-verification.module';
 import { UserModule } from './user/user.module';
+import { AccountVerificationModule } from './authentication/modules/account-verification/account-verification.module';
 
 @Module({
   imports: [EnvModule.forRoot(), JwtUtilModule, AccountVerificationModule, PrismaModule, UserModule],

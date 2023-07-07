@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AccountVerificationParams } from './account-verification.type';
-import { PrismaService } from '../../@global/prisma/prisma.service';
+import { PrismaService } from '../../../@global/prisma/prisma.service';
 
 @Injectable()
 export class AccountVerificationRepository {

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RecoverPassword } from '@prisma/client';
 import { CreateRecoverPasswordParams, UpdateRecoverPasswordParams } from './recover-password.type';
-import { PrismaService } from '../../@global/prisma/prisma.service';
+import { PrismaService } from '../../../@global/prisma/prisma.service';
 
 @Injectable()
 export class RecoverPasswordRepository {

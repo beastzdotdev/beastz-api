@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable, NotFoundException, UnauthorizedExceptio
 import { v4 as genUUID } from 'uuid';
 import { ExceptionMessageCode } from '../../exceptions/exception-message-code.enum';
 import { UserService } from '../user/user.service';
-import { AccountVerificationService } from './account-verification/account-verification.service';
 import { AuthenticationPayloadResponseDto } from './dto';
 import {
   RecoverPasswordConfirmCodeParams,
@@ -10,11 +9,12 @@ import {
   SignInParams,
   SignUpWithTokenParams,
 } from './authentication.types';
-import { RecoverPasswordService } from './recover-password/recover-password.service';
 import { RandomService } from '../../common/modules/random/random.service';
 import { EncoderService } from '../../common/modules/encoder/encoder.service';
 import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
-import { RefreshTokenService } from './refresh-token/refresh-token.service';
+import { AccountVerificationService } from './modules/account-verification/account-verification.service';
+import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
+import { RefreshTokenService } from './modules/refresh-token/refresh-token.service';
 
 @Injectable()
 export class AuthenticationService {
