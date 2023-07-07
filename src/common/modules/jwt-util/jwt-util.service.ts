@@ -2,12 +2,11 @@ import * as jwt from 'jsonwebtoken';
 
 import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { Socket } from 'socket.io';
-import { JwtPayload } from '../../../model/jwt-payload.type';
-import { ExceptionMessageCode } from '../../../exceptions/exception-message-code.enum';
-import { UserPayload } from '../../../model/user-payload.type';
+import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { InjectEnv } from '../../../modules/@global/env/env.decorator';
 import { EnvService } from '../../../modules/@global/env/env.service';
 import { DecodedJwtPayload } from './jwt-util.type';
+import { JwtPayload, UserPayload } from '../../../model/auth.types';
 
 @Injectable()
 export class JwtUtilService {

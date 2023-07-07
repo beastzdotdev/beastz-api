@@ -1,0 +1,5 @@
+export enum PrismaExceptionCode {
+  ENTITY_NOT_FOUND = 'P2025',
+  FR_KEY_CONSTRAINT_FAILED = 'P2003',
+  UNIQUE_CONSTRAINT_FAILED = 'P2002',
+}

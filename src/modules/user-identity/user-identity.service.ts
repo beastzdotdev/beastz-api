@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserIdentityRepository } from './user-identity.repository';
 import { CreateUserIdentityParams } from './user-identity.type';
-import { ExceptionMessageCode } from '../../exceptions/exception-message-code.enum';
+import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 
 @Injectable()
 export class UserIdentityService {

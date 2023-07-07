@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { Reflector } from '@nestjs/core';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { NO_EMAIL_VERIFY_VALIDATE } from '../../../decorator/no-email-verify-validate.decorator';
-import { ExceptionMessageCode } from '../../../exceptions/exception-message-code.enum';
+import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { JwtUtilService } from '../../../common/modules/jwt-util/jwt-util.service';
 import { AccountVerificationService } from '../modules/account-verification/account-verification.service';
 

@@ -3,3 +3,7 @@ export type UserPayload = {
   issuedAt?: number;
   expirationTime?: number;
 };
+
+export type JwtPayload = {
+  userId: number;
+};

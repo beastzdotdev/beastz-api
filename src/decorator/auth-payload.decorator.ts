@@ -1,10 +1,11 @@
 import { BadRequestException, createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { ExceptionMessageCode } from '../exceptions/exception-message-code.enum';
-import { UserPayload } from '../model/user-payload.type';
+import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
+import { UserPayload } from '../model/auth.types';
+import { Request } from 'express';
 
-export interface AuthPayloadRequest extends Request {
+export type AuthPayloadRequest = Request & {
   userPayload: UserPayload | null;
-}
+};
 
 export const AuthPayload = createParamDecorator((_: never, context: ExecutionContext) => {
   const request = context.switchToHttp().getRequest<AuthPayloadRequest>();

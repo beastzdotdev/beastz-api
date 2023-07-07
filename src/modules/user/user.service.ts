@@ -1,7 +1,7 @@
 import { User } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
-import { ExceptionMessageCode } from '../../exceptions/exception-message-code.enum';
+import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
 import { RandomService } from '../../common/modules/random/random.service';
 

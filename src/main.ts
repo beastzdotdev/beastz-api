@@ -6,7 +6,6 @@ import { Logger } from '@nestjs/common';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 
-//TODO Copy auth from cards-backend but not use @nestjs/jwt not needed and move refresh token to separate module
 //TODO Implement lock in user (add locked in user identity table)
 //TODO verify all stuff for jwt https://www.npmjs.com/package/jsonwebtoken
 

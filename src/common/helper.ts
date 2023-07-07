@@ -1,13 +1,41 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
+import { InternalServerErrorException } from '@nestjs/common';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { plainToInstance } from 'class-transformer';
 import { ClassConstructor } from 'class-transformer/types/interfaces';
 import { ValidationError } from 'class-validator';
+import { Request } from 'express';
 import { extname } from 'path';
+import { match } from 'ts-pattern';
+import { SafeCallResult, ExceptionType } from '../model/types';
+import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 
-export const plainArrayToInstance = <T>(cls: ClassConstructor<T>, plain: Array<unknown>): T[] => {
+export async function prismaSafeCall<T>(call: () => T): Promise<SafeCallResult<T>> {
+  try {
+    const t = await call();
+
+    return { success: true, data: t, error: null };
+  } catch (e) {
+    if (!(e instanceof PrismaClientKnownRequestError)) {
+      throw new InternalServerErrorException();
+    }
+
+    const errorCode = match<string, ExceptionType | null>(e.code)
+      .with(PrismaExceptionCode.ENTITY_NOT_FOUND, () => 'ENTITY_NOT_FOUND')
+      .with(PrismaExceptionCode.FR_KEY_CONSTRAINT_FAILED, () => 'FR_KEY_CONSTRAINT_FAILED')
+      .with(PrismaExceptionCode.UNIQUE_CONSTRAINT_FAILED, () => 'UNIQUE_CONSTRAINT_FAILED')
+      .otherwise(() => null);
+
+    if (!errorCode) {
+      throw new InternalServerErrorException();
+    }
+
+    return { success: false, data: null, error: errorCode };
+  }
+}
+
+export function plainArrayToInstance<T>(cls: ClassConstructor<T>, plain: Array<unknown>): T[] {
   return clone<T[]>(plain).map((item: any) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
-};
+}
 
 export function getBoolExact(value: unknown): boolean | null {
   const valueIsTrue = value === 'true' || value === true;
@@ -53,6 +81,10 @@ export function removeDuplicates<T>(arr: T[]): T[] {
   return [...new Set(arr)];
 }
 
+export function hasDuplicates(array: Array<unknown>): boolean {
+  return new Set(array).size !== array.length;
+}
+
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -83,15 +115,15 @@ export function formatDate(date: Date) {
   return `${year}-${month}-${day}/${hours}:${minutes}`;
 }
 
-export const generateFileName = (req, file, callback) => {
+export function generateFileName(
+  _: Request,
+  file: Express.Multer.File,
+  callback: (e: Error | null, f: string) => void,
+) {
   const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
 
   const fileExtName = extname(file.originalname);
   const fileName = `${uniqueSuffix}${fileExtName || '.jpg'}`;
 
   callback(null, fileName);
-};
-
-export const hasDuplicates = (array: Array<unknown>): boolean => {
-  return new Set(array).size !== array.length;
-};
+}

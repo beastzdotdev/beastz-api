@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
-import { ExceptionMessageCode } from '../../../exceptions/exception-message-code.enum';
+import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { JwtUtilService } from '../../../common/modules/jwt-util/jwt-util.service';
 
 @Injectable()

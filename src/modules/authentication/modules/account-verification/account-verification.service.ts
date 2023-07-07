@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccountVerificationRepository } from './account-verification.repository';
 import { AccountVerificationParams } from './account-verification.type';
-import { ExceptionMessageCode } from '../../../../exceptions/exception-message-code.enum';
+import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
 
 @Injectable()
 export class AccountVerificationService {

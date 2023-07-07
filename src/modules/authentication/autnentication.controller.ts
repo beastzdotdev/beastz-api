@@ -12,9 +12,9 @@ import {
   SignUpBodyDto,
 } from './dto';
 import { RecoverpasswordConfirmCodePayloadDto } from './dto/recover-password-confirm-code-payload.dto';
-import { UserPayload } from '../../model/user-payload.type';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
+import { UserPayload } from '../../model/auth.types';
 
 @Controller('authentication')
 export class AuthenticationController {

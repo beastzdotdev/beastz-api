@@ -1,4 +1,4 @@
 import * as jwt from 'jsonwebtoken';
-import { JwtPayload } from '../../../model/jwt-payload.type';
+import { JwtPayload } from '../../../model/auth.types';
 
 export type DecodedJwtPayload = (jwt.JwtPayload & JwtPayload) | null;

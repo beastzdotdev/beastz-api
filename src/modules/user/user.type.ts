@@ -1,6 +1,5 @@
 import { Prisma, User, UserIdentity } from '@prisma/client';
-import { PageOptionParams } from '../../model/page-options.type';
-import { PartialBy } from '../../common/types';
+import { PageOptionParams, PartialBy } from '../../model/types';
 
 export type GetUsersParams = { searchQuery?: string; excludeId: number } & PageOptionParams;
 

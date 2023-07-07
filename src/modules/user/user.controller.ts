@@ -3,9 +3,9 @@ import { plainToInstance } from 'class-transformer';
 import { UpdateUserBodyDto } from './dto/update-user-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
-import { UserPayload } from '../../model/user-payload.type';
 import { ApiFile } from '../../decorator/api-file.decorator';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
+import { UserPayload } from '../../model/auth.types';
 
 @Controller('user')
 export class UserController {

@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { v4 as genUUID } from 'uuid';
-import { ExceptionMessageCode } from '../../exceptions/exception-message-code.enum';
+import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
 import { AuthenticationPayloadResponseDto } from './dto';
 import {
