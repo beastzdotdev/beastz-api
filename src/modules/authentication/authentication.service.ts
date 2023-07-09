@@ -51,6 +51,7 @@ export class AuthenticationService {
 
     const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
       userId: user.id,
+      email: params.email,
     });
 
     await Promise.all([
@@ -78,7 +79,10 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }
 
-    const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({ userId: user.id });
+    const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
+      userId: user.id,
+      email: params.email,
+    });
 
     const [hasEmailVerified] = await Promise.all([
       this.accountVerificationService.getIsVerifiedByUserId(user.id),
@@ -93,12 +97,8 @@ export class AuthenticationService {
   }
 
   async refreshToken(oldRefreshToken: string): Promise<AuthenticationPayloadResponseDto> {
-    //TODO check only for token validity (not for expiration !) ↓
-    const isRefreshTokenValid = await this.jwtUtilService.isRefreshTokenValid(oldRefreshToken);
-
-    if (!isRefreshTokenValid) {
-      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-    }
+    // check only for token validity (not for expiration to check if something fishy is going on)
+    await this.jwtUtilService.validateRefreshTokenBasic(oldRefreshToken, { ignoreExpiration: true });
 
     const userId = await this.refreshTokenService.getUserIdByRefreshToken(oldRefreshToken);
 
@@ -123,6 +123,7 @@ export class AuthenticationService {
 
     const { accessToken, refreshToken } = this.jwtUtilService.generateAuthenticationTokens({
       userId: user.id,
+      email: user.email,
     });
     await this.refreshTokenService.deleteRefreshToken(oldRefreshToken);
     await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);

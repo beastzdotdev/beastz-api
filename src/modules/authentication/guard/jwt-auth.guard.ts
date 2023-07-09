@@ -8,7 +8,7 @@ import { JwtUtilService } from '../../../common/modules/jwt-util/jwt-util.servic
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly reflector: Reflector, private readonly jwtUtilService: JwtUtilService) {}
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext) {
     const noAuth = this.reflector.getAllAndOverride<boolean>(NO_AUTH_KEY, [context.getHandler(), context.getClass()]);
 
     if (noAuth) {
@@ -29,6 +29,8 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    return this.jwtUtilService.validateAccessToken(accessToken);
+    await this.jwtUtilService.validateAccessToken(accessToken);
+
+    return true;
   }
 }

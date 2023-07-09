@@ -1,4 +1,13 @@
 import * as jwt from 'jsonwebtoken';
-import { JwtPayload } from '../../../model/auth.types';
+import { AuthTokenPayload } from '../../../model/auth.types';
 
-export type DecodedJwtPayload = (jwt.JwtPayload & JwtPayload) | null;
+export type RefreshTokenPayload = jwt.JwtPayload &
+  AuthTokenPayload & {
+    exp: number;
+    sub: string;
+    iss: string;
+    iat: number;
+    jti: string;
+  };
+
+export type DecodedJwtPayload = RefreshTokenPayload | null;

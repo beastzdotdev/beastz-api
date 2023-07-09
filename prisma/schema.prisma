@@ -7,6 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PlatformForJwt {
+  WEB
+  MOB_IOS
+  MOB_ANDROID
+
+  @@map("platform_for_jwt")
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -65,14 +73,22 @@ model UserIdentity {
 }
 
 model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  value     String
-  createdAt DateTime @default(now()) @map("created_at")
+  id                 Int            @id @default(autoincrement())
+  userId             Int            @map("user_id")
+  token              String
+  sub                String
+  iss                String
+  platform           PlatformForJwt
+  exp                String
+  jti                String         @unique @db.Uuid()
+  iat                String
+  isUsed             Boolean        @default(false) @map("is_used")
+  secretKeyEncrypted String         @map("secret_key_encrypted") @db.VarChar(255)
+  createdAt          DateTime       @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
-  @@index([value], type: Hash)
+  @@index([jti], type: BTree)
   @@map("refresh_tokens")
 }
 
@@ -93,7 +109,7 @@ model RecoverPassword {
   userId      Int      @unique @map("user_id")
   oneTimeCode Int      @map("one_time_code")
   isVerified  Boolean  @default(false) @map("is_verified")
-  uuid        String?  @unique @db.VarChar(255)
+  uuid        String?  @unique @db.Uuid()
   createdAt   DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])

@@ -1,12 +1,15 @@
 import * as jwt from 'jsonwebtoken';
+import { v4 as uuid } from 'uuid';
 
 import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { InjectEnv } from '../../../modules/@global/env/env.decorator';
 import { EnvService } from '../../../modules/@global/env/env.service';
-import { DecodedJwtPayload } from './jwt-util.type';
-import { JwtPayload, UserPayload } from '../../../model/auth.types';
+import { DecodedJwtPayload, RefreshTokenPayload } from './jwt-util.type';
+import { AuthTokenPayload, UserPayload } from '../../../model/auth.types';
+import { Constants } from '../../constants';
+import { PlatformForJwt } from '@prisma/client';
 
 @Injectable()
 export class JwtUtilService {
@@ -15,51 +18,112 @@ export class JwtUtilService {
     private readonly envService: EnvService,
   ) {}
 
-  generateAuthenticationTokens(payload: JwtPayload): {
+  generateAuthenticationTokens(params: { userId: number; email: string }): {
     accessToken: string;
     refreshToken: string;
+    refreshTokenPayload: {
+      jti: string;
+      exp: string;
+      sub: string;
+      iat: string;
+      iss: string;
+      platform: string;
+    };
   } {
+    const authTokenPayload: AuthTokenPayload = {
+      userId: params.userId,
+      platform: PlatformForJwt.WEB,
+    };
+
+    const accessToken = jwt.sign(authTokenPayload, this.envService.get('ACCESS_TOKEN_SECRET').toString(), {
+      expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION'),
+      algorithm: 'HS256',
+      issuer: Constants.JWT_ISSUER,
+      subject: params.email,
+    });
+
+    const refreshToken = jwt.sign(authTokenPayload, this.envService.get('REFRESH_TOKEN_SECRET').toString(), {
+      expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION'),
+      algorithm: 'HS256',
+      issuer: Constants.JWT_ISSUER,
+      subject: params.email,
+      jwtid: uuid(),
+    });
+
+    const refreshTokenPayload = <RefreshTokenPayload>jwt.decode(refreshToken, { json: true });
+
+    //TODO rename jwt-util.type.ts all payloads to access and refresh and remove |null
+    //TODO get make multiple payload methods each for access and refresh and return what they consist
+
     return {
-      accessToken: jwt.sign(payload, this.envService.get('ACCESS_TOKEN_SECRET').toString(), {
-        expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION'),
-      }),
-      refreshToken: jwt.sign(payload, this.envService.get('REFRESH_TOKEN_SECRET').toString(), {
-        expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION'),
-      }),
+      refreshTokenPayload: {
+        jti: refreshTokenPayload.jti,
+        exp: refreshTokenPayload.exp.toString(),
+        sub: refreshTokenPayload.sub,
+        iss: refreshTokenPayload.iss,
+        iat: refreshTokenPayload.iat.toString(),
+        platform: refreshTokenPayload.platform,
+      },
+      accessToken,
+      refreshToken,
     };
   }
 
-  async isRefreshTokenValid(token: string): Promise<boolean> {
+  async validateRefreshTokenBasic(token: string, options?: jwt.VerifyOptions): Promise<void> {
     if (!token) {
-      return false;
-    }
-    try {
-      jwt.verify(token, this.envService.get('REFRESH_TOKEN_SECRET'), { ignoreExpiration: false });
-
-      return true;
-    } catch (_) {}
-
-    return false;
-  }
-
-  async validateRefreshToken(refreshToken: string): Promise<boolean> {
-    if (!refreshToken) {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    jwt.verify(refreshToken, this.envService.get('REFRESH_TOKEN_SECRET'), this.jwtVerifyError);
+    const secret = this.envService.get('REFRESH_TOKEN_SECRET');
 
-    return true;
+    // Verify just for payload
+    jwt.verify(token, secret, this.jwtVerifyError);
   }
 
-  async validateAccessToken(accessToken: string): Promise<boolean> {
-    if (!accessToken) {
+  // async validateRefreshTokenFull(token: string, options?: jwt.VerifyOptions): Promise<void> {
+  //   if (!token) {
+  //     throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
+  //   }
+
+  //   const secret = this.envService.get('REFRESH_TOKEN_SECRET');
+  //   const jwtPayload = this.getUserPayload(token);
+
+  //   jwt.verify(
+  //     token,
+  //     secret,
+  //     {
+  //       algorithms: ['HS256'],
+  //       issuer: Constants.JWT_ISSUER,
+  //       subject: jwtPayload?.sub,
+  //       ...options,
+  //     },
+  //     this.jwtVerifyError,
+  //   );
+  // }
+
+  async validateAccessToken(token: string): Promise<void> {
+    if (!token) {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    jwt.verify(accessToken, this.envService.get('ACCESS_TOKEN_SECRET'), this.jwtVerifyError);
+    const secret = this.envService.get('ACCESS_TOKEN_SECRET');
 
-    return true;
+    // Verify just for payload
+    jwt.verify(token, secret, this.jwtVerifyError);
+
+    const jwtPayload = this.getUserPayload(token);
+
+    // Verify registered claim names
+    jwt.verify(
+      token,
+      secret,
+      {
+        algorithms: ['HS256'],
+        issuer: Constants.JWT_ISSUER,
+        subject: jwtPayload?.sub,
+      },
+      this.jwtVerifyError,
+    );
   }
 
   getUserPayload(token: string): UserPayload | null {
@@ -70,12 +134,15 @@ export class JwtUtilService {
       typeof payload !== 'object' ||
       typeof payload?.userId !== 'number' ||
       typeof payload?.iat !== 'number' ||
-      typeof payload?.exp !== 'number'
+      typeof payload?.exp !== 'number' ||
+      !payload?.iss ||
+      !payload?.sub
     ) {
       return null;
     }
 
     return {
+      sub: payload.sub as string,
       userId: payload.userId,
       issuedAt: payload.iat,
       expirationTime: payload.exp,
@@ -91,6 +158,7 @@ export class JwtUtilService {
     }
 
     return {
+      sub: payload.sub as string,
       userId: payload?.userId,
       expirationTime: payload?.exp,
       issuedAt: payload?.iat,
