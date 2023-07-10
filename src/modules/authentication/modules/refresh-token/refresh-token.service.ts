@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RefreshTokenRepository } from './refresh-token.repository';
+import { CreateRefreshTokenParams } from './refresh-token.type';
 
 @Injectable()
 export class RefreshTokenService {
@@ -19,11 +20,8 @@ export class RefreshTokenService {
     return this.refreshTokenRepository.deleteAllByUserId(userId);
   }
 
-  async addRefreshTokenByUserId(userId: number, value: string) {
-    await this.refreshTokenRepository.createEntity({
-      userId,
-      value,
-    });
+  async addRefreshTokenByUserId(params: CreateRefreshTokenParams) {
+    await this.refreshTokenRepository.createEntity(params);
   }
 
   async deleteRefreshToken(refreshToken: string) {

@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class RandomService {
-  private static readonly ASCII =
+  static readonly ASCII =
     '!"#$%&\'()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz0123456789{|}~';
-  private static readonly HEX = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  static readonly HEX = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
   generateRandomASCII(length: number): string {
     return this.generateRandomString(length, RandomService.ASCII, RandomService.ASCII.length);

@@ -28,7 +28,7 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
-  REFRESH_TOKEN_SECRET: string;
+  REFRESH_TOKEN_ENCRYPTION_SECRET: string;
 
   @IsNotEmpty()
   @Type(() => Number)

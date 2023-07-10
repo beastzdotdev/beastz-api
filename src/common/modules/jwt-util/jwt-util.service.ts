@@ -1,15 +1,20 @@
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
 
-import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
-import { Socket } from 'socket.io';
+import { isObject } from '@nestjs/class-validator';
+import { PlatformForJwt } from '@prisma/client';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { InjectEnv } from '../../../modules/@global/env/env.decorator';
 import { EnvService } from '../../../modules/@global/env/env.service';
-import { DecodedJwtPayload, RefreshTokenPayload } from './jwt-util.type';
-import { AuthTokenPayload, UserPayload } from '../../../model/auth.types';
+import { AuthTokenPayload } from '../../../model/auth.types';
 import { Constants } from '../../constants';
-import { PlatformForJwt } from '@prisma/client';
+import {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+  ValidateAccesssTokenPayload,
+  ValidateRefreshTokenPayload,
+} from './jwt-util.type';
 
 @Injectable()
 export class JwtUtilService {
@@ -18,151 +23,141 @@ export class JwtUtilService {
     private readonly envService: EnvService,
   ) {}
 
-  generateAuthenticationTokens(params: { userId: number; email: string }): {
-    accessToken: string;
-    refreshToken: string;
-    refreshTokenPayload: {
-      jti: string;
-      exp: string;
-      sub: string;
-      iat: string;
-      iss: string;
-      platform: string;
-    };
-  } {
-    const authTokenPayload: AuthTokenPayload = {
-      userId: params.userId,
-      platform: PlatformForJwt.WEB,
-    };
-
-    const accessToken = jwt.sign(authTokenPayload, this.envService.get('ACCESS_TOKEN_SECRET').toString(), {
-      expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION'),
-      algorithm: 'HS256',
-      issuer: Constants.JWT_ISSUER,
-      subject: params.email,
-    });
-
-    const refreshToken = jwt.sign(authTokenPayload, this.envService.get('REFRESH_TOKEN_SECRET').toString(), {
-      expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION'),
-      algorithm: 'HS256',
-      issuer: Constants.JWT_ISSUER,
-      subject: params.email,
-      jwtid: uuid(),
-    });
-
-    const refreshTokenPayload = <RefreshTokenPayload>jwt.decode(refreshToken, { json: true });
-
-    //TODO rename jwt-util.type.ts all payloads to access and refresh and remove |null
-    //TODO get make multiple payload methods each for access and refresh and return what they consist
-
-    return {
-      refreshTokenPayload: {
-        jti: refreshTokenPayload.jti,
-        exp: refreshTokenPayload.exp.toString(),
-        sub: refreshTokenPayload.sub,
-        iss: refreshTokenPayload.iss,
-        iat: refreshTokenPayload.iat.toString(),
-        platform: refreshTokenPayload.platform,
-      },
-      accessToken,
-      refreshToken,
-    };
-  }
-
-  async validateRefreshTokenBasic(token: string, options?: jwt.VerifyOptions): Promise<void> {
-    if (!token) {
-      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
-    }
-
-    const secret = this.envService.get('REFRESH_TOKEN_SECRET');
-
-    // Verify just for payload
-    jwt.verify(token, secret, this.jwtVerifyError);
-  }
-
-  // async validateRefreshTokenFull(token: string, options?: jwt.VerifyOptions): Promise<void> {
-  //   if (!token) {
-  //     throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
-  //   }
-
-  //   const secret = this.envService.get('REFRESH_TOKEN_SECRET');
-  //   const jwtPayload = this.getUserPayload(token);
-
-  //   jwt.verify(
-  //     token,
-  //     secret,
-  //     {
-  //       algorithms: ['HS256'],
-  //       issuer: Constants.JWT_ISSUER,
-  //       subject: jwtPayload?.sub,
-  //       ...options,
-  //     },
-  //     this.jwtVerifyError,
-  //   );
-  // }
-
-  async validateAccessToken(token: string): Promise<void> {
+  async validateAccessToken(token: string, validateOptions: ValidateAccesssTokenPayload): Promise<void> {
     if (!token) {
       throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
     const secret = this.envService.get('ACCESS_TOKEN_SECRET');
 
-    // Verify just for payload
-    jwt.verify(token, secret, this.jwtVerifyError);
+    const accessTokenPayload = this.getAccessTokenPayload(token);
 
-    const jwtPayload = this.getUserPayload(token);
+    const { platform, sub, userId } = validateOptions;
 
-    // Verify registered claim names
+    if (accessTokenPayload.platform !== platform) {
+      throw new UnauthorizedException('jwt platform not accurate');
+    }
+
+    if (accessTokenPayload.userId !== userId) {
+      throw new UnauthorizedException('jwt userId not accurate');
+    }
+
     jwt.verify(
       token,
       secret,
       {
         algorithms: ['HS256'],
         issuer: Constants.JWT_ISSUER,
-        subject: jwtPayload?.sub,
+        subject: sub,
       },
       this.jwtVerifyError,
     );
   }
 
-  getUserPayload(token: string): UserPayload | null {
-    const payload = <DecodedJwtPayload>jwt.decode(token, { json: true });
-
-    if (
-      !payload ||
-      typeof payload !== 'object' ||
-      typeof payload?.userId !== 'number' ||
-      typeof payload?.iat !== 'number' ||
-      typeof payload?.exp !== 'number' ||
-      !payload?.iss ||
-      !payload?.sub
-    ) {
-      return null;
+  async validateRefreshToken(token: string, validateOptions: ValidateRefreshTokenPayload): Promise<void> {
+    if (!token) {
+      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    return {
-      sub: payload.sub as string,
-      userId: payload.userId,
-      issuedAt: payload.iat,
-      expirationTime: payload.exp,
-    };
+    const { secret } = validateOptions;
+    const refreshTokenPayload = this.getRefreshTokenPayload(token);
+
+    const { exp, iat, iss, jti, platform, sub, userId } = validateOptions;
+
+    if (refreshTokenPayload.exp !== exp) {
+      throw new UnauthorizedException('jwt exp not accurate');
+    }
+
+    if (refreshTokenPayload.iat !== iat) {
+      throw new UnauthorizedException('jwt iat not accurate');
+    }
+
+    if (refreshTokenPayload.platform !== platform) {
+      throw new UnauthorizedException('jwt platform not accurate');
+    }
+
+    if (refreshTokenPayload.userId !== userId) {
+      throw new UnauthorizedException('jwt platform not accurate');
+    }
+
+    jwt.verify(
+      token,
+      secret,
+      {
+        algorithms: ['HS256'],
+        issuer: iss,
+        jwtid: jti,
+        subject: sub,
+      },
+      this.jwtVerifyError,
+    );
   }
 
-  userSocketPayload(socket: Socket): UserPayload {
-    const token = socket.handshake?.auth?.token;
-    const payload = <DecodedJwtPayload>jwt.decode(token, { json: true });
+  genAccessToken(params: { userId: number; email: string }): string {
+    const authTokenPayload: AuthTokenPayload = {
+      userId: params.userId,
+      platform: PlatformForJwt.WEB,
+    };
 
-    if (!payload) {
-      throw new InternalServerErrorException('Something went wrong with socket payload decode');
+    return jwt.sign(authTokenPayload, this.envService.get('ACCESS_TOKEN_SECRET').toString(), {
+      expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION'),
+      algorithm: 'HS256',
+      issuer: Constants.JWT_ISSUER,
+      subject: params.email,
+    });
+  }
+
+  genRefreshToken(params: { userId: number; email: string; refreshKeySecret: string }): string {
+    const authTokenPayload: AuthTokenPayload = {
+      userId: params.userId,
+      platform: PlatformForJwt.WEB,
+    };
+
+    return jwt.sign(authTokenPayload, params.refreshKeySecret, {
+      expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION'),
+      algorithm: 'HS256',
+      issuer: Constants.JWT_ISSUER,
+      subject: params.email,
+      jwtid: uuid(),
+    });
+  }
+
+  getAccessTokenPayload(token: string): AccessTokenPayload {
+    const payload = <AccessTokenPayload>jwt.decode(token, { json: true });
+
+    if (
+      !isObject(payload) ||
+      !payload.platform ||
+      !payload.userId ||
+      !payload.exp ||
+      !payload.sub ||
+      !payload.iss ||
+      !payload.iat
+    ) {
+      throw new UnauthorizedException('jwt invalid payload');
     }
 
-    return {
-      sub: payload.sub as string,
-      userId: payload?.userId,
-      expirationTime: payload?.exp,
-      issuedAt: payload?.iat,
-    };
+    return payload;
+  }
+
+  getRefreshTokenPayload(token: string): RefreshTokenPayload {
+    const payload = <RefreshTokenPayload>jwt.decode(token, { json: true });
+
+    // claims
+    if (
+      !isObject(payload) ||
+      !payload.platform ||
+      !payload.userId ||
+      !payload.exp ||
+      !payload.sub ||
+      !payload.iss ||
+      !payload.iat ||
+      !payload.iat
+    ) {
+      throw new UnauthorizedException('jwt invalid payload');
+    }
+
+    return payload;
   }
 
   private jwtVerifyError(err: jwt.VerifyErrors | null) {

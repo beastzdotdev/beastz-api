@@ -5,6 +5,7 @@ import { AppModule } from './modules/app.module';
 import { Logger } from '@nestjs/common';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
+import helmet from 'helmet';
 
 //TODO add required-header in future like platform header for jwt and validate it
 //TODO Implement lock in user (add locked in user identity table)
@@ -16,6 +17,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
 
   app.enableCors();
   app.set('trust proxy', 1);
+  app.use(helmet());
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 

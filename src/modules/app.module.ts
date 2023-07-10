@@ -2,9 +2,8 @@ import { Module, ValidationPipe } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { EnvModule } from './@global/env/env.module';
 import { PrismaModule } from './@global/prisma/prisma.module';
-import { APP_PIPE, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { AuthPayloadInterceptor } from './authentication/auth-payload.interceptor';
-import { JwtAuthGuard } from './authentication/guard/jwt-auth.guard';
+import { APP_PIPE, APP_GUARD } from '@nestjs/core';
+import { JwtHttpAuthGuard } from './authentication/guard/jwt-http-auth.guard';
 import { VerifiedEmailValidatorGuard } from './authentication/guard/verified-email-validator.guard';
 import { JwtUtilModule } from '../common/modules/jwt-util/jwt-util.module';
 import { UserModule } from './user/user.module';
@@ -32,15 +31,11 @@ import { LegalDocumentModule } from './legal-document/legal-document.module';
     },
     {
       provide: APP_GUARD,
-      useClass: JwtAuthGuard,
+      useClass: JwtHttpAuthGuard,
     },
     {
       provide: APP_GUARD,
       useClass: VerifiedEmailValidatorGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: AuthPayloadInterceptor,
     },
   ],
 })

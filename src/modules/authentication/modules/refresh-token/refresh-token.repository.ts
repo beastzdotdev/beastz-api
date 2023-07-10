@@ -8,12 +8,25 @@ export class RefreshTokenRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createEntity(params: CreateRefreshTokenParams): Promise<RefreshToken> {
-    return this.prismaService.refreshToken.create({ data: params });
+    return this.prismaService.refreshToken.create({
+      data: {
+        userId: params.userId,
+        token: params.token,
+        sub: params.sub,
+        iss: params.iss,
+        platform: params.platform,
+        secretKeyEncrypted: params.secretKeyEncrypted,
+        jti: params.jti,
+        cypherIV: params.cypherIV,
+        exp: params.exp.toString(),
+        iat: params.iat.toString(),
+      },
+    });
   }
 
   async getUserIdByValue(value: string): Promise<number | null> {
     const result = await this.prismaService.refreshToken.findFirst({
-      where: { value },
+      // where: { value },
       select: { userId: true },
     });
 
@@ -25,6 +38,10 @@ export class RefreshTokenRepository {
   }
 
   async deleteByValue(value: string): Promise<void> {
-    await this.prismaService.refreshToken.deleteMany({ where: { value } });
+    await this.prismaService.refreshToken.deleteMany({
+      // where: {
+      //   value,
+      // },
+    });
   }
 }

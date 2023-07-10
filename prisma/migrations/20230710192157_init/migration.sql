@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "platform_for_jwt" AS ENUM ('WEB', 'MOB_IOS', 'MOB_ANDROID');
+
+-- CreateEnum
 CREATE TYPE "gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
 
 -- CreateEnum
@@ -35,7 +38,15 @@ CREATE TABLE "user_identity" (
 CREATE TABLE "refresh_tokens" (
     "id" SERIAL NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "value" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "sub" TEXT NOT NULL,
+    "iss" TEXT NOT NULL,
+    "platform" "platform_for_jwt" NOT NULL,
+    "exp" TEXT NOT NULL,
+    "jti" UUID NOT NULL,
+    "iat" TEXT NOT NULL,
+    "is_used" BOOLEAN NOT NULL DEFAULT false,
+    "secret_key_encrypted" VARCHAR(255) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "refresh_tokens_pkey" PRIMARY KEY ("id")
@@ -58,7 +69,7 @@ CREATE TABLE "recover_passwords" (
     "user_id" INTEGER NOT NULL,
     "one_time_code" INTEGER NOT NULL,
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
-    "uuid" VARCHAR(255),
+    "uuid" UUID,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "recover_passwords_pkey" PRIMARY KEY ("id")
@@ -109,7 +120,10 @@ CREATE INDEX "users_email_idx" ON "users"("email");
 CREATE UNIQUE INDEX "user_identity_user_id_key" ON "user_identity"("user_id");
 
 -- CreateIndex
-CREATE INDEX "refresh_tokens_value_idx" ON "refresh_tokens" USING HASH ("value");
+CREATE UNIQUE INDEX "refresh_tokens_jti_key" ON "refresh_tokens"("jti");
+
+-- CreateIndex
+CREATE INDEX "refresh_tokens_jti_idx" ON "refresh_tokens"("jti");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "account_verification_user_id_key" ON "account_verification"("user_id");

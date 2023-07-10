@@ -1,13 +1,21 @@
-import * as jwt from 'jsonwebtoken';
 import { AuthTokenPayload } from '../../../model/auth.types';
 
-export type RefreshTokenPayload = jwt.JwtPayload &
-  AuthTokenPayload & {
-    exp: number;
-    sub: string;
-    iss: string;
-    iat: number;
-    jti: string;
-  };
+export type RefreshTokenClaims = {
+  exp: number;
+  sub: string;
+  iss: string;
+  iat: number;
+  jti: string;
+};
 
-export type DecodedJwtPayload = RefreshTokenPayload | null;
+export type RefreshTokenPayload = AuthTokenPayload & RefreshTokenClaims;
+
+export type AccessTokenPayload = AuthTokenPayload & {
+  exp: number;
+  sub: string;
+  iss: string;
+  iat: number;
+};
+
+export type ValidateAccesssTokenPayload = Required<Pick<AccessTokenPayload, 'platform' | 'sub' | 'userId'>>;
+export type ValidateRefreshTokenPayload = Required<RefreshTokenPayload> & { secret: string };
