@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
-import { AuthenticationController } from './autnentication.controller';
+import { AuthenticationController } from './authentication.controller';
 import { UserModule } from '../user/user.module';
 import { RandomModule } from '../../common/modules/random/random.module';
 import { EncoderModule } from '../../common/modules/encoder/encoder.module';

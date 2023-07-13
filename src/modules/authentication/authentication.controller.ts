@@ -1,6 +1,10 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { AuthenticationService } from './authentication.service';
+import { RecoverpasswordConfirmCodePayloadDto } from './dto/recover-password-confirm-code-payload.dto';
+import { AuthPayload } from '../../decorator/auth-payload.decorator';
+import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
+import { UserPayload } from '../../model/auth.types';
 import {
   AccountVerificationConfirmCodeDto,
   AuthenticationPayloadResponseDto,
@@ -11,10 +15,6 @@ import {
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
-import { RecoverpasswordConfirmCodePayloadDto } from './dto/recover-password-confirm-code-payload.dto';
-import { AuthPayload } from '../../decorator/auth-payload.decorator';
-import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
-import { UserPayload } from '../../model/auth.types';
 
 @Controller('authentication')
 export class AuthenticationController {

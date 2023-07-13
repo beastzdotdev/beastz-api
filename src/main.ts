@@ -7,9 +7,8 @@ import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import helmet from 'helmet';
 
-//TODO add required-header in future like platform header for jwt and validate it
 //TODO Implement lock in user (add locked in user identity table)
-//TODO verify all stuff for jwt https://www.npmjs.com/package/jsonwebtoken
+//TODO return hashed jwt to frontend and make it optional from env add is_jwt_hashed and jwt_hash_secret
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
@@ -27,8 +26,6 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
   const apiUrl: string = await app.getUrl();
   logger.verbose(`GorillaVault api listening on --- ${apiUrl}`);
 });
-
-//TODO return hashed jwt to frontend and make it optional from env add is_jwt_hashed and jwt_hash_secret
 
 //? kid is id for searching secrets of token (only needed for other types of tokens like /some/secret.pem)
 

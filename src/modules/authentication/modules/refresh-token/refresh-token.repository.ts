@@ -24,13 +24,10 @@ export class RefreshTokenRepository {
     });
   }
 
-  async getUserIdByValue(value: string): Promise<number | null> {
-    const result = await this.prismaService.refreshToken.findFirst({
-      // where: { value },
-      select: { userId: true },
+  async getByJTI(jti: string): Promise<RefreshToken | null> {
+    return this.prismaService.refreshToken.findFirst({
+      where: { jti },
     });
-
-    return result?.userId ?? null;
   }
 
   async deleteAllByUserId(userId: number): Promise<void> {

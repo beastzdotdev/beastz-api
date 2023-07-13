@@ -56,26 +56,11 @@ export class AuthenticationService {
       profileImagePath: null,
     });
 
-    const refreshTokenSecret = this.randomService.generateRandomASCII(32);
-    const cypherIV = encryption.aes256cbc.genIv();
-    const refreshKeyEncrypted = await encryption.aes256cbc.encrypt(
-      refreshTokenSecret,
-      cypherIV,
-      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-    );
-
-    if (!refreshKeyEncrypted) {
-      throw new InternalServerErrorException('Something went wrong');
-    }
-
-    const accessToken = this.jwtUtilService.genAccessToken({ userId: user.id, email: params.email });
-    const refreshToken = this.jwtUtilService.genRefreshToken({
-      userId: user.id,
-      email: params.email,
-      refreshKeySecret: refreshTokenSecret,
-    });
-
-    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
+    const { accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted } =
+      await this.genAccessAndRefreshToken({
+        userId: user.id,
+        email: params.email,
+      });
 
     await Promise.all([
       this.userIdentityService.create({ password: hashedPassword, userId: user.id }),
@@ -107,26 +92,11 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }
 
-    const refreshTokenSecret = this.randomService.generateRandomASCII(32);
-    const cypherIV = encryption.aes256cbc.genIv();
-    const refreshKeyEncrypted = await encryption.aes256cbc.encrypt(
-      refreshTokenSecret,
-      cypherIV,
-      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-    );
-
-    if (!refreshKeyEncrypted) {
-      throw new InternalServerErrorException('Something went wrong');
-    }
-
-    const accessToken = this.jwtUtilService.genAccessToken({ userId: user.id, email: params.email });
-    const refreshToken = this.jwtUtilService.genRefreshToken({
-      userId: user.id,
-      email: params.email,
-      refreshKeySecret: refreshTokenSecret,
-    });
-
-    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
+    const { accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted } =
+      await this.genAccessAndRefreshToken({
+        userId: user.id,
+        email: params.email,
+      });
 
     const [hasEmailVerified] = await Promise.all([
       this.accountVerificationService.getIsVerifiedByUserId(user.id),
@@ -145,32 +115,58 @@ export class AuthenticationService {
     };
   }
 
-  //TODO fix this
   async refreshToken(oldRefreshToken: string): Promise<AuthenticationPayloadResponseDto> {
-    // await this.jwtUtilService.validateRefreshTokenBasic(oldRefreshToken);
+    const oldRefreshTokenPayload = await this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
 
-    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
+    // validate user existence from token
+    await this.userService.validateUserById(oldRefreshTokenPayload.userId);
 
-    const userId = await this.refreshTokenService.getUserIdByRefreshToken(oldRefreshToken);
+    const refreshToken = await this.refreshTokenService.getByJTI(oldRefreshTokenPayload.jti);
 
-    if (!userId) {
-      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-    }
+    // detect refresh token reuse
+    if (refreshToken.isUsed) {
+      //TODO
+      // make every token used for user and send email for reseting password
+      // lock user account if user account strict mode is activated via userIdentity
+      // message: we have detected credential reuse
+      // await this.refreshTokenService.clearRefreshTokensForUser(refreshToken.userId);
 
-    const user = await this.userService.getById(userId);
-
-    if (!user) {
-      const decodedPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
-
-      if (!decodedPayload) {
-        throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-      }
-
-      await this.refreshTokenService.clearRefreshTokensForUser(decodedPayload.userId);
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
     }
 
-    //TODO check for expiration only
+    // get refresh token secret and decrypt it
+    const refreshTokenSecretDecrypted = await encryption.aes256cbc.decrypt(
+      refreshToken.secretKeyEncrypted,
+      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
+      refreshToken.cypherIV,
+    );
+
+    if (!refreshTokenSecretDecrypted) {
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    // validate fully
+    await this.jwtUtilService.validateRefreshToken(oldRefreshToken, {
+      ...oldRefreshTokenPayload,
+      secret: refreshTokenSecretDecrypted,
+    });
+
+    // await this.jwtUtilService.validateRefreshTokenBasic(oldRefreshToken);
+
+    // const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
+
+    // const user = await this.userService.getById(userId);
+
+    // if (!user) {
+    //   const decodedPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
+
+    //   if (!decodedPayload) {
+    //     throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
+    //   }
+
+    //   await this.refreshTokenService.clearRefreshTokensForUser(decodedPayload.userId);
+    //   throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
+    // }
 
     // const accessToken = this.jwtUtilService.genAccessToken({ userId: user.id, email: user.email });
     // const refreshToken = this.jwtUtilService.genRefreshToken({ userId: user.id, email: user.email });
@@ -276,5 +272,39 @@ export class AuthenticationService {
     }
 
     await this.accountVerificationService.updateIsVerified(userId, true);
+  }
+
+  private async genAccessAndRefreshToken(params: { userId: number; email: string }) {
+    const refreshTokenSecret = this.randomService.generateRandomASCII(32);
+    const cypherIV = encryption.aes256cbc.genIv();
+    const refreshKeyEncrypted = await encryption.aes256cbc.encrypt(
+      refreshTokenSecret,
+      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
+      cypherIV,
+    );
+
+    if (!refreshKeyEncrypted) {
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    const accessToken = this.jwtUtilService.genAccessToken({
+      userId: params.userId,
+      email: params.email,
+    });
+    const refreshToken = this.jwtUtilService.genRefreshToken({
+      userId: params.userId,
+      email: params.email,
+      refreshKeySecret: refreshTokenSecret,
+    });
+
+    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
+
+    return {
+      accessToken,
+      refreshToken,
+      refreshTokenPayload,
+      refreshKeyEncrypted,
+      cypherIV,
+    };
   }
 }

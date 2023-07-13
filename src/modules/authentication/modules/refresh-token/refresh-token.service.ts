@@ -1,19 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { CreateRefreshTokenParams } from './refresh-token.type';
+import { RefreshToken } from '@prisma/client';
+import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
 
 @Injectable()
 export class RefreshTokenService {
   constructor(private readonly refreshTokenRepository: RefreshTokenRepository) {}
 
-  async getUserIdByRefreshToken(refreshToken: string): Promise<number | null> {
-    const userId = await this.refreshTokenRepository.getUserIdByValue(refreshToken);
+  async getByJTI(id: string): Promise<RefreshToken> {
+    const token = await this.refreshTokenRepository.getByJTI(id);
 
-    if (!userId) {
-      return null;
+    if (!token) {
+      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
     }
 
-    return userId;
+    return token;
   }
 
   async clearRefreshTokensForUser(userId: number): Promise<void> {
