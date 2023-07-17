@@ -116,11 +116,7 @@ export class AuthenticationService {
   }
 
   async refreshToken(oldRefreshToken: string): Promise<AuthenticationPayloadResponseDto> {
-    const oldRefreshTokenPayload = await this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
-
-    // validate user existence from token
-    await this.userService.validateUserById(oldRefreshTokenPayload.userId);
-
+    const oldRefreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
     const refreshToken = await this.refreshTokenService.getByJTI(oldRefreshTokenPayload.jti);
 
     // detect refresh token reuse
@@ -133,6 +129,9 @@ export class AuthenticationService {
 
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
     }
+
+    // validate user existence from token
+    await this.userService.validateUserById(oldRefreshTokenPayload.userId);
 
     // get refresh token secret and decrypt it
     const refreshTokenSecretDecrypted = await encryption.aes256cbc.decrypt(
@@ -147,7 +146,9 @@ export class AuthenticationService {
 
     // validate fully
     await this.jwtUtilService.validateRefreshToken(oldRefreshToken, {
-      ...oldRefreshTokenPayload,
+      ...refreshToken,
+      exp: parseInt(refreshToken.exp),
+      iat: parseInt(refreshToken.iat),
       secret: refreshTokenSecretDecrypted,
     });
 
@@ -173,6 +174,8 @@ export class AuthenticationService {
 
     await this.refreshTokenService.deleteRefreshToken(oldRefreshToken);
     // await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);
+
+    //TODO update isUsed for refreshToken in database
 
     return { accessToken: '', refreshToken: '' };
   }

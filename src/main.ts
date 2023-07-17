@@ -10,11 +10,19 @@ import helmet from 'helmet';
 //TODO Implement lock in user (add locked in user identity table)
 //TODO return hashed jwt to frontend and make it optional from env add is_jwt_hashed and jwt_hash_secret
 
+// so in frontend when for example a,b,c requests are all sent and lets say b was fastest and got refresh
+// immediatly when b refreshes a and c must be cancelled, then filled with new accessToken and resent
+// which is implemented in this video
+// But I think 2 axios instance will be needed one for refresh route and one fore all other
+// https://www.youtube.com/watch?v=nI8PYZNFtac
+// and this is code example
+
 NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
   const logger = new Logger('Main logger');
 
   app.enableCors();
+  app.enableShutdownHooks();
   app.set('trust proxy', 1);
   app.use(helmet());
   app.use(bodyParser.json({ limit: '50mb' }));

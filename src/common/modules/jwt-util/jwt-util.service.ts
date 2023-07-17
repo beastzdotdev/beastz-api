@@ -93,45 +93,6 @@ export class JwtUtilService {
     );
   }
 
-  async validateRefreshTokenBasic(token: string, validateOptions: ValidateRefreshTokenPayload): Promise<void> {
-    if (!token) {
-      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
-    }
-
-    const { secret } = validateOptions;
-    const refreshTokenPayload = this.getRefreshTokenPayload(token);
-
-    const { exp, iat, iss, jti, platform, sub, userId } = validateOptions;
-
-    if (refreshTokenPayload.exp !== exp) {
-      throw new UnauthorizedException('jwt exp not accurate');
-    }
-
-    if (refreshTokenPayload.iat !== iat) {
-      throw new UnauthorizedException('jwt iat not accurate');
-    }
-
-    if (refreshTokenPayload.platform !== platform) {
-      throw new UnauthorizedException('jwt platform not accurate');
-    }
-
-    if (refreshTokenPayload.userId !== userId) {
-      throw new UnauthorizedException('jwt platform not accurate');
-    }
-
-    jwt.verify(
-      token,
-      secret,
-      {
-        algorithms: ['HS256'],
-        issuer: iss,
-        jwtid: jti,
-        subject: sub,
-      },
-      this.jwtVerifyError,
-    );
-  }
-
   genAccessToken(params: { userId: number; email: string }): string {
     const authTokenPayload: AuthTokenPayload = {
       userId: params.userId,
