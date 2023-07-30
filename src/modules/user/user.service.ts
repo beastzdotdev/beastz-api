@@ -7,7 +7,10 @@ import { RandomService } from '../../common/modules/random/random.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository, private readonly randomService: RandomService) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly randomService: RandomService,
+  ) {}
 
   async getByEmail(email: string): Promise<User | null> {
     return this.userRepository.getByEmail(email);

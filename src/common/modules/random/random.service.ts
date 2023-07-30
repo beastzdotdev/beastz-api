@@ -1,53 +1,38 @@
-import { Injectable } from '@nestjs/common';
+import * as crypto from 'crypto';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
 export class RandomService {
-  static readonly ASCII =
-    '!"#$%&\'()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz0123456789{|}~';
+  static readonly ASCII = '!"#$%&()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz0123456789{}~';
   static readonly HEX = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
-  generateRandomASCII(length: number): string {
-    return this.generateRandomString(length, RandomService.ASCII, RandomService.ASCII.length);
-  }
+  generateRandomASCII = (len: number) => this.genRanStringFromCharset(len, RandomService.ASCII);
+  generateRandomHEX = (len: number) => this.genRanStringFromCharset(len, RandomService.HEX);
 
-  generateRandomHEX(length: number): string {
-    return this.generateRandomString(length, RandomService.HEX, RandomService.HEX.length);
+  genRanStringFromCharset(length: number, charset: string): string {
+    const charsetLength = charset.length;
+    const randomBytes = crypto.randomBytes(length);
+
+    let randomString = '';
+
+    for (let i = 0; i < length; i++) {
+      const randomIndex = randomBytes[i] % charsetLength;
+      randomString += charset.charAt(randomIndex);
+    }
+
+    return randomString;
   }
 
   /**
+   * `Math.floor(max) + 1` to include the upper bound in the range
+   * @number 91023
    * @returns generated random integer from min to max inclusive
    */
   generateRandomInt(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  generateRandomIntAsString(min: number, max: number): string {
-    const number = Math.floor(Math.random() * (max - min + 1)) + min;
-
-    return number.toString();
-  }
-
-  genFixedNumberAsString(length: number): string {
-    let str = '';
-
-    for (let i = 0; i < length; i++) {
-      str += Math.floor(Math.random() * 10); // 0-9 inclusive
+    if (min > max) {
+      throw new InternalServerErrorException('Something went wrong in method 91023');
     }
 
-    return str;
-  }
-
-  generateRandomNumber(min: number, max: number): number {
-    return Math.random() * (max - min) + min;
-  }
-
-  private generateRandomString(length: number, charset: string, charsetLength: number): string {
-    let s = '';
-
-    for (let i = 0; i < length; i++) {
-      s += charset.charAt(Math.floor(Math.random() * charsetLength));
-    }
-
-    return s;
+    return crypto.randomInt(Math.ceil(min), Math.floor(max) + 1);
   }
 }

@@ -153,19 +153,3 @@ export function generateRandomString(length: number): string {
 
   return s;
 }
-
-export function getRandomSingleDigitNumber() {
-  const buffer = crypto.randomBytes(4);
-  const randomInt = buffer.readUInt32BE();
-  return randomInt % 10; // Modulo operation to restrict the range from 0 to 9
-}
-
-export function genRandomFixedNumberStr(length: number) {
-  let str = '';
-
-  for (let i = 0; i < length; i++) {
-    str += getRandomSingleDigitNumber();
-  }
-
-  return str;
-}

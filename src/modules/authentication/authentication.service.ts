@@ -128,7 +128,7 @@ export class AuthenticationService {
 
       const userIdentity = await this.userIdentityService.getByUserId(user.id);
 
-      //TODO send email for reseting password (message: we have detected credential reuse)
+      // send email here (delete comment after)
 
       if (userIdentity.strictMode) {
         await this.userIdentityService.updateLockedById(userIdentity.id, true);
@@ -180,7 +180,6 @@ export class AuthenticationService {
     };
   }
 
-  //TODO fix this
   async recoverPasswordSendVerificationCode(email: string): Promise<void> {
     const user = await this.userService.getByEmail(email);
 
@@ -197,7 +196,7 @@ export class AuthenticationService {
       uuid: genUUID(),
     });
 
-    //TODO send one time code to user on mail
+    // send one time code to user on mail here
   }
 
   //TODO fix this
