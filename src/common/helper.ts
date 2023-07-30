@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { InternalServerErrorException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { plainToInstance } from 'class-transformer';
@@ -145,9 +146,26 @@ export function generateFileName(
 
 export function generateRandomString(length: number): string {
   let s = '';
+
   for (let i = 0; i < length; i++) {
     s += RandomService.ASCII.charAt(Math.floor(Math.random() * RandomService.ASCII.length));
   }
 
   return s;
+}
+
+export function getRandomSingleDigitNumber() {
+  const buffer = crypto.randomBytes(4);
+  const randomInt = buffer.readUInt32BE();
+  return randomInt % 10; // Modulo operation to restrict the range from 0 to 9
+}
+
+export function genRandomFixedNumberStr(length: number) {
+  let str = '';
+
+  for (let i = 0; i < length; i++) {
+    str += getRandomSingleDigitNumber();
+  }
+
+  return str;
 }

@@ -63,9 +63,11 @@ model User {
 }
 
 model UserIdentity {
-  id       Int    @id @default(autoincrement())
-  password String @map("password") @db.VarChar(255)
-  userId   Int    @unique @map("user_id")
+  id         Int     @id @default(autoincrement())
+  password   String  @map("password") @db.VarChar(255)
+  strictMode Boolean @default(false) @map("strict_mode")
+  locked     Boolean @default(false) @map("locked")
+  userId     Int     @unique @map("user_id")
 
   user User @relation(fields: [userId], references: [id])
 

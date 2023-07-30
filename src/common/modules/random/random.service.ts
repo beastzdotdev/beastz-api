@@ -43,6 +43,7 @@ export class RandomService {
 
   private generateRandomString(length: number, charset: string, charsetLength: number): string {
     let s = '';
+
     for (let i = 0; i < length; i++) {
       s += charset.charAt(Math.floor(Math.random() * charsetLength));
     }

@@ -115,69 +115,69 @@ export class AuthenticationService {
     };
   }
 
-  async refreshToken(oldRefreshToken: string): Promise<AuthenticationPayloadResponseDto> {
-    const oldRefreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
-    const refreshToken = await this.refreshTokenService.getByJTI(oldRefreshTokenPayload.jti);
+  async refreshToken(oldRefreshTokenString: string): Promise<AuthenticationPayloadResponseDto> {
+    const oldRefreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshTokenString);
+    const oldRefreshToken = await this.refreshTokenService.getByJTI(oldRefreshTokenPayload.jti);
+
+    // validate user existence from token
+    const user = await this.userService.getById(oldRefreshTokenPayload.userId);
 
     // detect refresh token reuse
-    if (refreshToken.isUsed) {
-      //TODO
-      // make every token used for user and send email for reseting password
-      // lock user account if user account strict mode is activated via userIdentity
-      // message: we have detected credential reuse
-      // await this.refreshTokenService.clearRefreshTokensForUser(refreshToken.userId);
+    if (oldRefreshToken.isUsed) {
+      await this.refreshTokenService.updateIsUsedForAllByUserId(user.id);
+
+      const userIdentity = await this.userIdentityService.getByUserId(user.id);
+
+      //TODO send email for reseting password (message: we have detected credential reuse)
+
+      if (userIdentity.strictMode) {
+        await this.userIdentityService.updateLockedById(userIdentity.id, true);
+      }
 
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
     }
 
-    // validate user existence from token
-    await this.userService.validateUserById(oldRefreshTokenPayload.userId);
-
     // get refresh token secret and decrypt it
     const refreshTokenSecretDecrypted = await encryption.aes256cbc.decrypt(
-      refreshToken.secretKeyEncrypted,
+      oldRefreshToken.secretKeyEncrypted,
       this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-      refreshToken.cypherIV,
+      oldRefreshToken.cypherIV,
     );
 
+    // should not happen
     if (!refreshTokenSecretDecrypted) {
       throw new InternalServerErrorException('Something went wrong');
     }
 
     // validate fully
-    await this.jwtUtilService.validateRefreshToken(oldRefreshToken, {
-      ...refreshToken,
-      exp: parseInt(refreshToken.exp),
-      iat: parseInt(refreshToken.iat),
+    await this.jwtUtilService.validateRefreshToken(oldRefreshTokenString, {
+      ...oldRefreshToken,
+      exp: parseInt(oldRefreshToken.exp),
+      iat: parseInt(oldRefreshToken.iat),
       secret: refreshTokenSecretDecrypted,
     });
 
-    // await this.jwtUtilService.validateRefreshTokenBasic(oldRefreshToken);
+    const [{ accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted }] = await Promise.all([
+      this.genAccessAndRefreshToken({
+        userId: user.id,
+        email: user.email,
+      }),
 
-    // const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
+      // update is used for old refresh token
+      this.refreshTokenService.updateIsUsedById(oldRefreshToken.id),
+    ]);
 
-    // const user = await this.userService.getById(userId);
+    await this.refreshTokenService.addRefreshTokenByUserId({
+      ...refreshTokenPayload,
+      secretKeyEncrypted: refreshKeyEncrypted,
+      token: refreshToken,
+      cypherIV,
+    });
 
-    // if (!user) {
-    //   const decodedPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshToken);
-
-    //   if (!decodedPayload) {
-    //     throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-    //   }
-
-    //   await this.refreshTokenService.clearRefreshTokensForUser(decodedPayload.userId);
-    //   throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
-    // }
-
-    // const accessToken = this.jwtUtilService.genAccessToken({ userId: user.id, email: user.email });
-    // const refreshToken = this.jwtUtilService.genRefreshToken({ userId: user.id, email: user.email });
-
-    await this.refreshTokenService.deleteRefreshToken(oldRefreshToken);
-    // await this.refreshTokenService.addRefreshTokenByUserId(user.id, refreshToken);
-
-    //TODO update isUsed for refreshToken in database
-
-    return { accessToken: '', refreshToken: '' };
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
   //TODO fix this

@@ -30,15 +30,21 @@ export class RefreshTokenRepository {
     });
   }
 
-  async deleteAllByUserId(userId: number): Promise<void> {
-    await this.prismaService.refreshToken.deleteMany({ where: { userId } });
+  async updateIsUsedById(id: number) {
+    return this.prismaService.refreshToken.update({
+      where: { id },
+      data: { isUsed: true },
+    });
   }
 
-  async deleteByValue(value: string): Promise<void> {
-    await this.prismaService.refreshToken.deleteMany({
-      // where: {
-      //   value,
-      // },
+  async updateIsUsedForAllByUserId(userId: number) {
+    return this.prismaService.refreshToken.updateMany({
+      where: { userId, isUsed: false },
+      data: { isUsed: true },
     });
+  }
+
+  async deleteAllByUserId(userId: number): Promise<void> {
+    await this.prismaService.refreshToken.deleteMany({ where: { userId } });
   }
 }

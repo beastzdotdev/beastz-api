@@ -12,6 +12,12 @@ export class UserIdentityRepository {
     });
   }
 
+  async getByUserId(userId: number) {
+    return this.prismaService.userIdentity.findFirst({
+      where: { userId },
+    });
+  }
+
   async create(params: CreateUserIdentityParams) {
     return this.prismaService.userIdentity.create({ data: params });
   }
@@ -20,6 +26,13 @@ export class UserIdentityRepository {
     return this.prismaService.userIdentity.update({
       where: { id },
       data: { password: newHashedPassword },
+    });
+  }
+
+  async updateLockedById(id: number, value: boolean) {
+    return this.prismaService.userIdentity.update({
+      where: { id },
+      data: { locked: value },
     });
   }
 }

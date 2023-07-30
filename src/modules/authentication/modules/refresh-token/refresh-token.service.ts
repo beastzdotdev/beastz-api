@@ -26,7 +26,11 @@ export class RefreshTokenService {
     await this.refreshTokenRepository.createEntity(params);
   }
 
-  async deleteRefreshToken(refreshToken: string) {
-    return this.refreshTokenRepository.deleteByValue(refreshToken);
+  async updateIsUsedById(id: number) {
+    await this.refreshTokenRepository.updateIsUsedById(id);
+  }
+
+  async updateIsUsedForAllByUserId(userId: number) {
+    await this.refreshTokenRepository.updateIsUsedForAllByUserId(userId);
   }
 }

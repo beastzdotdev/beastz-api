@@ -1,3 +1,3 @@
 import { UserIdentity } from '@prisma/client';
 
-export type CreateUserIdentityParams = Omit<UserIdentity, 'id' | 'createdAt'>;
+export type CreateUserIdentityParams = Omit<UserIdentity, 'id' | 'createdAt' | 'locked' | 'strictMode'>;
