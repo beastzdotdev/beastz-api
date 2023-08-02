@@ -20,7 +20,8 @@ export type AuthPayloadRequest = Request & {
     userIdentity: {
       id: number;
       isAccountVerified: boolean;
-      locked: boolean;
-    } | null;
+      isLocked: boolean;
+      isBlocked: boolean;
+    };
   };
 };

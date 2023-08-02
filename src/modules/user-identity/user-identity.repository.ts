@@ -29,10 +29,10 @@ export class UserIdentityRepository {
     });
   }
 
-  async updateLockedById(id: number, value: boolean) {
+  async updateIsLockedById(id: number, value: boolean) {
     return this.prismaService.userIdentity.update({
       where: { id },
-      data: { locked: value },
+      data: { isLocked: value },
     });
   }
 

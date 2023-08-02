@@ -128,7 +128,7 @@ export class AuthenticationService {
       // send email here (delete comment after)
 
       if (userIdentity.strictMode) {
-        await this.userIdentityService.updateLockedById(userIdentity.id, true);
+        await this.userIdentityService.updateIsLockedById(userIdentity.id, true);
       }
 
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);

@@ -25,8 +25,8 @@
     "test:unit": "jest --config ./test/unit/jest.json --detectOpenHandles --forceExit",
     "test:unit:cov": "jest --config ./test/unit/jest.json --coverage --detectOpenHandles --forceExit",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "migration:run": "npx prisma migrate dev",
-    "migration:prisma:gen": "npx prisma generate"
+    "prisma:gen": "npx prisma generate",
+    "migration:run": "npx prisma migrate dev"
   },
   "dependencies": {
     "@nestjs/class-validator": "^0.13.4",

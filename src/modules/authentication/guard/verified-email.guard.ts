@@ -5,7 +5,7 @@ import { NO_EMAIL_VERIFY_VALIDATE } from '../../../decorator/no-email-verify-val
 import { AuthPayloadRequest } from '../../../model/auth.types';
 
 @Injectable()
-export class VerifiedEmailValidatorGuard implements CanActivate {
+export class VerifiedEmailGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext) {

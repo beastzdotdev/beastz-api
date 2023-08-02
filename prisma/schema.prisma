@@ -68,7 +68,8 @@ model UserIdentity {
   isAccountVerified Boolean @default(false) @map("is_account_verified")
   password          String  @map("password") @db.VarChar(255)
   strictMode        Boolean @default(false) @map("strict_mode")
-  locked            Boolean @default(false) @map("locked")
+  isBlocked         Boolean @default(false) @map("is_blocked") // this property can only be removed by admin
+  isLocked          Boolean @default(false) @map("is_locked") // this property can be removed by user
   userId            Int     @unique @map("user_id")
 
   user User @relation(fields: [userId], references: [id])

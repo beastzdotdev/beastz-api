@@ -54,4 +54,8 @@ export class EnvironmentVariables {
   @Type(() => Number)
   @IsNumber()
   MAX_FEEDBACK_PER_DAY_COUNT: number;
+
+  @IsNotEmpty()
+  @IsString()
+  PRISMA_ENGINE_PROTOCOL: string;
 }

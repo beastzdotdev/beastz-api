@@ -4,6 +4,7 @@ import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.ty
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
 import { RandomService } from '../../common/modules/random/random.service';
+import { checkNonNull } from '../../common/helper';
 
 @Injectable()
 export class UserService {
@@ -43,11 +44,18 @@ export class UserService {
   async getByIdIncludeIdentityForGuard(id: number) {
     const user = await this.userRepository.getByIdIncludeIdentityForGuard(id);
 
-    if (!user) {
+    if (!user || !user.userIdentity) {
       throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
     }
 
-    return user;
+    //TODO create custom error thrower for this kind of internal errors e.g. throw new CustomInternal(3531)
+    //TODO 3531 is just number to find quickly beacuse message will all be same for all
+    //TODO and remove above line || !user.userIdentity when you implement this
+    // if (!user.userIdentity) {
+    // }
+
+    // return user;
+    return { ...user, userIdentity: user.userIdentity };
   }
 
   async getIdByEmail(email: string): Promise<number> {

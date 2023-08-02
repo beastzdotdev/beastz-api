@@ -35,8 +35,8 @@ export class UserIdentityService {
     return this.userIdentityRepository.updatePasswordById(id, newHashedPassword);
   }
 
-  async updateLockedById(id: number, value: boolean) {
-    return this.userIdentityRepository.updateLockedById(id, value);
+  async updateIsLockedById(id: number, value: boolean) {
+    return this.userIdentityRepository.updateIsLockedById(id, value);
   }
 
   async updateIsAccVerified(userId: number, isVerified: boolean) {

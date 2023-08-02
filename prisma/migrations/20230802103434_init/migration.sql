@@ -28,7 +28,10 @@ CREATE TABLE "users" (
 -- CreateTable
 CREATE TABLE "user_identity" (
     "id" SERIAL NOT NULL,
+    "is_account_verified" BOOLEAN NOT NULL DEFAULT false,
     "password" VARCHAR(255) NOT NULL,
+    "strict_mode" BOOLEAN NOT NULL DEFAULT false,
+    "locked" BOOLEAN NOT NULL DEFAULT false,
     "user_id" INTEGER NOT NULL,
 
     CONSTRAINT "user_identity_pkey" PRIMARY KEY ("id")
@@ -45,6 +48,7 @@ CREATE TABLE "refresh_tokens" (
     "exp" TEXT NOT NULL,
     "jti" UUID NOT NULL,
     "iat" TEXT NOT NULL,
+    "cypher_iv" TEXT NOT NULL,
     "is_used" BOOLEAN NOT NULL DEFAULT false,
     "secret_key_encrypted" VARCHAR(255) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -55,7 +59,6 @@ CREATE TABLE "refresh_tokens" (
 -- CreateTable
 CREATE TABLE "account_verification" (
     "id" SERIAL NOT NULL,
-    "is_verified" BOOLEAN NOT NULL DEFAULT false,
     "one_time_code" INTEGER NOT NULL,
     "user_id" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -55,7 +55,8 @@ export class UserRepository {
           select: {
             id: true,
             isAccountVerified: true,
-            locked: true,
+            isBlocked: true,
+            isLocked: true,
           },
         },
       },

@@ -10,7 +10,7 @@ import { AuthPayloadRequest } from '../../../model/auth.types';
 import { enumValueIncludes } from '../../../common/helper';
 
 @Injectable()
-export class JwtHttpAuthGuard implements CanActivate {
+export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtUtilService: JwtUtilService,
@@ -52,8 +52,12 @@ export class JwtHttpAuthGuard implements CanActivate {
 
     request.userForGuard = user;
 
-    if (user.userIdentity?.locked ?? false) {
+    if (user.userIdentity.isLocked) {
       throw new UnauthorizedException(ExceptionMessageCode.USER_LOCKED);
+    }
+
+    if (user.userIdentity.isBlocked) {
+      throw new UnauthorizedException(ExceptionMessageCode.USER_BLOCKED);
     }
 
     await this.jwtUtilService.validateAccessToken(accessToken, {

@@ -157,3 +157,8 @@ export function generateRandomString(length: number): string {
 export function enumValueIncludes<E extends GeneralEnumType<E>>(someEnum: E, value: string) {
   return Object.values(someEnum).includes(value);
 }
+
+// Type guard function to check if 'userIdentity' is not null
+export function checkNonNull<T>(val: T): val is NonNullable<T> {
+  return val !== null;
+}
