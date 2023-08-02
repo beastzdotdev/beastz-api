@@ -7,7 +7,7 @@ import { ValidationError } from 'class-validator';
 import { Request } from 'express';
 import { extname } from 'path';
 import { match } from 'ts-pattern';
-import { SafeCallResult, ExceptionType } from '../model/types';
+import { SafeCallResult, ExceptionType, GeneralEnumType } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 import { RandomService } from './modules/random/random.service';
 
@@ -152,4 +152,8 @@ export function generateRandomString(length: number): string {
   }
 
   return s;
+}
+
+export function enumValueIncludes<E extends GeneralEnumType<E>>(someEnum: E, value: string) {
+  return Object.values(someEnum).includes(value);
 }

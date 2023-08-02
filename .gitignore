@@ -3,6 +3,8 @@
 .env.local
 .env.dev
 .env.prod
+.env.production
+.env.development
 
 # compiled output
 /dist
@@ -30,13 +32,14 @@ test/unit/coverage
 /.idea
 /.settings
 /.c9
-/.vscode
 /target
-
+/.vscode/*
 .project
 .classpath
 *.launch
 *.sublime-workspace
 
-
-# Custom
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

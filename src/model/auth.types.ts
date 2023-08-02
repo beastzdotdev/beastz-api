@@ -12,4 +12,15 @@ export type AuthTokenPayload = {
 
 export type AuthPayloadRequest = Request & {
   userPayload: UserPayload | null;
+
+  userForGuard: {
+    id: number;
+    email: string;
+    createdAt: Date;
+    userIdentity: {
+      id: number;
+      isAccountVerified: boolean;
+      locked: boolean;
+    } | null;
+  };
 };

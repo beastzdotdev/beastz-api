@@ -35,4 +35,11 @@ export class UserIdentityRepository {
       data: { locked: value },
     });
   }
+
+  async updateIsAccVerified(userId: number, isAccountVerified: boolean) {
+    return this.prismaService.userIdentity.update({
+      where: { userId },
+      data: { isAccountVerified },
+    });
+  }
 }

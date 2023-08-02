@@ -23,20 +23,4 @@ export class AccountVerificationRepository {
       where: { userId },
     });
   }
-
-  async getIsVerifiedByUserId(userId: number): Promise<boolean | null> {
-    const result = await this.prismaService.accountVerification.findUnique({
-      where: { userId },
-      select: { isVerified: true },
-    });
-
-    return result?.isVerified ?? null;
-  }
-
-  async updateIsVerified(userId: number, isVerified: boolean) {
-    return this.prismaService.accountVerification.update({
-      where: { userId },
-      data: { isVerified },
-    });
-  }
 }

@@ -1,7 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AccountVerificationRepository } from './account-verification.repository';
 import { AccountVerificationParams } from './account-verification.type';
-import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
 
 @Injectable()
 export class AccountVerificationService {
@@ -13,19 +12,5 @@ export class AccountVerificationService {
 
   async getByUserId(userId: number) {
     return this.accountVerificationRepository.getByUserId(userId);
-  }
-
-  async getIsVerifiedByUserId(userId: number): Promise<boolean> {
-    const isVerified = await this.accountVerificationRepository.getIsVerifiedByUserId(userId);
-
-    if (isVerified === undefined || isVerified === null) {
-      throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
-    }
-
-    return isVerified;
-  }
-
-  async updateIsVerified(userId: number, isVerified: boolean) {
-    return this.accountVerificationRepository.updateIsVerified(userId, isVerified);
   }
 }

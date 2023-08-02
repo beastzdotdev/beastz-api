@@ -44,6 +44,24 @@ export class UserRepository {
     });
   }
 
+  async getByIdIncludeIdentityForGuard(id: number) {
+    return this.prismaService.user.findFirst({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        userIdentity: {
+          select: {
+            id: true,
+            isAccountVerified: true,
+            locked: true,
+          },
+        },
+      },
+    });
+  }
+
   async getIdByEmail(email: string): Promise<number | null> {
     const result = await this.prismaService.user.findFirst({
       where: { email },

@@ -38,4 +38,8 @@ export class UserIdentityService {
   async updateLockedById(id: number, value: boolean) {
     return this.userIdentityRepository.updateLockedById(id, value);
   }
+
+  async updateIsAccVerified(userId: number, isVerified: boolean) {
+    return this.userIdentityRepository.updateIsAccVerified(userId, isVerified);
+  }
 }

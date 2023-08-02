@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { v4 as genUUID } from 'uuid';
+import { v4 as uuid } from 'uuid';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
 import { AuthenticationPayloadResponseDto } from './dto';
@@ -98,20 +98,17 @@ export class AuthenticationService {
         email: params.email,
       });
 
-    const [hasEmailVerified] = await Promise.all([
-      this.accountVerificationService.getIsVerifiedByUserId(user.id),
-      this.refreshTokenService.addRefreshTokenByUserId({
-        ...refreshTokenPayload,
-        secretKeyEncrypted: refreshKeyEncrypted,
-        token: refreshToken,
-        cypherIV,
-      }),
-    ]);
+    await this.refreshTokenService.addRefreshTokenByUserId({
+      ...refreshTokenPayload,
+      secretKeyEncrypted: refreshKeyEncrypted,
+      token: refreshToken,
+      cypherIV,
+    });
 
     return {
       accessToken,
       refreshToken,
-      hasEmailVerified,
+      hasEmailVerified: user.userIdentity.isAccountVerified,
     };
   }
 
@@ -193,13 +190,12 @@ export class AuthenticationService {
       oneTimeCode,
       userId: user.id,
       isVerified: false,
-      uuid: genUUID(),
+      uuid: uuid(),
     });
 
     // send one time code to user on mail here
   }
 
-  //TODO fix this
   async recoverPasswordConfirmCode(body: RecoverPasswordConfirmCodeParams): Promise<{ uuid: string }> {
     const { code, email } = body;
 
@@ -219,17 +215,18 @@ export class AuthenticationService {
       throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_TIMED_OUT);
     }
 
-    const uuid = genUUID();
+    const generatedUUID = uuid();
 
     await this.recoverPasswordService.updateById(recoverPasswordRequest.id, {
-      uuid,
+      uuid: generatedUUID,
       isVerified: true,
     });
 
-    return { uuid };
+    return {
+      uuid: generatedUUID,
+    };
   }
 
-  //TODO fix this
   async recoverPassword(body: RecoverPasswordParams): Promise<void> {
     const { password, uuid } = body;
     const recoverPasswordRequest = await this.recoverPasswordService.getByUUID(uuid);
@@ -240,20 +237,23 @@ export class AuthenticationService {
 
     const hashedPassword = await this.encoderService.encode(password);
 
-    await this.recoverPasswordService.deleteById(uuid);
-    await this.userIdentityService.updatePasswordById(recoverPasswordRequest.userId, hashedPassword);
+    await Promise.all([
+      this.recoverPasswordService.deleteById(uuid),
+      this.userIdentityService.updatePasswordById(recoverPasswordRequest.userId, hashedPassword),
+    ]);
   }
 
-  //TODO fix this
   async sendAccountVerificationCode(userId: number) {
     const oneTimeCode = this.randomService.generateRandomInt(100000, 999999);
 
-    await this.accountVerificationService.upsert({ oneTimeCode, userId });
+    await this.accountVerificationService.upsert({
+      oneTimeCode,
+      userId,
+    });
 
-    //TODO send one time code to user on mail
+    // send one time code to user on mail here
   }
 
-  //TODO fix this
   async accountVerificationConfirmCode(userId: number, code: number) {
     const accountVerification = await this.accountVerificationService.getByUserId(userId);
 
@@ -273,7 +273,7 @@ export class AuthenticationService {
       throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_TIMED_OUT);
     }
 
-    await this.accountVerificationService.updateIsVerified(userId, true);
+    await this.userIdentityService.updateIsAccVerified(userId, true);
   }
 
   private async genAccessAndRefreshToken(params: { userId: number; email: string }) {

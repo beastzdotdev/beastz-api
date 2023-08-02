@@ -7,6 +7,7 @@ import { Constants } from '../../../common/constants';
 import { UserService } from '../../user/user.service';
 import { PlatformForJwt } from '@prisma/client';
 import { AuthPayloadRequest } from '../../../model/auth.types';
+import { enumValueIncludes } from '../../../common/helper';
 
 @Injectable()
 export class JwtHttpAuthGuard implements CanActivate {
@@ -26,19 +27,18 @@ export class JwtHttpAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthPayloadRequest>();
 
     const authorizationHeader = request.headers['authorization'] || (request.headers['Authorization'] as string);
-    const platform = request.headers[Constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
+    const platform = request.headers?.[Constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
 
     if (!platform) {
       throw new BadRequestException(`Header missing "${Constants.PLATFORM_HEADER_NAME}"`);
     }
 
-    if (!Object.values(PlatformForJwt).includes(platform)) {
+    if (!enumValueIncludes(PlatformForJwt, platform)) {
       throw new BadRequestException(`Incorrect header "${Constants.PLATFORM_HEADER_NAME}"`);
     }
 
     if (!authorizationHeader) {
-      request.userPayload = null;
-      return false;
+      throw new UnauthorizedException(ExceptionMessageCode.AUTH_HEADER_MISSING);
     }
 
     const accessToken = authorizationHeader.slice('Bearer '.length);
@@ -48,7 +48,13 @@ export class JwtHttpAuthGuard implements CanActivate {
     }
 
     const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(accessToken);
-    const user = await this.userService.getById(accessTokenPayload.userId);
+    const user = await this.userService.getByIdIncludeIdentityForGuard(accessTokenPayload.userId);
+
+    request.userForGuard = user;
+
+    if (user.userIdentity?.locked ?? false) {
+      throw new UnauthorizedException(ExceptionMessageCode.USER_LOCKED);
+    }
 
     await this.jwtUtilService.validateAccessToken(accessToken, {
       platform,

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "foreignKeys"
 }
 
 enum PlatformForJwt {
@@ -63,11 +64,12 @@ model User {
 }
 
 model UserIdentity {
-  id         Int     @id @default(autoincrement())
-  password   String  @map("password") @db.VarChar(255)
-  strictMode Boolean @default(false) @map("strict_mode")
-  locked     Boolean @default(false) @map("locked")
-  userId     Int     @unique @map("user_id")
+  id                Int     @id @default(autoincrement())
+  isAccountVerified Boolean @default(false) @map("is_account_verified")
+  password          String  @map("password") @db.VarChar(255)
+  strictMode        Boolean @default(false) @map("strict_mode")
+  locked            Boolean @default(false) @map("locked")
+  userId            Int     @unique @map("user_id")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -97,7 +99,6 @@ model RefreshToken {
 
 model AccountVerification {
   id          Int      @id @default(autoincrement())
-  isVerified  Boolean  @default(false) @map("is_verified")
   oneTimeCode Int      @map("one_time_code")
   userId      Int      @unique @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")

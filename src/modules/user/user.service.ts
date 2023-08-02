@@ -40,6 +40,16 @@ export class UserService {
     return user;
   }
 
+  async getByIdIncludeIdentityForGuard(id: number) {
+    const user = await this.userRepository.getByIdIncludeIdentityForGuard(id);
+
+    if (!user) {
+      throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
+    }
+
+    return user;
+  }
+
   async getIdByEmail(email: string): Promise<number> {
     const userId = await this.userRepository.getIdByEmail(email);
 

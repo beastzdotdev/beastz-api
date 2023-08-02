@@ -7,12 +7,11 @@ import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import helmet from 'helmet';
 
-//TODO Implement lock check inside interceptor
-
 //TODO Implement email service mailgun
 //TODO        [ ask toko for downgrading to basic plan, default will force you to pay ]
 //TODO        send email for reseting password (message: we have detected credential reuse) - method refreshToken
 //TODO        send one time code to user on mail - method recoverPasswordSendVerificationCode
+//TODO        send one time code to user on mail - method sendAccountVerificationCode
 
 //TODO return hashed jwt to frontend and make it optional from env add is_jwt_hashed and jwt_hash_secret
 //TODO implemetn free logger monitoring service and use winston maybe ??
