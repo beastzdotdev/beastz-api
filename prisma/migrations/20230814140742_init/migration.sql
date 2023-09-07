@@ -16,9 +16,9 @@ CREATE TABLE "users" (
     "is_online" BOOLEAN NOT NULL DEFAULT false,
     "email" VARCHAR(255) NOT NULL,
     "user_name" VARCHAR(255) NOT NULL,
-    "birth_date" TIMESTAMP(3) NOT NULL,
+    "birth_date" TIMESTAMPTZ NOT NULL,
     "gender" "gender" NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "socket_id" VARCHAR(32) NOT NULL,
     "profile_image_path" VARCHAR(2047),
 
@@ -31,7 +31,8 @@ CREATE TABLE "user_identity" (
     "is_account_verified" BOOLEAN NOT NULL DEFAULT false,
     "password" VARCHAR(255) NOT NULL,
     "strict_mode" BOOLEAN NOT NULL DEFAULT false,
-    "locked" BOOLEAN NOT NULL DEFAULT false,
+    "is_blocked" BOOLEAN NOT NULL DEFAULT false,
+    "is_locked" BOOLEAN NOT NULL DEFAULT false,
     "user_id" INTEGER NOT NULL,
 
     CONSTRAINT "user_identity_pkey" PRIMARY KEY ("id")
@@ -51,7 +52,7 @@ CREATE TABLE "refresh_tokens" (
     "cypher_iv" TEXT NOT NULL,
     "is_used" BOOLEAN NOT NULL DEFAULT false,
     "secret_key_encrypted" VARCHAR(255) NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "refresh_tokens_pkey" PRIMARY KEY ("id")
 );
@@ -61,7 +62,7 @@ CREATE TABLE "account_verification" (
     "id" SERIAL NOT NULL,
     "one_time_code" INTEGER NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "account_verification_pkey" PRIMARY KEY ("id")
 );
@@ -73,7 +74,7 @@ CREATE TABLE "recover_passwords" (
     "one_time_code" INTEGER NOT NULL,
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
     "uuid" UUID,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "recover_passwords_pkey" PRIMARY KEY ("id")
 );
@@ -83,8 +84,8 @@ CREATE TABLE "legal_documents" (
     "id" SERIAL NOT NULL,
     "title" VARCHAR(255) NOT NULL,
     "type" "legal_document_type" NOT NULL,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "legal_documents_pkey" PRIMARY KEY ("id")
 );
@@ -95,7 +96,7 @@ CREATE TABLE "legal_document_paragraphs" (
     "title" VARCHAR(255) NOT NULL,
     "content" TEXT NOT NULL,
     "index" INTEGER NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "legal_document_id" INTEGER NOT NULL,
 
     CONSTRAINT "legal_document_paragraphs_pkey" PRIMARY KEY ("id")
@@ -108,7 +109,7 @@ CREATE TABLE "feedbacks" (
     "review" "emotion" NOT NULL,
     "images" TEXT[],
     "user_id" INTEGER NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "feedbacks_pkey" PRIMARY KEY ("id")
 );

@@ -25,6 +25,9 @@ import {
   SignInParams,
   SignUpWithTokenParams,
 } from './authentication.types';
+import { AuthRefreshResponseDto } from './dto/auth-refreh-response.dto';
+import { TokenExpiredException } from '../../exceptions/token-expired-forbidden.exception';
+import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-expired.exception';
 
 @Injectable()
 export class AuthenticationService {
@@ -112,15 +115,45 @@ export class AuthenticationService {
     };
   }
 
-  async refreshToken(oldRefreshTokenString: string): Promise<AuthenticationPayloadResponseDto> {
-    const oldRefreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshTokenString);
-    const oldRefreshToken = await this.refreshTokenService.getByJTI(oldRefreshTokenPayload.jti);
+  async refreshToken(oldRefreshTokenString: string): Promise<AuthRefreshResponseDto> {
+    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshTokenString);
+    const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti);
 
     // validate user existence from token
-    const user = await this.userService.getById(oldRefreshTokenPayload.userId);
+    const user = await this.userService.getById(refreshTokenPayload.userId);
+
+    // get refresh token secret and decrypt it
+    const refreshTokenSecretDecrypted = await encryption.aes256cbc.decrypt(
+      refreshTokenFromDB.secretKeyEncrypted,
+      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
+      refreshTokenFromDB.cypherIV,
+    );
+
+    // should not happen
+    if (!refreshTokenSecretDecrypted) {
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    // validate fully
+    try {
+      await this.jwtUtilService.validateRefreshToken(oldRefreshTokenString, {
+        ...refreshTokenFromDB,
+        exp: parseInt(refreshTokenFromDB.exp),
+        iat: parseInt(refreshTokenFromDB.iat),
+        secret: refreshTokenSecretDecrypted,
+      });
+    } catch (error) {
+      // catch general token expired error, update is used if refresh token is correct and expired
+      if (error instanceof TokenExpiredException) {
+        await this.refreshTokenService.updateIsUsedById(refreshTokenFromDB.id);
+        throw new RefreshTokenExpiredException();
+      }
+
+      throw error;
+    }
 
     // detect refresh token reuse
-    if (oldRefreshToken.isUsed) {
+    if (refreshTokenFromDB.isUsed) {
       await this.refreshTokenService.updateIsUsedForAllByUserId(user.id);
 
       const userIdentity = await this.userIdentityService.getByUserId(user.id);
@@ -134,46 +167,13 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
     }
 
-    // get refresh token secret and decrypt it
-    const refreshTokenSecretDecrypted = await encryption.aes256cbc.decrypt(
-      oldRefreshToken.secretKeyEncrypted,
-      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-      oldRefreshToken.cypherIV,
-    );
-
-    // should not happen
-    if (!refreshTokenSecretDecrypted) {
-      throw new InternalServerErrorException('Something went wrong');
-    }
-
-    // validate fully
-    await this.jwtUtilService.validateRefreshToken(oldRefreshTokenString, {
-      ...oldRefreshToken,
-      exp: parseInt(oldRefreshToken.exp),
-      iat: parseInt(oldRefreshToken.iat),
-      secret: refreshTokenSecretDecrypted,
-    });
-
-    const [{ accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted }] = await Promise.all([
-      this.genAccessAndRefreshToken({
-        userId: user.id,
-        email: user.email,
-      }),
-
-      // update is used for old refresh token
-      this.refreshTokenService.updateIsUsedById(oldRefreshToken.id),
-    ]);
-
-    await this.refreshTokenService.addRefreshTokenByUserId({
-      ...refreshTokenPayload,
-      secretKeyEncrypted: refreshKeyEncrypted,
-      token: refreshToken,
-      cypherIV,
+    const { accessToken } = await this.genAccessToken({
+      userId: user.id,
+      email: user.email,
     });
 
     return {
       accessToken,
-      refreshToken,
     };
   }
 
@@ -277,6 +277,25 @@ export class AuthenticationService {
   }
 
   private async genAccessAndRefreshToken(params: { userId: number; email: string }) {
+    const { accessToken } = await this.genAccessToken({
+      userId: params.userId,
+      email: params.email,
+    });
+    const { cypherIV, refreshKeyEncrypted, refreshToken, refreshTokenPayload } = await this.genRefreshToken({
+      userId: params.userId,
+      email: params.email,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      refreshTokenPayload,
+      refreshKeyEncrypted,
+      cypherIV,
+    };
+  }
+
+  private async genRefreshToken(params: { userId: number; email: string }) {
     const refreshTokenSecret = this.randomService.generateRandomASCII(32);
     const cypherIV = encryption.aes256cbc.genIv();
     const refreshKeyEncrypted = await encryption.aes256cbc.encrypt(
@@ -289,10 +308,6 @@ export class AuthenticationService {
       throw new InternalServerErrorException('Something went wrong');
     }
 
-    const accessToken = this.jwtUtilService.genAccessToken({
-      userId: params.userId,
-      email: params.email,
-    });
     const refreshToken = this.jwtUtilService.genRefreshToken({
       userId: params.userId,
       email: params.email,
@@ -302,11 +317,21 @@ export class AuthenticationService {
     const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
 
     return {
-      accessToken,
       refreshToken,
       refreshTokenPayload,
       refreshKeyEncrypted,
       cypherIV,
+    };
+  }
+
+  private async genAccessToken(params: { userId: number; email: string }) {
+    const accessToken = this.jwtUtilService.genAccessToken({
+      userId: params.userId,
+      email: params.email,
+    });
+
+    return {
+      accessToken,
     };
   }
 }

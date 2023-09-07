@@ -1,14 +1,14 @@
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
-
 import { isObject } from '@nestjs/class-validator';
 import { PlatformForJwt } from '@prisma/client';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { InjectEnv } from '../../../modules/@global/env/env.decorator';
 import { EnvService } from '../../../modules/@global/env/env.service';
 import { AuthTokenPayload } from '../../../model/auth.types';
 import { Constants } from '../../constants';
+import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
 import {
   AccessTokenPayload,
   RefreshTokenPayload,
@@ -25,7 +25,7 @@ export class JwtUtilService {
 
   async validateAccessToken(token: string, validateOptions: ValidateAccesssTokenPayload): Promise<void> {
     if (!token) {
-      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
+      throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
     const secret = this.envService.get('ACCESS_TOKEN_SECRET');
@@ -35,11 +35,11 @@ export class JwtUtilService {
     const { platform, sub, userId } = validateOptions;
 
     if (accessTokenPayload.platform !== platform) {
-      throw new UnauthorizedException('jwt platform not accurate');
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PLATFORM);
     }
 
     if (accessTokenPayload.userId !== userId) {
-      throw new UnauthorizedException('jwt userId not accurate');
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_USERID);
     }
 
     jwt.verify(
@@ -56,7 +56,7 @@ export class JwtUtilService {
 
   async validateRefreshToken(token: string, validateOptions: ValidateRefreshTokenPayload): Promise<void> {
     if (!token) {
-      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
+      throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
     const { secret } = validateOptions;
@@ -65,19 +65,19 @@ export class JwtUtilService {
     const { exp, iat, iss, jti, platform, sub, userId } = validateOptions;
 
     if (refreshTokenPayload.exp !== exp) {
-      throw new UnauthorizedException('jwt exp not accurate');
+      throw new ForbiddenException('jwt exp not accurate');
     }
 
     if (refreshTokenPayload.iat !== iat) {
-      throw new UnauthorizedException('jwt iat not accurate');
+      throw new ForbiddenException('jwt iat not accurate');
     }
 
     if (refreshTokenPayload.platform !== platform) {
-      throw new UnauthorizedException('jwt platform not accurate');
+      throw new ForbiddenException('jwt platform not accurate');
     }
 
     if (refreshTokenPayload.userId !== userId) {
-      throw new UnauthorizedException('jwt platform not accurate');
+      throw new ForbiddenException('jwt platform not accurate');
     }
 
     jwt.verify(
@@ -134,7 +134,7 @@ export class JwtUtilService {
       !payload.iss ||
       !payload.iat
     ) {
-      throw new UnauthorizedException('jwt invalid payload');
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PAYLOAD);
     }
 
     return payload;
@@ -154,7 +154,7 @@ export class JwtUtilService {
       !payload.iat ||
       !payload.iat
     ) {
-      throw new UnauthorizedException('jwt invalid payload');
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PAYLOAD);
     }
 
     return payload;
@@ -162,19 +162,19 @@ export class JwtUtilService {
 
   private jwtVerifyError(err: jwt.VerifyErrors | null) {
     if (err instanceof jwt.TokenExpiredError) {
-      throw new UnauthorizedException(ExceptionMessageCode.EXPIRED_TOKEN);
+      throw new TokenExpiredException();
     }
 
     if (err instanceof jwt.NotBeforeError) {
-      throw new UnauthorizedException(ExceptionMessageCode.NOT_BEFORE_CLAIM_TOKEN);
+      throw new ForbiddenException(ExceptionMessageCode.NOT_BEFORE_CLAIM_TOKEN);
     }
 
     if (err instanceof jwt.JsonWebTokenError) {
-      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
+      throw new ForbiddenException(ExceptionMessageCode.INVALID_TOKEN);
     }
 
     if (err) {
-      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
+      throw new ForbiddenException(ExceptionMessageCode.INVALID_TOKEN);
     }
   }
 }

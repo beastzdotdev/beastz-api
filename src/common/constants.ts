@@ -1,5 +1,6 @@
 export class Constants {
   static readonly PLATFORM_HEADER_NAME = 'platform';
+  static readonly AUTH_HEADER_NAME = 'Authorization';
 
   static readonly MILLIS_IN_HOUR = 10000 * 3600;
   static readonly MILLIS_IN_DAY = Constants.MILLIS_IN_HOUR * 24;

@@ -17,8 +17,6 @@ export const encryption = {
           encrypted += cipher.final('hex');
           resolve(encrypted);
         } catch (error) {
-          console.log(error);
-
           resolve(null);
         }
       });

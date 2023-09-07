@@ -4,7 +4,6 @@ import { AuthenticationService } from './authentication.service';
 import { RecoverpasswordConfirmCodePayloadDto } from './dto/recover-password-confirm-code-payload.dto';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
-import { UserPayload } from '../../model/auth.types';
 import {
   AccountVerificationConfirmCodeDto,
   AuthenticationPayloadResponseDto,
@@ -15,6 +14,8 @@ import {
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
+import { AuthPayloadType } from '../../model/auth.types';
+import { AuthRefreshResponseDto } from './dto/auth-refreh-response.dto';
 
 @Controller('authentication')
 export class AuthenticationController {
@@ -36,7 +37,7 @@ export class AuthenticationController {
   @NoAuth()
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  async refresh(@Body() body: RefreshTokenBodyDto): Promise<AuthenticationPayloadResponseDto> {
+  async refresh(@Body() body: RefreshTokenBodyDto): Promise<AuthRefreshResponseDto> {
     return this.authenticationService.refreshToken(body.refreshToken);
   }
 
@@ -66,17 +67,17 @@ export class AuthenticationController {
   @NoEmailVerifyValidate()
   @HttpCode(HttpStatus.OK)
   @Post('account-verification/send-code')
-  async sendAccountVerificationCode(@AuthPayload() authUser: UserPayload) {
-    await this.authenticationService.sendAccountVerificationCode(authUser.userId);
+  async sendAccountVerificationCode(@AuthPayload() authPayload: AuthPayloadType) {
+    await this.authenticationService.sendAccountVerificationCode(authPayload.user.id);
   }
 
   @NoEmailVerifyValidate()
   @HttpCode(HttpStatus.OK)
   @Post('account-verification/confirm-code')
   async accountVerificationConfirmCode(
-    @AuthPayload() authPayload: UserPayload,
+    @AuthPayload() authPayload: AuthPayloadType,
     @Body() body: AccountVerificationConfirmCodeDto,
   ) {
-    await this.authenticationService.accountVerificationConfirmCode(authPayload.userId, body.code);
+    await this.authenticationService.accountVerificationConfirmCode(authPayload.user.id, body.code);
   }
 }

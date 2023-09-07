@@ -5,15 +5,15 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
 import { ApiFile } from '../../decorator/api-file.decorator';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
-import { UserPayload } from '../../model/auth.types';
+import { AuthPayloadType } from '../../model/auth.types';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('current')
-  async getAuthUser(@AuthPayload() authPayload: UserPayload): Promise<UserResponseDto> {
-    const user = await this.userService.getById(authPayload.userId);
+  async getAuthUser(@AuthPayload() authPayload: AuthPayloadType): Promise<UserResponseDto> {
+    const user = await this.userService.getById(authPayload.user.id);
     return plainToInstance(UserResponseDto, user);
   }
 
@@ -27,9 +27,9 @@ export class UserController {
   @ApiFile('profileImage')
   async getUserDetails(
     @Body() body: UpdateUserBodyDto,
-    @AuthPayload() authPayload: UserPayload,
+    @AuthPayload() authPayload: AuthPayloadType,
   ): Promise<UserResponseDto | null> {
-    const user = await this.userService.updateById(authPayload.userId, body);
+    const user = await this.userService.updateById(authPayload.user.id, body);
     return plainToInstance(UserResponseDto, user);
   }
 }

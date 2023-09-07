@@ -46,10 +46,10 @@ model User {
   isOnline  Boolean  @default(false) @map("is_online")
   email     String   @unique @db.VarChar(255)
   userName  String   @map("user_name") @db.VarChar(255)
-  birthDate DateTime @map("birth_date")
+  birthDate DateTime @map("birth_date") @db.Timestamptz()
   gender    Gender
 
-  createdAt        DateTime @default(now()) @map("created_at")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
   socketId         String   @map("socket_id") @db.VarChar(32)
   profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
 
@@ -90,7 +90,7 @@ model RefreshToken {
   cypherIV           String         @map("cypher_iv")
   isUsed             Boolean        @default(false) @map("is_used")
   secretKeyEncrypted String         @map("secret_key_encrypted") @db.VarChar(255)
-  createdAt          DateTime       @default(now()) @map("created_at")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz()
 
   user User @relation(fields: [userId], references: [id])
 
@@ -102,7 +102,7 @@ model AccountVerification {
   id          Int      @id @default(autoincrement())
   oneTimeCode Int      @map("one_time_code")
   userId      Int      @unique @map("user_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   user User @relation(fields: [userId], references: [id])
 
@@ -115,7 +115,7 @@ model RecoverPassword {
   oneTimeCode Int      @map("one_time_code")
   isVerified  Boolean  @default(false) @map("is_verified")
   uuid        String?  @unique @db.Uuid()
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   user User @relation(fields: [userId], references: [id])
 
@@ -126,8 +126,8 @@ model LegalDocument {
   id        Int               @id @default(autoincrement())
   title     String            @db.VarChar(255)
   type      LegalDocumentType @unique
-  updatedAt DateTime          @updatedAt @map("updated_at")
-  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz()
 
   paragraphs LegalDocumentParagraph[]
 
@@ -139,7 +139,7 @@ model LegalDocumentParagraph {
   title     String   @db.VarChar(255)
   content   String   @db.Text
   index     Int
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   legalDocument   LegalDocument @relation(fields: [legalDocumentId], references: [id])
   legalDocumentId Int           @map("legal_document_id")
@@ -153,7 +153,7 @@ model Feedback {
   review    Review
   images    String[]
   userId    Int      @map("user_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   user User @relation(fields: [userId], references: [id])
 

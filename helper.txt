@@ -1,0 +1,77 @@
+// Sample fetched data (replace this with your fetched data)
+const fetchedData = [
+    { id: 1, name: 'Root A', parent_id: null },
+    { id: 2, name: 'Child 1', parent_id: 1 },
+    { id: 3, name: 'Child 2', parent_id: 1 },
+    { id: 4, name: 'Subchild 1', parent_id: 2 },
+    { id: 5, name: 'Subchild 2', parent_id: 2 },
+    { id: 6, name: 'Child 3', parent_id: 1 },
+    { id: 7, name: 'Root B', parent_id: null },
+    { id: 8, name: 'Child 4', parent_id: 7 },
+    { id: 9, name: 'Child 5', parent_id: 7 }
+];
+
+// Function to convert flat data to tree structure
+function convertToTree(data) {
+    const map = new Map(); // Map to store nodes by id
+    const tree = []; // Final tree structure
+
+    // Create a map of nodes using their id as the key
+    data.forEach(node => {
+        map.set(node.id, { ...node, children: [] });
+    });
+
+    // Populate children of each node based on parent_id
+    data.forEach(node => {
+        if (node.parent_id !== null) {
+            const parentNode = map.get(node.parent_id);
+            if (parentNode) {
+                parentNode.children.push(map.get(node.id));
+            }
+        } else {
+            // If parent_id is null, it's a root node
+            tree.push(map.get(node.id));
+        }
+    });
+
+    return tree;
+}
+
+// Convert fetched data to tree structure
+const treeData = convertToTree(fetchedData);
+
+// tree data
+//========/========/========/========/========/========/========/========
+
+-- Create the table
+CREATE TABLE hierarchical_data (
+    id serial PRIMARY KEY,
+    name varchar(255) NOT NULL,
+    parent_id int
+);
+
+-- Insert sample data
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Root A', NULL);
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Child 1', 1);
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Child 2', 1);
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Subchild 1', 2);
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Subchild 2', 2);
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Child 3', 1);
+
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Root B', NULL);
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Child 4', 7);
+INSERT INTO hierarchical_data (name, parent_id) VALUES ('Child 5', 7);
+
+-- Fetch data recursively for both roots
+WITH RECURSIVE Tree AS (
+    SELECT id, name, parent_id
+    FROM hierarchical_data
+    WHERE parent_id IS NULL
+
+    UNION ALL
+
+    SELECT hd.id, hd.name, hd.parent_id
+    FROM hierarchical_data hd
+    JOIN Tree ON hd.parent_id = Tree.id
+)
+SELECT id, name, parent_id FROM Tree;

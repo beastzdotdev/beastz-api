@@ -1,4 +1,4 @@
-import { BadRequestException, CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
@@ -6,7 +6,7 @@ import { JwtUtilService } from '../../../common/modules/jwt-util/jwt-util.servic
 import { Constants } from '../../../common/constants';
 import { UserService } from '../../user/user.service';
 import { PlatformForJwt } from '@prisma/client';
-import { AuthPayloadRequest } from '../../../model/auth.types';
+import { AuthPayloadAndRequest } from '../../../model/auth.types';
 import { enumValueIncludes } from '../../../common/helper';
 
 @Injectable()
@@ -24,51 +24,60 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<AuthPayloadRequest>();
-
-    const authorizationHeader = request.headers['authorization'] || (request.headers['Authorization'] as string);
-    const platform = request.headers?.[Constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
-
-    if (!platform) {
-      throw new BadRequestException(`Header missing "${Constants.PLATFORM_HEADER_NAME}"`);
-    }
-
-    if (!enumValueIncludes(PlatformForJwt, platform)) {
-      throw new BadRequestException(`Incorrect header "${Constants.PLATFORM_HEADER_NAME}"`);
-    }
-
-    if (!authorizationHeader) {
-      throw new UnauthorizedException(ExceptionMessageCode.AUTH_HEADER_MISSING);
-    }
+    const request = context.switchToHttp().getRequest<AuthPayloadAndRequest>();
+    const { authorizationHeader, platformHeader } = this.validateHeaders(request);
 
     const accessToken = authorizationHeader.slice('Bearer '.length);
 
     if (!accessToken) {
-      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
+      throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
     const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(accessToken);
     const user = await this.userService.getByIdIncludeIdentityForGuard(accessTokenPayload.userId);
 
-    request.userForGuard = user;
+    request.user = user;
 
     if (user.userIdentity.isLocked) {
-      throw new UnauthorizedException(ExceptionMessageCode.USER_LOCKED);
+      throw new ForbiddenException(ExceptionMessageCode.USER_LOCKED);
     }
 
     if (user.userIdentity.isBlocked) {
-      throw new UnauthorizedException(ExceptionMessageCode.USER_BLOCKED);
+      throw new ForbiddenException(ExceptionMessageCode.USER_BLOCKED);
     }
 
     await this.jwtUtilService.validateAccessToken(accessToken, {
-      platform,
+      platform: platformHeader,
       sub: user.email,
       userId: user.id,
     });
 
-    // add to request
-    request.userPayload = { userId: accessTokenPayload.userId } ?? null;
-
     return true;
+  }
+
+  private validateHeaders(request: AuthPayloadAndRequest) {
+    const authorizationHeader =
+      <string>request.headers[Constants.AUTH_HEADER_NAME.toLowerCase()] ||
+      <string>request.headers[Constants.AUTH_HEADER_NAME];
+    const platformHeader = request.headers?.[Constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
+
+    if (!platformHeader) {
+      throw new BadRequestException(`Header missing "${Constants.PLATFORM_HEADER_NAME}"`);
+    }
+
+    if (!enumValueIncludes(PlatformForJwt, platformHeader)) {
+      throw new BadRequestException(`Incorrect header "${Constants.PLATFORM_HEADER_NAME}"`);
+    }
+
+    if (!authorizationHeader) {
+      throw new BadRequestException(
+        `Incorrect header "${Constants.PLATFORM_HEADER_NAME}" or "${Constants.PLATFORM_HEADER_NAME.toLowerCase()}"`,
+      );
+    }
+
+    return {
+      authorizationHeader,
+      platformHeader,
+    };
   }
 }

@@ -10,10 +10,6 @@ export class EnvService {
     return this.configService.get(key) as unknown as EnvironmentVariables[T];
   }
 
-  log() {
-    console.log(this.configService);
-  }
-
   getInstance() {
     return this.configService;
   }

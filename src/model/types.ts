@@ -7,8 +7,18 @@ export type Debug = 'dev' | 'prod' | 'development' | 'production';
 
 // Prisma helper
 export type ExceptionType = keyof typeof PrismaExceptionCode;
-export type SafeCallResult<T> = { success: boolean; error: ExceptionType | null; data: T | null };
+export type SafeCallResult<T> = {
+  success: boolean;
+  error: ExceptionType | null;
+  data: T | null;
+};
 
 // Pagination
-export type PageOptionParams = { page: number; pageSize: number };
-export type DataPage<T> = { data: T[]; total: number };
+export type PageOptionParams = {
+  page: number;
+  pageSize: number;
+};
+export type DataPage<T> = {
+  data: T[];
+  total: number;
+};

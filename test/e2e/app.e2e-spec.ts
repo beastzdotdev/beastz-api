@@ -1,11 +1,9 @@
-import * as bodyParser from 'body-parser';
 import * as request from 'supertest';
-
+import { json, urlencoded } from 'express';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from 'testcontainers';
 import { Test, TestingModule } from '@nestjs/testing';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe } from '@nestjs/common';
-
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentVariables } from '../../src/modules/@global/env/env.dto';
 import { EnvironmentType } from '../../src/modules/@global/env/env.interface';
@@ -25,7 +23,7 @@ describe('App (e2e)', () => {
 
     postgreSqlContainer = await new PostgreSqlContainer().withExposedPorts(5432).start();
 
-    const envValues: EnvironmentVariables = {
+    const envValues: Partial<EnvironmentVariables> = {
       DATABASE_URL: postgreSqlContainer.getConnectionUri(),
       DATABASE_LOG_QUERY: true,
       DEBUG: EnvironmentType.Dev,
@@ -44,8 +42,8 @@ describe('App (e2e)', () => {
     }
 
     app.enableCors();
-    app.use(bodyParser.json({ limit: '50mb' }));
-    app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+    app.use(json({ limit: '50mb' }));
+    app.use(urlencoded({ limit: '50mb', extended: true }));
     app.useGlobalPipes(new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }));
 
     await app.init();
