@@ -8,6 +8,7 @@ import { UserService } from '../../user/user.service';
 import { PlatformForJwt } from '@prisma/client';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
 import { enumValueIncludes } from '../../../common/helper';
+import { PlatformWrapper } from '../../../model/platform.wrapper';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -25,7 +26,7 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthPayloadAndRequest>();
-    const { authorizationHeader, platformHeader } = this.validateHeaders(request);
+    const { authorizationHeader, platform } = this.validateHeaders(request);
 
     const accessToken = authorizationHeader.slice('Bearer '.length);
 
@@ -37,6 +38,7 @@ export class AuthGuard implements CanActivate {
     const user = await this.userService.getByIdIncludeIdentityForGuard(accessTokenPayload.userId);
 
     request.user = user;
+    request.platform = new PlatformWrapper(platform);
 
     if (user.userIdentity.isLocked) {
       throw new ForbiddenException(ExceptionMessageCode.USER_LOCKED);
@@ -47,7 +49,7 @@ export class AuthGuard implements CanActivate {
     }
 
     await this.jwtUtilService.validateAccessToken(accessToken, {
-      platform: platformHeader,
+      platform,
       sub: user.email,
       userId: user.id,
     });
@@ -59,13 +61,13 @@ export class AuthGuard implements CanActivate {
     const authorizationHeader =
       <string>request.headers[Constants.AUTH_HEADER_NAME.toLowerCase()] ||
       <string>request.headers[Constants.AUTH_HEADER_NAME];
-    const platformHeader = request.headers?.[Constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
+    const platform = request.headers?.[Constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
 
-    if (!platformHeader) {
+    if (!platform) {
       throw new BadRequestException(`Header missing "${Constants.PLATFORM_HEADER_NAME}"`);
     }
 
-    if (!enumValueIncludes(PlatformForJwt, platformHeader)) {
+    if (!enumValueIncludes(PlatformForJwt, platform)) {
       throw new BadRequestException(`Incorrect header "${Constants.PLATFORM_HEADER_NAME}"`);
     }
 
@@ -77,7 +79,7 @@ export class AuthGuard implements CanActivate {
 
     return {
       authorizationHeader,
-      platformHeader,
+      platform,
     };
   }
 }

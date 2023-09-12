@@ -1,3 +1,4 @@
+import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { json, urlencoded } from 'express';
 import { NestFactory } from '@nestjs/core';
@@ -14,9 +15,10 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
   app.enableCors();
   app.enableShutdownHooks();
   app.set('trust proxy', true);
-  app.use(helmet());
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ limit: '50mb', extended: true }));
+  app.use(cookieParser());
+  app.use(helmet());
 
   await app.listen(envService.get('PORT'));
 

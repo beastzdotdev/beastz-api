@@ -8,12 +8,14 @@ TODO PKCE add in both backend and frontend
  https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce
 
 
-TODO This is agains access token theft
-https://posts.specterops.io/understanding-and-defending-against-access-token-theft-finding-alternatives-to-winlogon-exe-80696c8a73b
-
 TODO Move web version to httpOnly/Secure cookie for csrf and xss attack
 https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3
 
+
+TODO Blacklist User
+TODO Blacklist Token
+
+TODO Increase refresh token expiry date (look in oauth docs for strict guidlines)
 
 TODO Return hashed jwt to frontend and make it optional from env add is_jwt_hashed and jwt_hash_secret
 TODO Implemetn free logger monitoring service and use winston maybe ??

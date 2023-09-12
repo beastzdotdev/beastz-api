@@ -1,6 +1,6 @@
 import { PlatformForJwt } from '@prisma/client';
 import { Request } from 'express';
-import { type } from 'os';
+import { PlatformWrapper } from './platform.wrapper';
 
 export type AuthTokenPayload = {
   userId: number;
@@ -8,6 +8,7 @@ export type AuthTokenPayload = {
 };
 
 export type AuthPayloadType = {
+  platform: PlatformWrapper;
   user: {
     id: number;
     email: string;

@@ -13,4 +13,8 @@ export class EnvService {
   getInstance() {
     return this.configService;
   }
+
+  isProd(): boolean {
+    return this.get('DEBUG') !== 'dev';
+  }
 }

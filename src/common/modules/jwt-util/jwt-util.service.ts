@@ -100,7 +100,7 @@ export class JwtUtilService {
     };
 
     return jwt.sign(authTokenPayload, this.envService.get('ACCESS_TOKEN_SECRET').toString(), {
-      expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION'),
+      expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'),
       algorithm: 'HS256',
       issuer: Constants.JWT_ISSUER,
       subject: params.email,
@@ -114,7 +114,7 @@ export class JwtUtilService {
     };
 
     return jwt.sign(authTokenPayload, params.refreshKeySecret, {
-      expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION'),
+      expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'),
       algorithm: 'HS256',
       issuer: Constants.JWT_ISSUER,
       subject: params.email,

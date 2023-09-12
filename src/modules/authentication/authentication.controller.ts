@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Res, UseGuards } from '@nestjs/common';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { AuthenticationService } from './authentication.service';
 import { RecoverpasswordConfirmCodePayloadDto } from './dto/recover-password-confirm-code-payload.dto';
@@ -16,6 +16,13 @@ import {
 } from './dto';
 import { AuthPayloadType } from '../../model/auth.types';
 import { AuthRefreshResponseDto } from './dto/auth-refreh-response.dto';
+import { Response } from 'express';
+import { AuthPlatformHeaderGuard } from './guard/auth-platform-header.guard';
+import { PlatformHeader } from '../../decorator/platform-header.decorator';
+import { PlatformForJwt } from '@prisma/client';
+import { CookieStrict } from '../../decorator/cookie-decorator';
+import { Constants } from '../../common/constants';
+import { PlatformWrapper } from '../../model/platform.wrapper';
 
 @Controller('authentication')
 export class AuthenticationController {
@@ -23,22 +30,46 @@ export class AuthenticationController {
 
   @NoAuth()
   @Post('sign-up')
-  async signUp(@Body() body: SignUpBodyDto): Promise<AuthenticationPayloadResponseDto> {
-    return this.authenticationService.signUpWithToken(body);
+  async signUp(
+    @Body() body: SignUpBodyDto,
+    @Res() res: Response,
+    @PlatformHeader() platform: PlatformWrapper,
+  ): Promise<Response> {
+    return this.authenticationService.signUpWithToken(res, body, platform);
   }
 
   @NoAuth()
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthPlatformHeaderGuard)
   @Post('sign-in')
-  async signIn(@Body() body: SignInBodyDto): Promise<AuthenticationPayloadResponseDto> {
-    return this.authenticationService.signInWithToken(body);
+  async signIn(
+    @Body() body: SignInBodyDto,
+    @Res() res: Response,
+    @PlatformHeader() platform: PlatformWrapper,
+  ): Promise<Response> {
+    return this.authenticationService.signInWithToken(res, body, platform);
   }
 
   @NoAuth()
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  async refresh(@Body() body: RefreshTokenBodyDto): Promise<AuthRefreshResponseDto> {
-    return this.authenticationService.refreshToken(body.refreshToken);
+  async refreshByCookie(
+    @CookieStrict(Constants.COOKIE_REFRESH_NAME) refreshToken: string,
+    @Res() res: Response,
+    @PlatformHeader() platform: PlatformWrapper,
+  ): Promise<Response> {
+    return this.authenticationService.refreshToken(res, { oldRefreshTokenString: refreshToken }, platform);
+  }
+
+  @NoAuth()
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh/by-body')
+  async refreshByBody(
+    @Body() body: RefreshTokenBodyDto,
+    @Res() res: Response,
+    @PlatformHeader() platform: PlatformWrapper,
+  ): Promise<Response> {
+    return this.authenticationService.refreshToken(res, { oldRefreshTokenString: body.refreshToken }, platform);
   }
 
   @NoAuth()

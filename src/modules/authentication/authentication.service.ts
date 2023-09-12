@@ -22,12 +22,17 @@ import { encryption } from '../../common/encryption';
 import {
   RecoverPasswordConfirmCodeParams,
   RecoverPasswordParams,
+  RefreshParams,
   SignInParams,
   SignUpWithTokenParams,
 } from './authentication.types';
 import { AuthRefreshResponseDto } from './dto/auth-refreh-response.dto';
 import { TokenExpiredException } from '../../exceptions/token-expired-forbidden.exception';
 import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-expired.exception';
+import { CookieService } from '../@global/cookie/cookie.service';
+import { Response } from 'express';
+import { PlatformForJwt } from '@prisma/client';
+import { PlatformWrapper } from '../../model/platform.wrapper';
 
 @Injectable()
 export class AuthenticationService {
@@ -35,6 +40,7 @@ export class AuthenticationService {
     @InjectEnv()
     private readonly envService: EnvService,
 
+    private readonly cookieService: CookieService,
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly encoderService: EncoderService,
@@ -45,7 +51,7 @@ export class AuthenticationService {
     private readonly userIdentityService: UserIdentityService,
   ) {}
 
-  async signUpWithToken(params: SignUpWithTokenParams): Promise<AuthenticationPayloadResponseDto> {
+  async signUpWithToken(res: Response, params: SignUpWithTokenParams, platform: PlatformWrapper): Promise<Response> {
     if (await this.userService.existsByEmail(params.email)) {
       throw new UnauthorizedException(ExceptionMessageCode.USER_EMAIL_EXISTS);
     }
@@ -75,10 +81,29 @@ export class AuthenticationService {
       }),
     ]);
 
-    return { accessToken, refreshToken, hasEmailVerified: false };
+    if (platform.isWeb()) {
+      this.cookieService.createCookie(res, {
+        accessToken,
+        refreshToken,
+      });
+
+      return res.json(<Partial<AuthenticationPayloadResponseDto>>{
+        isAccountVerified: false,
+      });
+    }
+
+    if (platform.isMobile()) {
+      return res.json(<AuthenticationPayloadResponseDto>{
+        accessToken,
+        refreshToken,
+        isAccountVerified: false,
+      });
+    }
+
+    return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
-  async signInWithToken(params: SignInParams): Promise<AuthenticationPayloadResponseDto> {
+  async signInWithToken(res: Response, params: SignInParams, platform: PlatformWrapper): Promise<Response> {
     const user = await this.userService.getByEmailIncludeIdentity(params.email);
 
     if (!user) {
@@ -108,14 +133,30 @@ export class AuthenticationService {
       cypherIV,
     });
 
-    return {
-      accessToken,
-      refreshToken,
-      hasEmailVerified: user.userIdentity.isAccountVerified,
-    };
+    if (platform.isWeb()) {
+      this.cookieService.createCookie(res, {
+        accessToken,
+        refreshToken,
+      });
+
+      return res.json(<Partial<AuthenticationPayloadResponseDto>>{
+        isAccountVerified: user.userIdentity.isAccountVerified,
+      });
+    }
+
+    if (platform.isMobile()) {
+      return res.json(<AuthenticationPayloadResponseDto>{
+        accessToken,
+        refreshToken,
+        isAccountVerified: user.userIdentity.isAccountVerified,
+      });
+    }
+
+    return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
-  async refreshToken(oldRefreshTokenString: string): Promise<AuthRefreshResponseDto> {
+  async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {
+    const { oldRefreshTokenString } = params;
     const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshTokenString);
     const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti);
 
@@ -172,9 +213,18 @@ export class AuthenticationService {
       email: user.email,
     });
 
-    return {
-      accessToken,
-    };
+    //================================================================
+
+    if (platform.isWeb()) {
+      this.cookieService.createCookie(res, { accessToken });
+      return res.json({ msg: 'success' });
+    }
+
+    if (platform.isMobile()) {
+      return res.json(<AuthRefreshResponseDto>{ accessToken });
+    }
+
+    return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
   async recoverPasswordSendVerificationCode(email: string): Promise<void> {

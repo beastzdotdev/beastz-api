@@ -1,8 +1,9 @@
+import { APP_PIPE, APP_GUARD } from '@nestjs/core';
 import { Module, ValidationPipe } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { EnvModule } from './@global/env/env.module';
 import { PrismaModule } from './@global/prisma/prisma.module';
-import { APP_PIPE, APP_GUARD } from '@nestjs/core';
+import { CookieModule } from './@global/cookie/cookie.module';
+import { AppController } from './app.controller';
 import { AuthGuard } from './authentication/guard/auth.guard';
 import { VerifiedEmailGuard } from './authentication/guard/verified-email.guard';
 import { JwtUtilModule } from '../common/modules/jwt-util/jwt-util.module';
@@ -15,9 +16,10 @@ import { LegalDocumentModule } from './legal-document/legal-document.module';
 @Module({
   imports: [
     EnvModule.forRoot(),
+    PrismaModule,
+    CookieModule,
     JwtUtilModule,
     AccountVerificationModule,
-    PrismaModule,
     UserModule,
     AuthenticationModule,
     FeedbackModule,

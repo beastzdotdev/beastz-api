@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsEnum, IsNumber, IsNotEmpty, IsString, IsOptional, IsUrl } from 'class-validator';
 import { IsExactBoolean } from '../../../decorator/class-validator.decorator';
 import { EnvironmentType } from './env.interface';
 
@@ -20,6 +20,11 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
+  @IsUrl()
+  FRONTEND_DOMAIN: string;
+
+  @IsNotEmpty()
+  @IsString()
   DATABASE_URL: string;
 
   @IsNotEmpty()
@@ -33,12 +38,12 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
-  ACCESS_TOKEN_EXPIRATION: number;
+  ACCESS_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
-  REFRESH_TOKEN_EXPIRATION: number;
+  REFRESH_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
   @Type(() => Number)

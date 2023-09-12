@@ -13,6 +13,10 @@ export type SignInParams = {
   password: string;
 };
 
+export type RefreshParams = {
+  oldRefreshTokenString: string;
+};
+
 export type RecoverPasswordConfirmCodeParams = {
   code: number;
   email: string;
