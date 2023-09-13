@@ -20,6 +20,7 @@ import {
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
+import { AccountVerifySendCodeDto } from './dto/account-verify-send-code.dto';
 
 @UseGuards(AuthPlatformHeaderGuard)
 @Controller('authentication')
@@ -101,20 +102,17 @@ export class AuthenticationController {
     await this.authenticationService.recoverPassword(body);
   }
 
-  @NoEmailVerifyValidate()
+  @NoAuth()
   @HttpCode(HttpStatus.OK)
-  @Post('account-verification/send-code')
-  async sendAccountVerificationCode(@AuthPayload() authPayload: AuthPayloadType) {
-    await this.authenticationService.sendAccountVerificationCode(authPayload.user.id);
+  @Post('account-verify/send-code')
+  async sendAccountVerificationCode(@Body() body: AccountVerifySendCodeDto) {
+    await this.authenticationService.sendAccountVerificationCode(body.email);
   }
 
-  @NoEmailVerifyValidate()
+  @NoAuth()
   @HttpCode(HttpStatus.OK)
-  @Post('account-verification/confirm-code')
-  async accountVerificationConfirmCode(
-    @AuthPayload() authPayload: AuthPayloadType,
-    @Body() body: AccountVerificationConfirmCodeDto,
-  ) {
-    await this.authenticationService.accountVerificationConfirmCode(authPayload.user.id, body.code);
+  @Post('account-verify/confirm-code')
+  async accountVerificationConfirmCode(@Body() body: AccountVerificationConfirmCodeDto) {
+    await this.authenticationService.accountVerificationConfirmCode(body);
   }
 }

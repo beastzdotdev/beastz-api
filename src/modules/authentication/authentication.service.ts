@@ -8,7 +8,7 @@ import {
 import { v4 as uuid } from 'uuid';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
-import { AuthenticationPayloadResponseDto } from './dto';
+import { AccountVerificationConfirmCodeDto, AuthenticationPayloadResponseDto } from './dto';
 import { RandomService } from '../../common/modules/random/random.service';
 import { EncoderService } from '../../common/modules/encoder/encoder.service';
 import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
@@ -31,8 +31,10 @@ import { TokenExpiredException } from '../../exceptions/token-expired-forbidden.
 import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-expired.exception';
 import { CookieService } from '../@global/cookie/cookie.service';
 import { Response } from 'express';
-import { PlatformForJwt } from '@prisma/client';
 import { PlatformWrapper } from '../../model/platform.wrapper';
+import { UserLockedException } from '../../exceptions/user-locked.exception';
+import { UserBlockedException } from '../../exceptions/user-blocked.exception';
+import { UserNotVerifiedException } from '../../exceptions/user-not-verified.exception';
 
 @Injectable()
 export class AuthenticationService {
@@ -118,6 +120,20 @@ export class AuthenticationService {
 
     if (!passwordMatches) {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
+
+    if (user.userIdentity.isBlocked) {
+      throw new UserBlockedException();
+    }
+
+    if (user.userIdentity.isLocked) {
+      throw new UserLockedException();
+    }
+
+    const isAccountVerified = user.userIdentity?.isAccountVerified ?? false;
+
+    if (!isAccountVerified) {
+      throw new UserNotVerifiedException();
     }
 
     const { accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted } =
@@ -213,8 +229,6 @@ export class AuthenticationService {
       email: user.email,
     });
 
-    //================================================================
-
     if (platform.isWeb()) {
       this.cookieService.createCookie(res, { accessToken });
       return res.json({ msg: 'success' });
@@ -293,19 +307,40 @@ export class AuthenticationService {
     ]);
   }
 
-  async sendAccountVerificationCode(userId: number) {
+  async sendAccountVerificationCode(email: string) {
     const oneTimeCode = this.randomService.generateRandomInt(100000, 999999);
+    const user = await this.userService.getByEmailIncludeIdentity(email);
+
+    if (!user) {
+      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
+
+    if (!user.userIdentity) {
+      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
+    }
 
     await this.accountVerificationService.upsert({
       oneTimeCode,
-      userId,
+      userId: user.id,
     });
 
     // send one time code to user on mail here
   }
 
-  async accountVerificationConfirmCode(userId: number, code: number) {
-    const accountVerification = await this.accountVerificationService.getByUserId(userId);
+  async accountVerificationConfirmCode(body: AccountVerificationConfirmCodeDto) {
+    const { code, email } = body;
+
+    const user = await this.userService.getByEmailIncludeIdentity(email);
+
+    if (!user) {
+      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
+
+    if (!user.userIdentity) {
+      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
+    }
+
+    const accountVerification = await this.accountVerificationService.getByUserId(user.id);
 
     if (!accountVerification) {
       throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
@@ -323,7 +358,7 @@ export class AuthenticationService {
       throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_TIMED_OUT);
     }
 
-    await this.userIdentityService.updateIsAccVerified(userId, true);
+    await this.userIdentityService.updateIsAccVerified(user.id, true);
   }
 
   private async genAccessAndRefreshToken(params: { userId: number; email: string }) {

@@ -9,6 +9,8 @@ import { PlatformForJwt } from '@prisma/client';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
 import { enumValueIncludes } from '../../../common/helper';
 import { PlatformWrapper } from '../../../model/platform.wrapper';
+import { UserBlockedException } from '../../../exceptions/user-blocked.exception';
+import { UserLockedException } from '../../../exceptions/user-locked.exception';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -40,12 +42,12 @@ export class AuthGuard implements CanActivate {
     request.user = user;
     request.platform = new PlatformWrapper(platform);
 
-    if (user.userIdentity.isLocked) {
-      throw new ForbiddenException(ExceptionMessageCode.USER_LOCKED);
+    if (user.userIdentity.isBlocked) {
+      throw new UserBlockedException();
     }
 
-    if (user.userIdentity.isBlocked) {
-      throw new ForbiddenException(ExceptionMessageCode.USER_BLOCKED);
+    if (user.userIdentity.isLocked) {
+      throw new UserLockedException();
     }
 
     await this.jwtUtilService.validateAccessToken(accessToken, {

@@ -1,8 +1,9 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { NO_EMAIL_VERIFY_VALIDATE } from '../../../decorator/no-email-verify-validate.decorator';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
+import { UserNotVerifiedException } from '../../../exceptions/user-not-verified.exception';
 
 @Injectable()
 export class VerifiedEmailGuard implements CanActivate {
@@ -28,7 +29,7 @@ export class VerifiedEmailGuard implements CanActivate {
     const isAccountVerified = request.user.userIdentity?.isAccountVerified ?? false;
 
     if (!isAccountVerified) {
-      throw new ForbiddenException('User is not verified');
+      throw new UserNotVerifiedException();
     }
 
     return true;
