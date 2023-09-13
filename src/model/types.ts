@@ -4,6 +4,9 @@ import { PrismaExceptionCode } from './enum/prisma-exception-code.enum';
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 export type GeneralEnumType<E> = Record<keyof E, number | string> & { [k: number]: string };
 export type Debug = 'dev' | 'prod' | 'development' | 'production';
+export interface GeneralClass extends Function {
+  new (...args: any[]): any;
+}
 
 // Prisma helper
 export type ExceptionType = keyof typeof PrismaExceptionCode;

@@ -1,12 +1,24 @@
 import { BadRequestException, createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
+import { GeneralClass } from '../model/types';
 
-export const CookieStrict = createParamDecorator((cookieName: string, ctx: ExecutionContext) => {
+export type CookieStrictParams = {
+  cookieName: string;
+  message?: string;
+  cls?: GeneralClass;
+};
+
+export const CookieStrict = createParamDecorator((params: CookieStrictParams, ctx: ExecutionContext) => {
+  const { cookieName, cls, message } = params;
+
   const request = ctx.switchToHttp().getRequest<Request>();
   const cookie = request.cookies?.[cookieName];
 
+  const finalMessage = message ?? `Cookie named ${cookieName} not found`;
+  const finalClass = cls ?? BadRequestException;
+
   if (!cookie) {
-    throw new BadRequestException(`Cookie named ${cookieName} not found`);
+    throw new finalClass(finalMessage);
   }
 
   return cookie;
