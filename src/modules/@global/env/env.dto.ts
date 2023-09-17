@@ -53,7 +53,7 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
-  ACCOUNT_VERIFICATION_REQUEST_TIMEOUT_IN_MILLIS: number;
+  ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
   @Type(() => Number)
@@ -63,4 +63,8 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   PRISMA_ENGINE_PROTOCOL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ACCOUNT_VERIFY_TOKEN_SECRET: string;
 }

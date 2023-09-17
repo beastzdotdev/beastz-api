@@ -1,14 +1,13 @@
-import { IsNotEmpty, IsNumber, IsString, MaxLength } from 'class-validator';
-import { IsEmailCustom } from '../../../decorator/class-validator.decorator';
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class AccountVerificationConfirmCodeDto {
+export class AccountVerificationConfirmCodeQueryDto {
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsNumber()
+  userId: number;
+
   @IsNotEmpty()
   @IsString()
-  @IsEmailCustom()
-  @MaxLength(255)
-  email: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  code: number;
+  token: string;
 }

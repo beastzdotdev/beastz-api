@@ -7,13 +7,11 @@ export class AccountVerificationRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
   async upsert(params: AccountVerificationParams) {
+    const { securityToken, userId } = params;
+
     return this.prismaService.accountVerification.upsert({
-      where: {
-        userId: params.userId,
-      },
-      update: {
-        oneTimeCode: params.oneTimeCode,
-      },
+      where: { userId },
+      update: { securityToken },
       create: params,
     });
   }

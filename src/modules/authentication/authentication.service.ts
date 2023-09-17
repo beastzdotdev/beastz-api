@@ -8,7 +8,7 @@ import {
 import { v4 as uuid } from 'uuid';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
-import { AccountVerificationConfirmCodeDto, AuthenticationPayloadResponseDto } from './dto';
+import { AccountVerificationConfirmCodeQueryDto, AuthenticationPayloadResponseDto } from './dto';
 import { RandomService } from '../../common/modules/random/random.service';
 import { EncoderService } from '../../common/modules/encoder/encoder.service';
 import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
@@ -35,6 +35,9 @@ import { PlatformWrapper } from '../../model/platform.wrapper';
 import { UserLockedException } from '../../exceptions/user-locked.exception';
 import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserNotVerifiedException } from '../../exceptions/user-not-verified.exception';
+import { Constants } from '../../common/constants';
+import { UserIncludeIdentity, UserWithRelations } from '../user/user.type';
+import { PlatformForJwt } from '@prisma/client';
 
 @Injectable()
 export class AuthenticationService {
@@ -308,37 +311,27 @@ export class AuthenticationService {
   }
 
   async sendAccountVerificationCode(email: string) {
-    const oneTimeCode = this.randomService.generateRandomInt(100000, 999999);
     const user = await this.userService.getByEmailIncludeIdentity(email);
+    this.validateUserForAccountVerify(user);
 
-    if (!user) {
-      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
-    }
+    const { id: userId } = user;
+    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId });
 
-    if (!user.userIdentity) {
-      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
-    }
+    //TODO save attempt in database like add new column named attempt and get env for max attemp like 5
 
     await this.accountVerificationService.upsert({
-      oneTimeCode,
       userId: user.id,
+      securityToken,
     });
 
     // send one time code to user on mail here
   }
 
-  async accountVerificationConfirmCode(body: AccountVerificationConfirmCodeDto) {
-    const { code, email } = body;
+  async accountVerificationConfirmCode(body: AccountVerificationConfirmCodeQueryDto) {
+    const { token, userId } = body;
 
-    const user = await this.userService.getByEmailIncludeIdentity(email);
-
-    if (!user) {
-      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
-    }
-
-    if (!user.userIdentity) {
-      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
-    }
+    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+    this.validateUserForAccountVerify(user);
 
     const accountVerification = await this.accountVerificationService.getByUserId(user.id);
 
@@ -346,19 +339,45 @@ export class AuthenticationService {
       throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
     }
 
-    if (accountVerification.oneTimeCode !== code) {
-      throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_INVALID_CODE);
+    if (token !== accountVerification.securityToken) {
+      throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_INVALID);
     }
 
-    // if 30 minute is passed
-    if (
-      Date.now() - accountVerification.createdAt.getTime() >
-      this.envService.get('ACCOUNT_VERIFICATION_REQUEST_TIMEOUT_IN_MILLIS')
-    ) {
-      throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_TIMED_OUT);
-    }
+    await this.jwtUtilService.validateAccountVerifyToken(token, {
+      platform: PlatformForJwt.WEB,
+      sub: user.email,
+      userId,
+    });
 
     await this.userIdentityService.updateIsAccVerified(user.id, true);
+
+    return {
+      msg: 'Account verification successfull',
+    };
+  }
+
+  private validateUserForAccountVerify(user: UserIncludeIdentity) {
+    if (!user) {
+      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
+
+    if (!user.userIdentity) {
+      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
+    }
+
+    if (user.userIdentity.isBlocked) {
+      throw new UserBlockedException();
+    }
+
+    if (user.userIdentity.isLocked) {
+      throw new UserLockedException();
+    }
+
+    if (user.userIdentity.isAccountVerified) {
+      throw new ForbiddenException(ExceptionMessageCode.USER_ALREADY_VERIFIED);
+    }
+
+    return user;
   }
 
   private async genAccessAndRefreshToken(params: { userId: number; email: string }) {

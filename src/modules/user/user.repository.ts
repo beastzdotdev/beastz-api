@@ -11,10 +11,23 @@ export class UserRepository {
     return this.prismaService.user.findUnique({ where: { email } });
   }
 
-  async getByEmailIncludeIdentity(email: string): Promise<UserWithRelations | null> {
+  async getByEmailIncludeIdentity(email: string) {
     return this.prismaService.user.findUnique({
       where: { email },
-      include: { userIdentity: true },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        userIdentity: {
+          select: {
+            id: true,
+            password: true,
+            isAccountVerified: true,
+            isBlocked: true,
+            isLocked: true,
+          },
+        },
+      },
     });
   }
 
@@ -54,6 +67,7 @@ export class UserRepository {
         userIdentity: {
           select: {
             id: true,
+            password: true,
             isAccountVerified: true,
             isBlocked: true,
             isLocked: true,

@@ -17,5 +17,15 @@ export type AccessTokenPayload = AuthTokenPayload & {
   iat: number;
 };
 
+export type AccountVerifyTokenPayload = AuthTokenPayload & {
+  exp: number;
+  sub: string;
+  iss: string;
+  iat: number;
+};
+
 export type ValidateAccesssTokenPayload = Required<Pick<AccessTokenPayload, 'platform' | 'sub' | 'userId'>>;
 export type ValidateRefreshTokenPayload = Required<RefreshTokenPayload> & { secret: string };
+export type ValidateAccountVerifyTokenPayload = Required<
+  Pick<AccountVerifyTokenPayload, 'platform' | 'sub' | 'userId'>
+>;

@@ -30,7 +30,15 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthPayloadAndRequest>();
     const { authorizationHeader, platform } = this.validateHeaders(request);
 
-    const accessToken = authorizationHeader.slice('Bearer '.length);
+    let accessToken: string | undefined;
+
+    if (platform.isWeb()) {
+      accessToken = request.cookies[Constants.COOKIE_ACCESS_NAME];
+    }
+
+    if (platform.isMobile()) {
+      accessToken = authorizationHeader.slice('Bearer '.length);
+    }
 
     if (!accessToken) {
       throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
@@ -38,9 +46,6 @@ export class AuthGuard implements CanActivate {
 
     const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(accessToken);
     const user = await this.userService.getByIdIncludeIdentityForGuard(accessTokenPayload.userId);
-
-    request.user = user;
-    request.platform = new PlatformWrapper(platform);
 
     if (user.userIdentity.isBlocked) {
       throw new UserBlockedException();
@@ -51,10 +56,13 @@ export class AuthGuard implements CanActivate {
     }
 
     await this.jwtUtilService.validateAccessToken(accessToken, {
-      platform,
+      platform: platform.getPlatform(),
       sub: user.email,
       userId: user.id,
     });
+
+    request.user = user;
+    request.platform = platform;
 
     return true;
   }
@@ -81,7 +89,7 @@ export class AuthGuard implements CanActivate {
 
     return {
       authorizationHeader,
-      platform,
+      platform: new PlatformWrapper(platform),
     };
   }
 }

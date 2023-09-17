@@ -99,10 +99,10 @@ model RefreshToken {
 }
 
 model AccountVerification {
-  id          Int      @id @default(autoincrement())
-  oneTimeCode Int      @map("one_time_code")
-  userId      Int      @unique @map("user_id")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id            Int      @id @default(autoincrement())
+  securityToken String   @map("security_token")
+  userId        Int      @unique @map("user_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   user User @relation(fields: [userId], references: [id])
 

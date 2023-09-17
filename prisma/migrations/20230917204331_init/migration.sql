@@ -60,7 +60,7 @@ CREATE TABLE "refresh_tokens" (
 -- CreateTable
 CREATE TABLE "account_verification" (
     "id" SERIAL NOT NULL,
-    "one_time_code" INTEGER NOT NULL,
+    "security_token" TEXT NOT NULL,
     "user_id" INTEGER NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

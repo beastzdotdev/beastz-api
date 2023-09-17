@@ -12,3 +12,16 @@ export type UserWithRelations = UserWithoutPrivateInfo & {
 };
 
 export type UpdateUserParams = Omit<Prisma.UserUpdateInput, 'refreshTokens' | 'recoverPassword' | 'createdAt'>;
+
+export type UserIncludeIdentity = {
+  userIdentity: {
+    id: number;
+    isAccountVerified: boolean;
+    password: string;
+    isBlocked: boolean;
+    isLocked: boolean;
+  };
+  id: number;
+  email: string;
+  createdAt: Date;
+};

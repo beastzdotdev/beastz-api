@@ -1,18 +1,28 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { AuthenticationService } from './authentication.service';
 import { RecoverpasswordConfirmCodePayloadDto } from './dto/recover-password-confirm-code-payload.dto';
-import { AuthPayload } from '../../decorator/auth-payload.decorator';
-import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
-import { AuthPayloadType } from '../../model/auth.types';
 import { Response } from 'express';
 import { AuthPlatformHeaderGuard } from './guard/auth-platform-header.guard';
 import { PlatformHeader } from '../../decorator/platform-header.decorator';
 import { CookieStrict } from '../../decorator/cookie-decorator';
 import { Constants } from '../../common/constants';
 import { PlatformWrapper } from '../../model/platform.wrapper';
+import { AccountVerifySendCodeDto } from './dto/account-verify-send-code.dto';
+import { NoPlatformHeader } from '../../decorator/no-platform-header.decorator';
 import {
-  AccountVerificationConfirmCodeDto,
+  AccountVerificationConfirmCodeQueryDto,
   RecoverPasswordConfirmCodeBodyDto,
   RecoverPasswordDto,
   RecoverPasswordSendVerificationCodeBodyDto,
@@ -20,7 +30,6 @@ import {
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
-import { AccountVerifySendCodeDto } from './dto/account-verify-send-code.dto';
 
 @UseGuards(AuthPlatformHeaderGuard)
 @Controller('authentication')
@@ -110,9 +119,10 @@ export class AuthenticationController {
   }
 
   @NoAuth()
+  @NoPlatformHeader()
   @HttpCode(HttpStatus.OK)
-  @Post('account-verify/confirm-code')
-  async accountVerificationConfirmCode(@Body() body: AccountVerificationConfirmCodeDto) {
+  @Get('account-verify/confirm-code')
+  async accountVerificationConfirmCode(@Query() body: AccountVerificationConfirmCodeQueryDto) {
     await this.authenticationService.accountVerificationConfirmCode(body);
   }
 }

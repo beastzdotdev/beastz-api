@@ -7,6 +7,13 @@ TODO PKCE add in both backend and frontend
  https://developers.onelogin.com/blog/pkce-dust-react-app,
  https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce
 
+TODO validate user locking and blocking and everything in authentication controller and every route which has   noauth decrator
+TODO platform header problem in token generation and validation mobile not included
+
+//TODO save attempt in database like add new column named attempt and get env for max attemp like 5 in sendAccountVerificationCode method and confirm max 10 in accountVerificationConfirmCode
+
+
+
 
 TODO Move web version to httpOnly/Secure cookie for csrf and xss attack
 https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3

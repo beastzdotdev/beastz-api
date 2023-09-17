@@ -1,10 +1,9 @@
 import { User } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
+import { CreateUserParams, UpdateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
 import { RandomService } from '../../common/modules/random/random.service';
-import { checkNonNull } from '../../common/helper';
 
 @Injectable()
 export class UserService {
@@ -17,8 +16,14 @@ export class UserService {
     return this.userRepository.getByEmail(email);
   }
 
-  async getByEmailIncludeIdentity(email: string): Promise<UserWithRelations | null> {
-    return this.userRepository.getByEmailIncludeIdentity(email);
+  async getByEmailIncludeIdentity(email: string): Promise<UserIncludeIdentity> {
+    const user = await this.userRepository.getByEmailIncludeIdentity(email);
+
+    if (!user || !user.userIdentity) {
+      throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
+    }
+
+    return { ...user, userIdentity: user.userIdentity };
   }
 
   async existsByEmail(email: string): Promise<boolean> {
@@ -41,20 +46,13 @@ export class UserService {
     return user;
   }
 
-  async getByIdIncludeIdentityForGuard(id: number) {
+  async getByIdIncludeIdentityForGuard(id: number): Promise<UserIncludeIdentity> {
     const user = await this.userRepository.getByIdIncludeIdentityForGuard(id);
 
     if (!user || !user.userIdentity) {
       throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
     }
 
-    //TODO create custom error thrower for this kind of internal errors e.g. throw new CustomInternal(3531)
-    //TODO 3531 is just number to find quickly beacuse message will all be same for all
-    //TODO and remove above line || !user.userIdentity when you implement this
-    // if (!user.userIdentity) {
-    // }
-
-    // return user;
     return { ...user, userIdentity: user.userIdentity };
   }
 

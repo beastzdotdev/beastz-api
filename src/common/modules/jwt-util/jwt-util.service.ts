@@ -11,8 +11,10 @@ import { Constants } from '../../constants';
 import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
 import {
   AccessTokenPayload,
+  AccountVerifyTokenPayload,
   RefreshTokenPayload,
   ValidateAccesssTokenPayload,
+  ValidateAccountVerifyTokenPayload,
   ValidateRefreshTokenPayload,
 } from './jwt-util.type';
 
@@ -29,7 +31,6 @@ export class JwtUtilService {
     }
 
     const secret = this.envService.get('ACCESS_TOKEN_SECRET');
-
     const accessTokenPayload = this.getAccessTokenPayload(token);
 
     const { platform, sub, userId } = validateOptions;
@@ -93,6 +94,43 @@ export class JwtUtilService {
     );
   }
 
+  async validateAccountVerifyToken(token: string, validateOptions: ValidateAccountVerifyTokenPayload): Promise<void> {
+    if (!token) {
+      throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
+    }
+
+    const secret = this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET');
+    const accessTokenPayload = this.getAccountVerifyTokenPayload(token);
+
+    const { platform, sub, userId } = validateOptions;
+
+    if (accessTokenPayload.platform !== platform) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PLATFORM);
+    }
+
+    if (accessTokenPayload.userId !== userId) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_USERID);
+    }
+
+    jwt.verify(
+      token,
+      secret,
+      {
+        algorithms: ['HS256'],
+        issuer: Constants.JWT_ISSUER,
+        subject: sub,
+      },
+      err => {
+        //TODO test out account verify expiration
+        if (err instanceof jwt.TokenExpiredError) {
+          throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_TIMED_OUT);
+        }
+
+        this.jwtVerifyError(err);
+      },
+    );
+  }
+
   genAccessToken(params: { userId: number; email: string }): string {
     const authTokenPayload: AuthTokenPayload = {
       userId: params.userId,
@@ -119,6 +157,20 @@ export class JwtUtilService {
       issuer: Constants.JWT_ISSUER,
       subject: params.email,
       jwtid: uuid(),
+    });
+  }
+
+  genAccountVerifyToken(params: { userId: number; email: string }): string {
+    const tokenPayload: AuthTokenPayload = {
+      userId: params.userId,
+      platform: PlatformForJwt.WEB,
+    };
+
+    return jwt.sign(tokenPayload, this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET').toString(), {
+      expiresIn: this.envService.get('ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC'),
+      algorithm: 'HS256',
+      issuer: Constants.JWT_ISSUER,
+      subject: params.email,
     });
   }
 
@@ -152,6 +204,24 @@ export class JwtUtilService {
       !payload.sub ||
       !payload.iss ||
       !payload.iat ||
+      !payload.iat
+    ) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PAYLOAD);
+    }
+
+    return payload;
+  }
+
+  getAccountVerifyTokenPayload(token: string): AccessTokenPayload {
+    const payload = <AccountVerifyTokenPayload>jwt.decode(token, { json: true });
+
+    if (
+      !isObject(payload) ||
+      !payload.platform ||
+      !payload.userId ||
+      !payload.exp ||
+      !payload.sub ||
+      !payload.iss ||
       !payload.iat
     ) {
       throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PAYLOAD);

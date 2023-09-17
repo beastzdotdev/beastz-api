@@ -1,7 +1,11 @@
 import { PlatformForJwt } from '@prisma/client';
 
 export class PlatformWrapper {
-  constructor(public platform: PlatformForJwt) {}
+  constructor(private platform: PlatformForJwt) {}
+
+  getPlatform() {
+    return this.platform;
+  }
 
   isWeb() {
     return this.platform === PlatformForJwt.WEB;
