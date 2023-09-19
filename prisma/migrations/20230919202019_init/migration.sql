@@ -26,7 +26,7 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
-CREATE TABLE "user_identity" (
+CREATE TABLE "user_identitites" (
     "id" SERIAL NOT NULL,
     "is_account_verified" BOOLEAN NOT NULL DEFAULT false,
     "password" VARCHAR(255) NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE "user_identity" (
     "is_locked" BOOLEAN NOT NULL DEFAULT false,
     "user_id" INTEGER NOT NULL,
 
-    CONSTRAINT "user_identity_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_identitites_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -58,13 +58,23 @@ CREATE TABLE "refresh_tokens" (
 );
 
 -- CreateTable
-CREATE TABLE "account_verification" (
+CREATE TABLE "account_verifications" (
     "id" SERIAL NOT NULL,
     "security_token" TEXT NOT NULL,
     "user_id" INTEGER NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "account_verification_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "account_verifications_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "account_verifications_attempt_count" (
+    "id" SERIAL NOT NULL,
+    "count" SMALLINT NOT NULL DEFAULT 0,
+    "user_id" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "account_verifications_attempt_count_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -77,6 +87,16 @@ CREATE TABLE "recover_passwords" (
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "recover_passwords_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "recover_passwords_attempt_count" (
+    "id" SERIAL NOT NULL,
+    "count" SMALLINT NOT NULL DEFAULT 0,
+    "user_id" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "recover_passwords_attempt_count_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -121,7 +141,7 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 CREATE INDEX "users_email_idx" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_identity_user_id_key" ON "user_identity"("user_id");
+CREATE UNIQUE INDEX "user_identitites_user_id_key" ON "user_identitites"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "refresh_tokens_jti_key" ON "refresh_tokens"("jti");
@@ -130,7 +150,10 @@ CREATE UNIQUE INDEX "refresh_tokens_jti_key" ON "refresh_tokens"("jti");
 CREATE INDEX "refresh_tokens_jti_idx" ON "refresh_tokens"("jti");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "account_verification_user_id_key" ON "account_verification"("user_id");
+CREATE UNIQUE INDEX "account_verifications_user_id_key" ON "account_verifications"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "account_verifications_attempt_count_user_id_key" ON "account_verifications_attempt_count"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "recover_passwords_user_id_key" ON "recover_passwords"("user_id");
@@ -139,19 +162,28 @@ CREATE UNIQUE INDEX "recover_passwords_user_id_key" ON "recover_passwords"("user
 CREATE UNIQUE INDEX "recover_passwords_uuid_key" ON "recover_passwords"("uuid");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "recover_passwords_attempt_count_user_id_key" ON "recover_passwords_attempt_count"("user_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "legal_documents_type_key" ON "legal_documents"("type");
 
 -- AddForeignKey
-ALTER TABLE "user_identity" ADD CONSTRAINT "user_identity_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "user_identitites" ADD CONSTRAINT "user_identitites_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "account_verification" ADD CONSTRAINT "account_verification_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "account_verifications" ADD CONSTRAINT "account_verifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "account_verifications_attempt_count" ADD CONSTRAINT "account_verifications_attempt_count_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "recover_passwords" ADD CONSTRAINT "recover_passwords_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "recover_passwords_attempt_count" ADD CONSTRAINT "recover_passwords_attempt_count_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "legal_document_paragraphs" ADD CONSTRAINT "legal_document_paragraphs_legal_document_id_fkey" FOREIGN KEY ("legal_document_id") REFERENCES "legal_documents"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -17,6 +17,7 @@ import {
   ValidateAccountVerifyTokenPayload,
   ValidateRefreshTokenPayload,
 } from './jwt-util.type';
+import { PlatformWrapper } from '../../../model/platform.wrapper';
 
 @Injectable()
 export class JwtUtilService {
@@ -121,7 +122,6 @@ export class JwtUtilService {
         subject: sub,
       },
       err => {
-        //TODO test out account verify expiration
         if (err instanceof jwt.TokenExpiredError) {
           throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_TIMED_OUT);
         }
@@ -160,10 +160,10 @@ export class JwtUtilService {
     });
   }
 
-  genAccountVerifyToken(params: { userId: number; email: string }): string {
+  genAccountVerifyToken(params: { userId: number; email: string; platform: PlatformWrapper }): string {
     const tokenPayload: AuthTokenPayload = {
       userId: params.userId,
-      platform: PlatformForJwt.WEB,
+      platform: params.platform.getPlatform(),
     };
 
     return jwt.sign(tokenPayload, this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET').toString(), {

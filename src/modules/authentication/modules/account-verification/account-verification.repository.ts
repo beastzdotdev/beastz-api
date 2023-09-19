@@ -21,4 +21,10 @@ export class AccountVerificationRepository {
       where: { userId },
     });
   }
+
+  async deleteByUserId(userId: number) {
+    return this.prismaService.accountVerification.delete({
+      where: { userId },
+    });
+  }
 }

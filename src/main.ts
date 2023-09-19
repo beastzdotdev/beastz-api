@@ -9,6 +9,7 @@ import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 
 //TODO MAIN
+// recover_password/account_verification attempt count validation must be implemented
 // recover password need some adjustments
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {

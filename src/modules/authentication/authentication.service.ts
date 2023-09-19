@@ -310,12 +310,12 @@ export class AuthenticationService {
     ]);
   }
 
-  async sendAccountVerificationCode(email: string) {
+  async sendAccountVerificationCode(email: string, platform: PlatformWrapper) {
     const user = await this.userService.getByEmailIncludeIdentity(email);
     this.validateUserForAccountVerify(user);
 
     const { id: userId } = user;
-    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId });
+    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, platform });
 
     //TODO save attempt in database like add new column named attempt and get env for max attemp like 5
 
@@ -328,7 +328,7 @@ export class AuthenticationService {
   }
 
   async accountVerificationConfirmCode(body: AccountVerificationConfirmCodeQueryDto) {
-    const { token, userId } = body;
+    const { token, userId, platform } = body;
 
     const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
     this.validateUserForAccountVerify(user);
@@ -344,12 +344,15 @@ export class AuthenticationService {
     }
 
     await this.jwtUtilService.validateAccountVerifyToken(token, {
-      platform: PlatformForJwt.WEB,
+      platform,
       sub: user.email,
       userId,
     });
 
-    await this.userIdentityService.updateIsAccVerified(user.id, true);
+    await Promise.all([
+      this.userIdentityService.updateIsAccVerified(user.id, true),
+      this.accountVerificationService.deleteByUserId(user.id),
+    ]);
 
     return {
       msg: 'Account verification successfull',

@@ -53,11 +53,13 @@ model User {
   socketId         String   @map("socket_id") @db.VarChar(32)
   profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
 
-  refreshTokens       RefreshToken[]
-  feedbacks           Feedback[]
-  recoverPassword     RecoverPassword?
-  accountVerification AccountVerification?
-  userIdentity        UserIdentity?
+  refreshTokens                   RefreshToken[]
+  feedbacks                       Feedback[]
+  recoverPassword                 RecoverPassword?
+  accountVerification             AccountVerification?
+  userIdentity                    UserIdentity?
+  accountVerificationAttemptCount AccountVerificationAttemptCount?
+  recoverPasswordAttemptCount     RecoverPasswordAttemptCount?
 
   @@index([email])
   @@map("users")
@@ -74,7 +76,7 @@ model UserIdentity {
 
   user User @relation(fields: [userId], references: [id])
 
-  @@map("user_identity")
+  @@map("user_identitites")
 }
 
 model RefreshToken {
@@ -106,7 +108,21 @@ model AccountVerification {
 
   user User @relation(fields: [userId], references: [id])
 
-  @@map("account_verification")
+  @@map("account_verifications")
+}
+
+/// This database will be for checking for too many requests if count is 5 and 
+/// {some_amount} of time is not passed yet by checking created_at other insert will be blocked
+/// after successfull verification all column will be deleted
+model AccountVerificationAttemptCount {
+  id        Int      @id @default(autoincrement())
+  count     Int      @default(0) @db.SmallInt
+  userId    Int      @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("account_verifications_attempt_count")
 }
 
 model RecoverPassword {
@@ -120,6 +136,19 @@ model RecoverPassword {
   user User @relation(fields: [userId], references: [id])
 
   @@map("recover_passwords")
+}
+
+/// Same logic as account verification
+/// for more info see table description found in account_verifications_attempt_count
+model RecoverPasswordAttemptCount {
+  id        Int      @id @default(autoincrement())
+  count     Int      @default(0) @db.SmallInt
+  userId    Int      @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("recover_passwords_attempt_count")
 }
 
 model LegalDocument {

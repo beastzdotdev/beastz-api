@@ -13,6 +13,7 @@ TODO platform header problem in token generation and validation mobile not inclu
 //TODO save attempt in database like add new column named attempt and get env for max attemp like 5 in sendAccountVerificationCode method and confirm max 10 in accountVerificationConfirmCode
 
 
+//TODO visual addition to all authentication get request for success and failure (even for dto errors)
 
 
 TODO Move web version to httpOnly/Secure cookie for csrf and xss attack

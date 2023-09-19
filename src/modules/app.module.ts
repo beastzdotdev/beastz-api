@@ -12,6 +12,7 @@ import { AccountVerificationModule } from './authentication/modules/account-veri
 import { AuthenticationModule } from './authentication/authentication.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { LegalDocumentModule } from './legal-document/legal-document.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { LegalDocumentModule } from './legal-document/legal-document.module';
     AuthenticationModule,
     FeedbackModule,
     LegalDocumentModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

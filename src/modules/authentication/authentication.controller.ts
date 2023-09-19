@@ -114,8 +114,11 @@ export class AuthenticationController {
   @NoAuth()
   @HttpCode(HttpStatus.OK)
   @Post('account-verify/send-code')
-  async sendAccountVerificationCode(@Body() body: AccountVerifySendCodeDto) {
-    await this.authenticationService.sendAccountVerificationCode(body.email);
+  async sendAccountVerificationCode(
+    @Body() body: AccountVerifySendCodeDto,
+    @PlatformHeader() platform: PlatformWrapper,
+  ) {
+    await this.authenticationService.sendAccountVerificationCode(body.email, platform);
   }
 
   @NoAuth()

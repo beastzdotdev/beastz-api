@@ -13,4 +13,8 @@ export class AccountVerificationService {
   async getByUserId(userId: number) {
     return this.accountVerificationRepository.getByUserId(userId);
   }
+
+  async deleteByUserId(userId: number) {
+    return this.accountVerificationRepository.deleteByUserId(userId);
+  }
 }
