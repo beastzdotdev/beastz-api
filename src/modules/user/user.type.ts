@@ -19,6 +19,7 @@ export type UserIncludeIdentity = {
     isAccountVerified: boolean;
     password: string;
     isBlocked: boolean;
+    strictMode: boolean;
     isLocked: boolean;
   };
   id: number;

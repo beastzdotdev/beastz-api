@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { AuthenticationService } from './authentication.service';
-import { RecoverpasswordConfirmCodePayloadDto } from './dto/recover-password-confirm-code-payload.dto';
 import { Response } from 'express';
 import { AuthPlatformHeaderGuard } from './guard/auth-platform-header.guard';
 import { PlatformHeader } from '../../decorator/platform-header.decorator';
@@ -23,9 +22,8 @@ import { AccountVerifySendCodeDto } from './dto/account-verify-send-code.dto';
 import { NoPlatformHeader } from '../../decorator/no-platform-header.decorator';
 import {
   AccountVerificationConfirmCodeQueryDto,
-  RecoverPasswordConfirmCodeBodyDto,
   RecoverPasswordDto,
-  RecoverPasswordSendVerificationCodeBodyDto,
+  RecoverPasswordSendDto,
   RefreshTokenBodyDto,
   SignInBodyDto,
   SignUpBodyDto,
@@ -90,23 +88,17 @@ export class AuthenticationController {
 
   @NoAuth()
   @HttpCode(HttpStatus.OK)
-  @Post('recover-password/send-verification-code')
-  async recoverPasswordSendVerificationCode(@Body() body: RecoverPasswordSendVerificationCodeBodyDto): Promise<void> {
-    await this.authenticationService.recoverPasswordSendVerificationCode(body.email);
+  @Post('recover-password/send')
+  async recoverPasswordSend(
+    @Body() body: RecoverPasswordSendDto,
+    @PlatformHeader() platform: PlatformWrapper,
+  ): Promise<void> {
+    await this.authenticationService.recoverPasswordSend(body, platform);
   }
 
   @NoAuth()
-  @HttpCode(HttpStatus.OK)
-  @Post('recover-password/confirm-code')
-  async recoverPasswordConfirmCode(
-    @Body() body: RecoverPasswordConfirmCodeBodyDto,
-  ): Promise<RecoverpasswordConfirmCodePayloadDto> {
-    return this.authenticationService.recoverPasswordConfirmCode(body);
-  }
-
-  @NoAuth()
-  @HttpCode(HttpStatus.OK)
-  @Post('recover-password')
+  @NoPlatformHeader()
+  @Get('recover-password')
   async recoverPassword(@Body() body: RecoverPasswordDto): Promise<void> {
     await this.authenticationService.recoverPassword(body);
   }
@@ -123,7 +115,6 @@ export class AuthenticationController {
 
   @NoAuth()
   @NoPlatformHeader()
-  @HttpCode(HttpStatus.OK)
   @Get('account-verify/confirm-code')
   async accountVerificationConfirmCode(@Query() body: AccountVerificationConfirmCodeQueryDto) {
     await this.authenticationService.accountVerificationConfirmCode(body);

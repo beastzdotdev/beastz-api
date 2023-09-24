@@ -8,18 +8,22 @@ import { ExceptionMessageCode } from '../../../../model/enum/exception-message-c
 export class RecoverPasswordService {
   constructor(private readonly recoverPasswordRepository: RecoverPasswordRepository) {}
 
-  async upsert(params: CreateRecoverPasswordParams): Promise<RecoverPassword> {
-    return this.recoverPasswordRepository.upsert(params);
+  async create(params: CreateRecoverPasswordParams): Promise<RecoverPassword> {
+    return this.recoverPasswordRepository.create(params);
   }
 
-  async getByUUID(uuid: string): Promise<RecoverPassword> {
-    const recoverPassword = await this.recoverPasswordRepository.getByUUID(uuid);
+  async getById(id: number): Promise<RecoverPassword> {
+    const recoverPassword = await this.recoverPasswordRepository.getById(id);
 
     if (!recoverPassword) {
       throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
     }
 
     return recoverPassword;
+  }
+
+  async getByJTI(jti: string): Promise<RecoverPassword | null> {
+    return this.recoverPasswordRepository.getByJTI(jti);
   }
 
   async getByUserId(userId: number): Promise<RecoverPassword> {
@@ -40,9 +44,5 @@ export class RecoverPasswordService {
     }
 
     return recoverPassword;
-  }
-
-  async deleteById(uuid: string) {
-    return this.recoverPasswordRepository.deleteById(uuid);
   }
 }

@@ -48,7 +48,7 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
-  RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_MILLIS: number;
+  RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC: number;
 
   @IsNotEmpty()
   @Type(() => Number)
@@ -67,4 +67,8 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   ACCOUNT_VERIFY_TOKEN_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  RECOVER_PASSWORD_TOKEN_SECRET: string;
 }

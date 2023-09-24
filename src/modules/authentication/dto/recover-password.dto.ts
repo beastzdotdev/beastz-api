@@ -1,14 +1,22 @@
-import { IsNotEmpty, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { PlatformForJwt } from '@prisma/client';
+import { Type } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class RecoverPasswordDto {
   @IsNotEmpty()
-  @IsString()
-  @IsUUID('4')
-  uuid: string;
+  @Type(() => Number)
+  @IsNumber()
+  recoverPasswordId: number;
 
   @IsNotEmpty()
   @IsString()
-  @MinLength(6)
-  @MaxLength(255)
-  password: string;
+  securityToken: string;
+
+  @IsNotEmpty()
+  @IsString()
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsEnum(PlatformForJwt)
+  platform: PlatformForJwt;
 }

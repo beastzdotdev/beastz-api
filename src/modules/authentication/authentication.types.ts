@@ -21,8 +21,3 @@ export type RecoverPasswordConfirmCodeParams = {
   code: number;
   email: string;
 };
-
-export type RecoverPasswordParams = {
-  uuid: string;
-  password: string;
-};

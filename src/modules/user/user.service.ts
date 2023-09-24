@@ -1,4 +1,3 @@
-import { User } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserParams, UpdateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
@@ -11,10 +10,6 @@ export class UserService {
     private readonly userRepository: UserRepository,
     private readonly randomService: RandomService,
   ) {}
-
-  async getByEmail(email: string): Promise<User | null> {
-    return this.userRepository.getByEmail(email);
-  }
 
   async getByEmailIncludeIdentity(email: string): Promise<UserIncludeIdentity> {
     const user = await this.userRepository.getByEmailIncludeIdentity(email);

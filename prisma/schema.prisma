@@ -53,13 +53,11 @@ model User {
   socketId         String   @map("socket_id") @db.VarChar(32)
   profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
 
-  refreshTokens                   RefreshToken[]
-  feedbacks                       Feedback[]
-  recoverPassword                 RecoverPassword?
-  accountVerification             AccountVerification?
-  userIdentity                    UserIdentity?
-  accountVerificationAttemptCount AccountVerificationAttemptCount?
-  recoverPasswordAttemptCount     RecoverPasswordAttemptCount?
+  userIdentity         UserIdentity?
+  refreshTokens        RefreshToken[]
+  feedbacks            Feedback[]
+  accountVerifications AccountVerification[]
+  recoverPasswords     RecoverPassword[]
 
   @@index([email])
   @@map("users")
@@ -101,12 +99,15 @@ model RefreshToken {
 }
 
 model AccountVerification {
-  id            Int      @id @default(autoincrement())
-  securityToken String   @map("security_token")
-  userId        Int      @unique @map("user_id")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id            Int       @id @default(autoincrement())
+  securityToken String    @map("security_token")
+  jti           String    @unique @db.Uuid()
+  userId        Int       @map("user_id")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
 
-  user User @relation(fields: [userId], references: [id])
+  acountVerificationAttemptCount AccountVerificationAttemptCount?
+  user                           User                             @relation(fields: [userId], references: [id])
 
   @@map("account_verifications")
 }
@@ -115,25 +116,29 @@ model AccountVerification {
 /// {some_amount} of time is not passed yet by checking created_at other insert will be blocked
 /// after successfull verification all column will be deleted
 model AccountVerificationAttemptCount {
-  id        Int      @id @default(autoincrement())
-  count     Int      @default(0) @db.SmallInt
-  userId    Int      @unique @map("user_id")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id                          Int       @id @default(autoincrement())
+  count                       Int       @default(0) @db.SmallInt
+  countIncreaseLastUpdateDate DateTime? @map("count_increase_last_update_date") @db.Timestamptz()
+  accountVerificationId       Int       @unique @map("account_verification_id")
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt                   DateTime? @map("deleted_at") @db.Timestamptz()
 
-  user User @relation(fields: [userId], references: [id])
+  accountVerification AccountVerification @relation(fields: [accountVerificationId], references: [id])
 
   @@map("account_verifications_attempt_count")
 }
 
 model RecoverPassword {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @unique @map("user_id")
-  oneTimeCode Int      @map("one_time_code")
-  isVerified  Boolean  @default(false) @map("is_verified")
-  uuid        String?  @unique @db.Uuid()
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id            Int       @id @default(autoincrement())
+  securityToken String    @map("security_token")
+  jti           String    @unique @db.Uuid()
+  userId        Int       @map("user_id")
+  newPassword   String    @map("new_password") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
 
-  user User @relation(fields: [userId], references: [id])
+  recoverPasswordAttemptCount RecoverPasswordAttemptCount?
+  user                        User                         @relation(fields: [userId], references: [id])
 
   @@map("recover_passwords")
 }
@@ -141,12 +146,14 @@ model RecoverPassword {
 /// Same logic as account verification
 /// for more info see table description found in account_verifications_attempt_count
 model RecoverPasswordAttemptCount {
-  id        Int      @id @default(autoincrement())
-  count     Int      @default(0) @db.SmallInt
-  userId    Int      @unique @map("user_id")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id                          Int       @id @default(autoincrement())
+  count                       Int       @default(0) @db.SmallInt
+  countIncreaseLastUpdateDate DateTime? @map("count_increase_last_update_date") @db.Timestamptz()
+  recoverPasswordId           Int       @unique @map("recover_password_id")
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt                   DateTime? @map("deleted_at") @db.Timestamptz()
 
-  user User @relation(fields: [userId], references: [id])
+  recoverPassword RecoverPassword @relation(fields: [recoverPasswordId], references: [id])
 
   @@map("recover_passwords_attempt_count")
 }

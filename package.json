@@ -11,6 +11,7 @@
     "node": ">=16.13.0 <17.0.0"
   },
   "scripts": {
+    "prisma": "prisma",
     "check:update": "npx npm-check-updates",
     "prebuild": "rimraf dist",
     "build": "nest build",
@@ -25,8 +26,9 @@
     "test:unit": "jest --config ./test/unit/jest.json --detectOpenHandles --forceExit",
     "test:unit:cov": "jest --config ./test/unit/jest.json --coverage --detectOpenHandles --forceExit",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "prisma:gen": "npx prisma generate",
-    "migration:run": "npx prisma migrate dev --create-only"
+    "migration:prisma:gen": "prisma generate",
+    "migration:run": "prisma migrate dev --create-only",
+    "migration:local": "prisma migrate dev"
   },
   "dependencies": {
     "@nestjs/class-validator": "^0.13.4",
@@ -42,6 +44,7 @@
     "helmet": "^7.0.0",
     "install": "^0.13.0",
     "jsonwebtoken": "^9.0.1",
+    "moment": "^2.29.4",
     "npm": "^9.8.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^5.0.1",

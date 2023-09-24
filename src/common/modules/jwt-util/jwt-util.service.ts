@@ -12,9 +12,11 @@ import { TokenExpiredException } from '../../../exceptions/token-expired-forbidd
 import {
   AccessTokenPayload,
   AccountVerifyTokenPayload,
+  RecoverPasswordTokenPayload,
   RefreshTokenPayload,
   ValidateAccesssTokenPayload,
   ValidateAccountVerifyTokenPayload,
+  ValidateRecoverPasswordTokenPayload,
   ValidateRefreshTokenPayload,
 } from './jwt-util.type';
 import { PlatformWrapper } from '../../../model/platform.wrapper';
@@ -101,15 +103,15 @@ export class JwtUtilService {
     }
 
     const secret = this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET');
-    const accessTokenPayload = this.getAccountVerifyTokenPayload(token);
+    const tokenPayload = this.getAccountVerifyTokenPayload(token);
 
     const { platform, sub, userId } = validateOptions;
 
-    if (accessTokenPayload.platform !== platform) {
+    if (tokenPayload.platform !== platform) {
       throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PLATFORM);
     }
 
-    if (accessTokenPayload.userId !== userId) {
+    if (tokenPayload.userId !== userId) {
       throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_USERID);
     }
 
@@ -124,6 +126,46 @@ export class JwtUtilService {
       err => {
         if (err instanceof jwt.TokenExpiredError) {
           throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_TIMED_OUT);
+        }
+
+        this.jwtVerifyError(err);
+      },
+    );
+  }
+
+  async validateRecoverPasswordToken(
+    token: string,
+    validateOptions: ValidateRecoverPasswordTokenPayload,
+  ): Promise<void> {
+    if (!token) {
+      throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
+    }
+
+    const secret = this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET');
+    const tokenPayload = this.getRecoverPasswordTokenPayload(token);
+
+    const { platform, sub, userId, jti } = validateOptions;
+
+    if (tokenPayload.platform !== platform) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PLATFORM);
+    }
+
+    if (tokenPayload.userId !== userId) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_USERID);
+    }
+
+    jwt.verify(
+      token,
+      secret,
+      {
+        algorithms: ['HS256'],
+        issuer: Constants.JWT_ISSUER,
+        subject: sub,
+        jwtid: jti,
+      },
+      err => {
+        if (err instanceof jwt.TokenExpiredError) {
+          throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_TIMED_OUT);
         }
 
         this.jwtVerifyError(err);
@@ -174,6 +216,21 @@ export class JwtUtilService {
     });
   }
 
+  genRecoverPasswordToken(params: { userId: number; email: string; platform: PlatformWrapper; jti: string }): string {
+    const tokenPayload: AuthTokenPayload = {
+      userId: params.userId,
+      platform: params.platform.getPlatform(),
+    };
+
+    return jwt.sign(tokenPayload, this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET').toString(), {
+      expiresIn: this.envService.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
+      algorithm: 'HS256',
+      issuer: Constants.JWT_ISSUER,
+      subject: params.email,
+      jwtid: params.jti,
+    });
+  }
+
   getAccessTokenPayload(token: string): AccessTokenPayload {
     const payload = <AccessTokenPayload>jwt.decode(token, { json: true });
 
@@ -221,6 +278,25 @@ export class JwtUtilService {
       !payload.userId ||
       !payload.exp ||
       !payload.sub ||
+      !payload.iss ||
+      !payload.iat
+    ) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PAYLOAD);
+    }
+
+    return payload;
+  }
+
+  getRecoverPasswordTokenPayload(token: string): RecoverPasswordTokenPayload {
+    const payload = <RecoverPasswordTokenPayload>jwt.decode(token, { json: true });
+
+    if (
+      !isObject(payload) ||
+      !payload.platform ||
+      !payload.userId ||
+      !payload.exp ||
+      !payload.sub ||
+      !payload.jti ||
       !payload.iss ||
       !payload.iat
     ) {

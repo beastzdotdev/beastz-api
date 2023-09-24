@@ -9,6 +9,8 @@ import { AccountVerificationModule } from './modules/account-verification/accoun
 import { RecoverPasswordModule } from './modules/recover-password/recover-password.module';
 import { RefreshTokenModule } from './modules/refresh-token/refresh-tokem.module';
 import { UserIdentityModule } from '../user-identity/user-identity.module';
+import { AccountVerificationAttemptCountModule } from './modules/account-verification-attempt-count/account-verification-attempt-count.module';
+import { RecoverPasswordAttemptCountModule } from './modules/recover-password-attempt-count/recover-password-attempt-count.module';
 
 @Module({
   imports: [
@@ -16,7 +18,9 @@ import { UserIdentityModule } from '../user-identity/user-identity.module';
     JwtUtilModule,
     UserModule,
     RecoverPasswordModule,
+    RecoverPasswordAttemptCountModule,
     AccountVerificationModule,
+    AccountVerificationAttemptCountModule,
     RandomModule,
     EncoderModule,
     UserIdentityModule,
