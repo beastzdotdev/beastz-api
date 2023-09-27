@@ -37,6 +37,4 @@ export type ValidateRefreshTokenPayload = Required<RefreshTokenPayload> & { secr
 export type ValidateAccountVerifyTokenPayload = Required<
   Pick<AccountVerifyTokenPayload, 'platform' | 'sub' | 'userId'>
 >;
-export type ValidateRecoverPasswordTokenPayload = Required<
-  Pick<RecoverPasswordTokenPayload, 'platform' | 'sub' | 'userId' | 'jti'>
->;
+export type ValidateRecoverPasswordTokenPayload = Required<Pick<RecoverPasswordTokenPayload, 'sub' | 'userId' | 'jti'>>;

@@ -244,7 +244,7 @@ export class AuthenticationService {
     return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
-  async recoverPasswordSend(body: RecoverPasswordSendDto, platform: PlatformWrapper): Promise<void> {
+  async recoverPasswordSend(body: RecoverPasswordSendDto): Promise<void> {
     const { email } = body;
 
     const user = await this.userService.getByEmailIncludeIdentity(email);
@@ -252,7 +252,7 @@ export class AuthenticationService {
 
     const { id: userId } = user;
     const jti = uuid();
-    const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, platform, jti });
+    const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, jti });
     const newPasswordText = this.randomService.generateRandomInt(100000, 999999).toString();
     const newPasswordHashed = await this.encoderService.encode(newPasswordText);
 
@@ -315,7 +315,7 @@ export class AuthenticationService {
   }
 
   async recoverPasswordConfirm(body: RecoverPasswordVerifyQueryDto): Promise<void> {
-    const { platform, token, userId } = body;
+    const { token, userId } = body;
 
     const recoverPassword = await this.recoverPasswordService.getByUserId(userId);
 
@@ -346,7 +346,6 @@ export class AuthenticationService {
     this.validateUserForAccountVerify(user);
 
     await this.jwtUtilService.validateRecoverPasswordToken(token, {
-      platform,
       sub: user.email,
       userId: user.id,
       jti: recoverPassword.jti,
@@ -361,7 +360,7 @@ export class AuthenticationService {
     // show success page and button for redirecting to front end
   }
 
-  async sendAccountVerificationCode(email: string, platform: PlatformWrapper) {
+  async accountVerifySend(email: string, platform: PlatformWrapper) {
     // const user = await this.userService.getByEmailIncludeIdentity(email);
     // this.validateUserForAccountVerify(user);
     // const { id: userId } = user;

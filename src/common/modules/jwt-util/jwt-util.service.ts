@@ -144,11 +144,7 @@ export class JwtUtilService {
     const secret = this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET');
     const tokenPayload = this.getRecoverPasswordTokenPayload(token);
 
-    const { platform, sub, userId, jti } = validateOptions;
-
-    if (tokenPayload.platform !== platform) {
-      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PLATFORM);
-    }
+    const { sub, userId, jti } = validateOptions;
 
     if (tokenPayload.userId !== userId) {
       throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_USERID);
@@ -216,10 +212,9 @@ export class JwtUtilService {
     });
   }
 
-  genRecoverPasswordToken(params: { userId: number; email: string; platform: PlatformWrapper; jti: string }): string {
-    const tokenPayload: AuthTokenPayload = {
+  genRecoverPasswordToken(params: { userId: number; email: string; jti: string }): string {
+    const tokenPayload: { userId: number } = {
       userId: params.userId,
-      platform: params.platform.getPlatform(),
     };
 
     return jwt.sign(tokenPayload, this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET').toString(), {

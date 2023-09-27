@@ -87,13 +87,11 @@ export class AuthenticationController {
   }
 
   @NoAuth()
+  @NoPlatformHeader()
   @HttpCode(HttpStatus.OK)
   @Post('recover-password/send')
-  async recoverPasswordSend(
-    @Body() body: RecoverPasswordSendDto,
-    @PlatformHeader() platform: PlatformWrapper,
-  ): Promise<void> {
-    await this.authenticationService.recoverPasswordSend(body, platform);
+  async recoverPasswordSend(@Body() body: RecoverPasswordSendDto): Promise<void> {
+    await this.authenticationService.recoverPasswordSend(body);
   }
 
   @NoAuth()
@@ -103,7 +101,7 @@ export class AuthenticationController {
     @Body() body: AccountVerifySendCodeDto,
     @PlatformHeader() platform: PlatformWrapper,
   ) {
-    await this.authenticationService.sendAccountVerificationCode(body.email, platform);
+    await this.authenticationService.accountVerifySend(body.email, platform);
   }
 
   @NoAuth()
