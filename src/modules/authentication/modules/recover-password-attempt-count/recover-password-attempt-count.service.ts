@@ -21,4 +21,8 @@ export class RecoverPasswordAttemptCountService {
   async updateById(id: number, params: RecoverPasswordAttemptCountUpdate) {
     return this.recoverPasswordAttemptCountRepository.updateById(id, params);
   }
+
+  async softDelete(id: number) {
+    return this.recoverPasswordAttemptCountRepository.softDelete(id);
+  }
 }

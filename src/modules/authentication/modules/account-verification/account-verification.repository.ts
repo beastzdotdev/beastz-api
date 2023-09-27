@@ -6,15 +6,15 @@ import { PrismaService } from '../../../@global/prisma/prisma.service';
 export class AccountVerificationRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async upsert(params: AccountVerificationParams) {
-    const { securityToken, userId } = params;
+  // async upsert(params: AccountVerificationParams) {
+  //   const { securityToken, userId } = params;
 
-    return this.prismaService.accountVerification.upsert({
-      where: { userId },
-      update: { securityToken },
-      create: params,
-    });
-  }
+  //   return this.prismaService.accountVerification.upsert({
+  //     where: { userId },
+  //     update: { securityToken },
+  //     create: params,
+  //   });
+  // }
 
   async getByUserId(userId: number) {
     return this.prismaService.accountVerification.findFirst({
@@ -22,9 +22,9 @@ export class AccountVerificationRepository {
     });
   }
 
-  async deleteByUserId(userId: number) {
-    return this.prismaService.accountVerification.delete({
-      where: { userId },
-    });
-  }
+  // async deleteByUserId(userId: number) {
+  //   return this.prismaService.accountVerification.delete({
+  //     where: { userId },
+  //   });
+  // }
 }

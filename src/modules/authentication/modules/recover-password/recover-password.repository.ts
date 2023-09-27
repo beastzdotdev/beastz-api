@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { RecoverPassword } from '@prisma/client';
 import { CreateRecoverPasswordParams, UpdateRecoverPasswordParams } from './recover-password.type';
@@ -57,6 +58,13 @@ export class RecoverPasswordRepository {
     return this.prismaService.recoverPassword.update({
       where: { id },
       data: { ...entity, ...params },
+    });
+  }
+
+  async softDelete(id: number) {
+    return this.prismaService.recoverPassword.update({
+      where: { id },
+      data: { deletedAt: moment().toDate() },
     });
   }
 }

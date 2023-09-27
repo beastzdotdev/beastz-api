@@ -12,6 +12,8 @@ TODO platform header problem in token generation and validation mobile not inclu
 
 //TODO save attempt in database like add new column named attempt and get env for max attemp like 5 in sendAccountVerificationCode method and confirm max 10 in accountVerificationConfirmCode
 
+//TODO do everything in authentication as transaction
+
 
 //TODO visual addition to all authentication get request for success and failure (even for dto errors)
 
@@ -35,8 +37,8 @@ TODO Origin checkup for prod
 TODO Implement email service mailgun
   [ ask toko for downgrading to basic plan, default will force you to pay ]
   send email for reseting password (message: we have detected credential reuse) - method refreshToken
-  send one time code to user on mail - method recoverPasswordSendVerificationCode
-  send one time code to user on mail - method sendAccountVerificationCode
+  send password,link to user on mail - method recoverPasswordSendVerificationCode and error msg on reuse detection
+  send password,link to user on mail - method sendAccountVerificationCode and error msg on reuse detection
 
 
 TODO Finally when finished just backup delete this todo and update email dont use main

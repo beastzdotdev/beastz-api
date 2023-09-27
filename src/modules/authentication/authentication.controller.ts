@@ -22,8 +22,8 @@ import { AccountVerifySendCodeDto } from './dto/account-verify-send-code.dto';
 import { NoPlatformHeader } from '../../decorator/no-platform-header.decorator';
 import {
   AccountVerificationConfirmCodeQueryDto,
-  RecoverPasswordDto,
   RecoverPasswordSendDto,
+  RecoverPasswordVerifyQueryDto as RecoverPasswordConfirmQueryDto,
   RefreshTokenBodyDto,
   SignInBodyDto,
   SignUpBodyDto,
@@ -97,15 +97,8 @@ export class AuthenticationController {
   }
 
   @NoAuth()
-  @NoPlatformHeader()
-  @Get('recover-password')
-  async recoverPassword(@Body() body: RecoverPasswordDto): Promise<void> {
-    await this.authenticationService.recoverPassword(body);
-  }
-
-  @NoAuth()
   @HttpCode(HttpStatus.OK)
-  @Post('account-verify/send-code')
+  @Post('account-verify/send')
   async sendAccountVerificationCode(
     @Body() body: AccountVerifySendCodeDto,
     @PlatformHeader() platform: PlatformWrapper,
@@ -115,7 +108,14 @@ export class AuthenticationController {
 
   @NoAuth()
   @NoPlatformHeader()
-  @Get('account-verify/confirm-code')
+  @Get('recover-password/confirm')
+  async recoverPassword(@Query() body: RecoverPasswordConfirmQueryDto): Promise<void> {
+    await this.authenticationService.recoverPasswordConfirm(body);
+  }
+
+  @NoAuth()
+  @NoPlatformHeader()
+  @Get('account-verify/confirm')
   async accountVerificationConfirmCode(@Query() body: AccountVerificationConfirmCodeQueryDto) {
     await this.authenticationService.accountVerificationConfirmCode(body);
   }

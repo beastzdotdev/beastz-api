@@ -45,4 +45,8 @@ export class RecoverPasswordService {
 
     return recoverPassword;
   }
+
+  async softDelete(id: number) {
+    return this.recoverPasswordRepository.softDelete(id);
+  }
 }

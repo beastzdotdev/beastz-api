@@ -2,19 +2,15 @@ import { PlatformForJwt } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class RecoverPasswordDto {
+export class RecoverPasswordVerifyQueryDto {
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
-  recoverPasswordId: number;
+  userId: number;
 
   @IsNotEmpty()
   @IsString()
-  securityToken: string;
-
-  @IsNotEmpty()
-  @IsString()
-  newPassword: string;
+  token: string;
 
   @IsNotEmpty()
   @IsEnum(PlatformForJwt)

@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../@global/prisma/prisma.service';
 import { RecoverPasswordAttemptCount } from '@prisma/client';
@@ -39,6 +40,13 @@ export class RecoverPasswordAttemptCountRepository {
         count,
         countIncreaseLastUpdateDate,
       },
+    });
+  }
+
+  async softDelete(id: number) {
+    return this.prismaService.recoverPasswordAttemptCount.update({
+      where: { id },
+      data: { deletedAt: moment().toDate() },
     });
   }
 }

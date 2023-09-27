@@ -6,15 +6,11 @@ import { AccountVerificationParams } from './account-verification.type';
 export class AccountVerificationService {
   constructor(private readonly accountVerificationRepository: AccountVerificationRepository) {}
 
-  async upsert(params: AccountVerificationParams) {
-    return this.accountVerificationRepository.upsert(params);
-  }
-
   async getByUserId(userId: number) {
     return this.accountVerificationRepository.getByUserId(userId);
   }
 
-  async deleteByUserId(userId: number) {
-    return this.accountVerificationRepository.deleteByUserId(userId);
-  }
+  // async deleteByUserId(userId: number) {
+  //   return this.accountVerificationRepository.deleteByUserId(userId);
+  // }
 }
