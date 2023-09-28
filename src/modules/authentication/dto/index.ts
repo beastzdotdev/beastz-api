@@ -1,4 +1,4 @@
-export * from './account-verification-confirm-code.dto';
+export * from './account-verification-confirm.dto';
 export * from './authentication-payload-response.dto';
 export * from './recover-password-send.dto';
 export * from './recover-password-confirm.dto';

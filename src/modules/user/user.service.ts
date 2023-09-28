@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateUserParams, UpdateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
 import { RandomService } from '../../common/modules/random/random.service';
+import { UserBlockedException } from '../../exceptions/user-blocked.exception';
+import { UserLockedException } from '../../exceptions/user-locked.exception';
+import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.types';
 
 @Injectable()
 export class UserService {
@@ -94,5 +97,27 @@ export class UserService {
 
   async getSocketIdById(id: number): Promise<string> {
     return (await this.userRepository.getSocketIdById(id)) as string;
+  }
+
+  validateUser(user: UserIncludeIdentity, flags?: ValidateUserForAccVerifyFlags) {
+    if (!user) {
+      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
+
+    if (user.userIdentity.isBlocked) {
+      throw new UserBlockedException();
+    }
+
+    if (user.userIdentity.isLocked) {
+      throw new UserLockedException();
+    }
+
+    if (flags?.showIsVerifiedErr && user.userIdentity.isAccountVerified) {
+      throw new ForbiddenException(ExceptionMessageCode.USER_ALREADY_VERIFIED);
+    }
+
+    if (flags?.showNotVerifiedErr && !user.userIdentity.isAccountVerified) {
+      throw new ForbiddenException(ExceptionMessageCode.USER_NOT_VERIFIED);
+    }
   }
 }

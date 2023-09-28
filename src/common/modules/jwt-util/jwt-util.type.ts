@@ -22,6 +22,7 @@ export type AccountVerifyTokenPayload = AuthTokenPayload & {
   sub: string;
   iss: string;
   iat: number;
+  jti: string;
 };
 
 export type RecoverPasswordTokenPayload = AuthTokenPayload & {
@@ -34,7 +35,5 @@ export type RecoverPasswordTokenPayload = AuthTokenPayload & {
 
 export type ValidateAccesssTokenPayload = Required<Pick<AccessTokenPayload, 'platform' | 'sub' | 'userId'>>;
 export type ValidateRefreshTokenPayload = Required<RefreshTokenPayload> & { secret: string };
-export type ValidateAccountVerifyTokenPayload = Required<
-  Pick<AccountVerifyTokenPayload, 'platform' | 'sub' | 'userId'>
->;
+export type ValidateAccountVerifyTokenPayload = Required<Pick<AccountVerifyTokenPayload, 'sub' | 'userId' | 'jti'>>;
 export type ValidateRecoverPasswordTokenPayload = Required<Pick<RecoverPasswordTokenPayload, 'sub' | 'userId' | 'jti'>>;

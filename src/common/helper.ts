@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import moment from 'moment';
 import { InternalServerErrorException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { plainToInstance } from 'class-transformer';
@@ -111,32 +111,12 @@ export function getAllErrorConstraints(errors: ValidationError[]): string[] {
   return constraints;
 }
 
-export function formatDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  return `${year}-${month}-${day}/${hours}:${minutes}`;
-}
-
-export function todayStartEndDates(): { startDate: Date; endDate: Date } {
-  const startDate = new Date();
-  startDate.setUTCHours(0, 0, 0, 0);
-
-  const endDate = new Date();
-  endDate.setUTCHours(23, 59, 59, 999);
-
-  return { startDate, endDate };
-}
-
 export function generateFileName(
   _: Request,
   file: Express.Multer.File,
   callback: (e: Error | null, f: string) => void,
 ) {
-  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+  const uniqueSuffix = moment().valueOf() + '-' + Math.round(Math.random() * 1e9);
 
   const fileExtName = extname(file.originalname);
   const fileName = `${uniqueSuffix}${fileExtName || '.jpg'}`;

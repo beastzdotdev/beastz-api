@@ -25,6 +25,7 @@ export class RecoverPasswordRepository {
     return this.prismaService.recoverPassword.findFirst({
       where: {
         id,
+        deletedAt: null,
       },
     });
   }
@@ -38,18 +39,21 @@ export class RecoverPasswordRepository {
   }
 
   async getByUserId(userId: number): Promise<RecoverPassword | null> {
-    return this.prismaService.recoverPassword.findFirstOrThrow({
+    return this.prismaService.recoverPassword.findFirst({
       where: {
         userId,
-        NOT: {
-          deletedAt: null,
-        },
+        deletedAt: null,
       },
     });
   }
 
   async updateById(id: number, params: UpdateRecoverPasswordParams): Promise<RecoverPassword | null> {
-    const entity = await this.prismaService.recoverPassword.findUnique({ where: { id } });
+    const entity = await this.prismaService.recoverPassword.findUnique({
+      where: {
+        id,
+        deletedAt: null,
+      },
+    });
 
     if (!entity) {
       return null;

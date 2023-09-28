@@ -3,6 +3,7 @@ import { CookieOptions, Response } from 'express';
 import { EnvService } from '../env/env.service';
 import { InjectEnv } from '../env/env.decorator';
 import { Constants } from '../../../common/constants';
+import moment from 'moment';
 
 @Injectable()
 export class CookieService {
@@ -34,11 +35,8 @@ export class CookieService {
       cookieOptions.domain = this.envService.get('FRONTEND_DOMAIN');
     }
 
-    const accessDate = new Date();
-    accessDate.setTime(accessDate.getTime() + this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC') * 1000);
-
-    const refreshDate = new Date();
-    refreshDate.setTime(refreshDate.getTime() + this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC') * 1000);
+    const accessDate = moment().add(this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'), 'seconds').toDate();
+    const refreshDate = moment().add(this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'), 'seconds').toDate();
 
     if (accessToken) {
       res.cookie(Constants.COOKIE_ACCESS_NAME, accessToken, { expires: accessDate, ...cookieOptions });

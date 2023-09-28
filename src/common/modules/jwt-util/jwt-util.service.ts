@@ -19,7 +19,6 @@ import {
   ValidateRecoverPasswordTokenPayload,
   ValidateRefreshTokenPayload,
 } from './jwt-util.type';
-import { PlatformWrapper } from '../../../model/platform.wrapper';
 
 @Injectable()
 export class JwtUtilService {
@@ -28,7 +27,7 @@ export class JwtUtilService {
     private readonly envService: EnvService,
   ) {}
 
-  async validateAccessToken(token: string, validateOptions: ValidateAccesssTokenPayload): Promise<void> {
+  async validateAccessToken(token: string, validateOptions: ValidateAccesssTokenPayload) {
     if (!token) {
       throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
@@ -58,7 +57,7 @@ export class JwtUtilService {
     );
   }
 
-  async validateRefreshToken(token: string, validateOptions: ValidateRefreshTokenPayload): Promise<void> {
+  async validateRefreshToken(token: string, validateOptions: ValidateRefreshTokenPayload) {
     if (!token) {
       throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
@@ -97,7 +96,7 @@ export class JwtUtilService {
     );
   }
 
-  async validateAccountVerifyToken(token: string, validateOptions: ValidateAccountVerifyTokenPayload): Promise<void> {
+  async validateAccountVerifyToken(token: string, validateOptions: ValidateAccountVerifyTokenPayload) {
     if (!token) {
       throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
@@ -105,11 +104,7 @@ export class JwtUtilService {
     const secret = this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET');
     const tokenPayload = this.getAccountVerifyTokenPayload(token);
 
-    const { platform, sub, userId } = validateOptions;
-
-    if (tokenPayload.platform !== platform) {
-      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PLATFORM);
-    }
+    const { sub, userId, jti } = validateOptions;
 
     if (tokenPayload.userId !== userId) {
       throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_USERID);
@@ -122,6 +117,7 @@ export class JwtUtilService {
         algorithms: ['HS256'],
         issuer: Constants.JWT_ISSUER,
         subject: sub,
+        jwtid: jti,
       },
       err => {
         if (err instanceof jwt.TokenExpiredError) {
@@ -133,10 +129,7 @@ export class JwtUtilService {
     );
   }
 
-  async validateRecoverPasswordToken(
-    token: string,
-    validateOptions: ValidateRecoverPasswordTokenPayload,
-  ): Promise<void> {
+  async validateRecoverPasswordToken(token: string, validateOptions: ValidateRecoverPasswordTokenPayload) {
     if (!token) {
       throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
@@ -183,7 +176,7 @@ export class JwtUtilService {
     });
   }
 
-  genRefreshToken(params: { userId: number; email: string; refreshKeySecret: string }): string {
+  genRefreshToken(params: { userId: number; email: string; refreshKeySecret: string }) {
     const authTokenPayload: AuthTokenPayload = {
       userId: params.userId,
       platform: PlatformForJwt.WEB,
@@ -198,10 +191,9 @@ export class JwtUtilService {
     });
   }
 
-  genAccountVerifyToken(params: { userId: number; email: string; platform: PlatformWrapper }): string {
-    const tokenPayload: AuthTokenPayload = {
+  genAccountVerifyToken(params: { userId: number; email: string; jti: string }) {
+    const tokenPayload: { userId: number } = {
       userId: params.userId,
-      platform: params.platform.getPlatform(),
     };
 
     return jwt.sign(tokenPayload, this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET').toString(), {
@@ -209,10 +201,11 @@ export class JwtUtilService {
       algorithm: 'HS256',
       issuer: Constants.JWT_ISSUER,
       subject: params.email,
+      jwtid: params.jti,
     });
   }
 
-  genRecoverPasswordToken(params: { userId: number; email: string; jti: string }): string {
+  genRecoverPasswordToken(params: { userId: number; email: string; jti: string }) {
     const tokenPayload: { userId: number } = {
       userId: params.userId,
     };
@@ -264,15 +257,15 @@ export class JwtUtilService {
     return payload;
   }
 
-  getAccountVerifyTokenPayload(token: string): AccessTokenPayload {
+  getAccountVerifyTokenPayload(token: string): AccountVerifyTokenPayload {
     const payload = <AccountVerifyTokenPayload>jwt.decode(token, { json: true });
 
     if (
       !isObject(payload) ||
-      !payload.platform ||
       !payload.userId ||
       !payload.exp ||
       !payload.sub ||
+      !payload.jti ||
       !payload.iss ||
       !payload.iat
     ) {
@@ -287,7 +280,6 @@ export class JwtUtilService {
 
     if (
       !isObject(payload) ||
-      !payload.platform ||
       !payload.userId ||
       !payload.exp ||
       !payload.sub ||

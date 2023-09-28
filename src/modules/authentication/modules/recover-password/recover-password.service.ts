@@ -26,14 +26,8 @@ export class RecoverPasswordService {
     return this.recoverPasswordRepository.getByJTI(jti);
   }
 
-  async getByUserId(userId: number): Promise<RecoverPassword> {
-    const recoverPassword = await this.recoverPasswordRepository.getByUserId(userId);
-
-    if (!recoverPassword) {
-      throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
-    }
-
-    return recoverPassword;
+  async getByUserId(userId: number): Promise<RecoverPassword | null> {
+    return this.recoverPasswordRepository.getByUserId(userId);
   }
 
   async updateById(id: number, params: UpdateRecoverPasswordParams): Promise<RecoverPassword> {

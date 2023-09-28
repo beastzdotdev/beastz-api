@@ -1,29 +1,24 @@
 
-## TODO
 
-TODO Used Docker for Postgres and Redis
-
+TODO More security
+========================================================
 TODO PKCE add in both backend and frontend
  https://developers.onelogin.com/blog/pkce-dust-react-app,
  https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce
-
-TODO validate user locking and blocking and everything in authentication controller and every route which has   noauth decrator
-TODO platform header problem in token generation and validation mobile not included
-
-//TODO save attempt in database like add new column named attempt and get env for max attemp like 5 in sendAccountVerificationCode method and confirm max 10 in accountVerificationConfirmCode
-
-//TODO do everything in authentication as transaction
-
-
-//TODO visual addition to all authentication get request for success and failure (even for dto errors)
-
-
 TODO Move web version to httpOnly/Secure cookie for csrf and xss attack
 https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3
 
+TODO validate user locking and blocking and everything in authentication controller and routes which has no auth
+TODO do everything in authentication as transaction
+TODO add global logger to see all kinds of logs
+TODO remove InjectEnv decorator
+TODO visual addition to all authentication get requests for success and failure (even for dto errors)
 
-TODO Blacklist User
-TODO Blacklist Token
+
+
+
+TODO Blacklist User controller methods after permissions
+TODO Blacklist Token controller methods after permissions
 
 TODO Increase refresh token expiry date (look in oauth docs for strict guidlines)
 
@@ -39,6 +34,8 @@ TODO Implement email service mailgun
   send email for reseting password (message: we have detected credential reuse) - method refreshToken
   send password,link to user on mail - method recoverPasswordSendVerificationCode and error msg on reuse detection
   send password,link to user on mail - method sendAccountVerificationCode and error msg on reuse detection
+  check everywhere use globl search for email or mail
 
 
 TODO Finally when finished just backup delete this todo and update email dont use main
+TODO Used Docker for Postgres and Redis

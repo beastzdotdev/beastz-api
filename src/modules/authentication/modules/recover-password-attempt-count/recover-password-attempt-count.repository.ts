@@ -25,6 +25,7 @@ export class RecoverPasswordAttemptCountRepository {
     return this.prismaService.recoverPasswordAttemptCount.findUnique({
       where: {
         recoverPasswordId,
+        deletedAt: null,
       },
     });
   }

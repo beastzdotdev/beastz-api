@@ -1,4 +1,5 @@
 import moment from 'moment';
+import { v4 as uuid } from 'uuid';
 import {
   ForbiddenException,
   Injectable,
@@ -6,15 +7,9 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { v4 as uuid } from 'uuid';
+
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
-import {
-  AccountVerificationConfirmCodeQueryDto,
-  AuthenticationPayloadResponseDto,
-  RecoverPasswordSendDto,
-  RecoverPasswordVerifyQueryDto,
-} from './dto';
 import { RandomService } from '../../common/modules/random/random.service';
 import { EncoderService } from '../../common/modules/encoder/encoder.service';
 import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
@@ -25,7 +20,6 @@ import { UserIdentityService } from '../user-identity/user-identity.service';
 import { EnvService } from '../@global/env/env.service';
 import { InjectEnv } from '../@global/env/env.decorator';
 import { encryption } from '../../common/encryption';
-import { RefreshParams, SignInParams, SignUpWithTokenParams } from './authentication.types';
 import { AuthRefreshResponseDto } from './dto/auth-refreh-response.dto';
 import { TokenExpiredException } from '../../exceptions/token-expired-forbidden.exception';
 import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-expired.exception';
@@ -35,8 +29,15 @@ import { PlatformWrapper } from '../../model/platform.wrapper';
 import { UserLockedException } from '../../exceptions/user-locked.exception';
 import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserNotVerifiedException } from '../../exceptions/user-not-verified.exception';
-import { UserIncludeIdentity } from '../user/user.type';
 import { RecoverPasswordAttemptCountService } from './modules/recover-password-attempt-count/recover-password-attempt-count.service';
+import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
+import { RefreshParams, SignInParams, SignUpWithTokenParams } from './authentication.types';
+import {
+  AccountVerificationConfirmQueryDto,
+  AuthenticationPayloadResponseDto,
+  RecoverPasswordVerifyQueryDto,
+} from './dto';
+import { Constants } from '../../common/constants';
 
 @Injectable()
 export class AuthenticationService {
@@ -54,6 +55,7 @@ export class AuthenticationService {
     private readonly accountVerificationService: AccountVerificationService,
     private readonly userIdentityService: UserIdentityService,
     private readonly recoverPasswordAttemptCountService: RecoverPasswordAttemptCountService,
+    private readonly accVerifyAttemptCountServic: AccountVerificationAttemptCountService,
   ) {}
 
   async signUpWithToken(res: Response, params: SignUpWithTokenParams, platform: PlatformWrapper): Promise<Response> {
@@ -244,11 +246,9 @@ export class AuthenticationService {
     return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
-  async recoverPasswordSend(body: RecoverPasswordSendDto): Promise<void> {
-    const { email } = body;
-
+  async recoverPasswordSend(email: string): Promise<void> {
     const user = await this.userService.getByEmailIncludeIdentity(email);
-    this.validateUserForAccountVerify(user);
+    this.userService.validateUser(user, { showNotVerifiedErr: true });
 
     const { id: userId } = user;
     const jti = uuid();
@@ -281,35 +281,30 @@ export class AuthenticationService {
       recoverPasswordAttemptCount = await this.recoverPasswordAttemptCountService.create({
         recoverPasswordId: recoverPassword.id,
       });
-    }
+    } else {
+      const { count, countIncreaseLastUpdateDate } = recoverPasswordAttemptCount;
+      const today = moment();
 
-    // validate first then update
-    // if attempt is max and one day is not gone by at least throw error
+      if (count < 5) {
+        await this.recoverPasswordAttemptCountService.updateById(recoverPasswordAttemptCount.id, {
+          count: count + 1,
+          countIncreaseLastUpdateDate: today.toDate(),
+        });
 
-    const { count, countIncreaseLastUpdateDate } = recoverPasswordAttemptCount;
-    const today = moment();
+        return;
+      }
 
-    if (count < 5) {
+      // if attempt is max and one day is not gone by at least throw error
+      // count >= 5 and less then one day passed
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+        throw new ForbiddenException('Please wait for another day to recover password');
+      }
+
       await this.recoverPasswordAttemptCountService.updateById(recoverPasswordAttemptCount.id, {
-        count: count + 1,
+        count: 0,
         countIncreaseLastUpdateDate: today.toDate(),
       });
-
-      return;
     }
-
-    // count >= 5 !
-    const providedDate = moment(countIncreaseLastUpdateDate);
-    const lessThenOneDayPassed = today.diff(providedDate, 'hours') < 24; // 1 day
-
-    if (lessThenOneDayPassed) {
-      throw new ForbiddenException('Please wait for another day to recover password');
-    }
-
-    await this.recoverPasswordAttemptCountService.updateById(recoverPasswordAttemptCount.id, {
-      count: 0,
-      countIncreaseLastUpdateDate: today.toDate(),
-    });
 
     // send recover password id and security token and platform and new password
   }
@@ -317,19 +312,20 @@ export class AuthenticationService {
   async recoverPasswordConfirm(body: RecoverPasswordVerifyQueryDto): Promise<void> {
     const { token, userId } = body;
 
-    const recoverPassword = await this.recoverPasswordService.getByUserId(userId);
-
-    if (!recoverPassword) {
-      throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
-    }
-
-    const user = await this.userService.getByIdIncludeIdentityForGuard(recoverPassword.userId);
+    const { jti } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
 
     // reuse detection
-    const recoverPasswordByJti = await this.recoverPasswordService.getByJTI(recoverPassword.jti);
-    const recoverPasswordByJtiIsDeleted = Boolean(recoverPasswordByJti?.deletedAt);
+    const recoverPasswordByJti = await this.recoverPasswordService.getByJTI(jti);
 
-    if (recoverPasswordByJti && recoverPasswordByJtiIsDeleted) {
+    // reuse will be if deleted token is used and more than 1 day is gone
+    const tommorow = moment().add(Constants.ONE_DAY_IN_SEC, 'seconds');
+    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+
+    if (
+      recoverPasswordByJti &&
+      Boolean(recoverPasswordByJti?.deletedAt) &&
+      tommorow.diff(recoverPasswordByJti.deletedAt, 'seconds') >= Constants.ONE_DAY_IN_SEC
+    ) {
       // send email here (delete comment after)
 
       if (user.userIdentity.strictMode) {
@@ -339,11 +335,17 @@ export class AuthenticationService {
       throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_TOKEN_REUSE);
     }
 
+    const recoverPassword = await this.recoverPasswordService.getByUserId(userId);
+
+    if (!recoverPassword) {
+      throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
+    }
+
     if (token !== recoverPassword.securityToken) {
       throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_INVALID);
     }
 
-    this.validateUserForAccountVerify(user);
+    this.userService.validateUser(user, { showNotVerifiedErr: true });
 
     await this.jwtUtilService.validateRecoverPasswordToken(token, {
       sub: user.email,
@@ -352,89 +354,113 @@ export class AuthenticationService {
     });
 
     await Promise.all([
-      this.recoverPasswordService.softDelete(recoverPassword.id),
       this.userIdentityService.updatePasswordById(userId, recoverPassword.newPassword),
+      this.recoverPasswordService.softDelete(recoverPassword.id),
       this.recoverPasswordAttemptCountService.softDelete(recoverPassword.id),
     ]);
 
     // show success page and button for redirecting to front end
   }
 
-  async accountVerifySend(email: string, platform: PlatformWrapper) {
-    // const user = await this.userService.getByEmailIncludeIdentity(email);
-    // this.validateUserForAccountVerify(user);
-    // const { id: userId } = user;
-    // const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, platform });
-    // //TODO token reuse detect
-    // //TODO save attempt in database like add new column named attempt and get env for max attemp like 5
-    // await this.accountVerificationService.upsert({
-    //   userId: user.id,
-    //   securityToken,
-    //   deletedAt: new Date(),
-    // });
-    // send one time code to user on mail here
+  async accountVerifySend(email: string): Promise<void> {
+    const user = await this.userService.getByEmailIncludeIdentity(email);
+    this.userService.validateUser(user, { showIsVerifiedErr: true });
+
+    const { id: userId } = user;
+    const jti = uuid();
+    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
+
+    let accountVerify = await this.accountVerificationService.getByUserId(userId);
+
+    if (accountVerify) {
+      accountVerify = await this.accountVerificationService.updateById(accountVerify.id, { securityToken, jti });
+    } else {
+      accountVerify = await this.accountVerificationService.create({ userId, securityToken, jti });
+    }
+
+    let accVerifyAttemptCount = await this.accVerifyAttemptCountServic.getByAccountVerificationId(accountVerify.id);
+
+    if (!accVerifyAttemptCount) {
+      accVerifyAttemptCount = await this.accVerifyAttemptCountServic.create({
+        accountVerificationId: accountVerify.id,
+      });
+    } else {
+      const { count, countIncreaseLastUpdateDate } = accVerifyAttemptCount;
+      const today = moment();
+
+      if (count < 5) {
+        await this.accVerifyAttemptCountServic.updateById(accVerifyAttemptCount.id, {
+          count: count + 1,
+          countIncreaseLastUpdateDate: today.toDate(),
+        });
+
+        return;
+      }
+
+      // if attempt is max and one day is not gone by at least throw error
+      // count >= 5 and less then one day passed
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+        throw new ForbiddenException('Please wait for another day to recover password');
+      }
+
+      await this.accVerifyAttemptCountServic.updateById(accVerifyAttemptCount.id, {
+        count: 0,
+        countIncreaseLastUpdateDate: today.toDate(),
+      });
+    }
   }
 
-  async accountVerificationConfirmCode(body: AccountVerificationConfirmCodeQueryDto) {
-    const { token, userId, platform } = body;
+  async accountVerificationConfirm(body: AccountVerificationConfirmQueryDto): Promise<void> {
+    const { token, userId } = body;
 
+    const { jti } = this.jwtUtilService.getAccountVerifyTokenPayload(token);
+
+    // reuse detection
+    const accountVerifyByJti = await this.accountVerificationService.getByJTI(jti);
+
+    // reuse will be if deleted token is used and more than 1 day is gone
+    const tommorow = moment().add(Constants.ONE_DAY_IN_SEC, 'seconds');
     const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
-    this.validateUserForAccountVerify(user);
 
-    const accountVerification = await this.accountVerificationService.getByUserId(user.id);
+    if (
+      accountVerifyByJti &&
+      Boolean(accountVerifyByJti?.deletedAt) &&
+      tommorow.diff(accountVerifyByJti.deletedAt, 'seconds') >= Constants.ONE_DAY_IN_SEC
+    ) {
+      // send email here (delete comment after)
 
-    if (!accountVerification) {
+      if (user.userIdentity.strictMode) {
+        await this.userIdentityService.updateIsLockedById(user.userIdentity.id, true);
+      }
+
+      throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_TOKEN_REUSE);
+    }
+
+    const accountVerify = await this.accountVerificationService.getByUserId(userId);
+
+    if (!accountVerify) {
       throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
     }
 
-    if (token !== accountVerification.securityToken) {
+    if (token !== accountVerify.securityToken) {
       throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_INVALID);
     }
 
+    this.userService.validateUser(user, { showIsVerifiedErr: true });
+
     await this.jwtUtilService.validateAccountVerifyToken(token, {
-      platform,
       sub: user.email,
-      userId,
+      userId: user.id,
+      jti: accountVerify.jti,
     });
 
-    //TODO do not delete just
     await Promise.all([
-      this.userIdentityService.updateIsAccVerified(user.id, true),
-      // this.accountVerificationService.deleteByUserId(user.id),
+      this.userIdentityService.updateIsAccVerified(userId, true),
+      this.accountVerificationService.softDelete(accountVerify.id),
+      this.accVerifyAttemptCountServic.softDelete(accountVerify.id),
     ]);
 
-    return {
-      msg: 'Account verification successfull',
-    };
-  }
-
-  private validateUserForAccountVerify(
-    user: UserIncludeIdentity,
-    flags?: { showIsVerifiedErr?: boolean; showNotVerifiedErr?: boolean },
-  ) {
-    if (!user) {
-      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
-    }
-
-    if (!user.userIdentity) {
-      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
-    }
-
-    if (user.userIdentity.isBlocked) {
-      throw new UserBlockedException();
-    }
-
-    if (user.userIdentity.isLocked) {
-      throw new UserLockedException();
-    }
-
-    if (flags?.showIsVerifiedErr && user.userIdentity.isAccountVerified) {
-      throw new ForbiddenException(ExceptionMessageCode.USER_ALREADY_VERIFIED);
-    }
-
-    if (flags?.showNotVerifiedErr && !user.userIdentity.isAccountVerified) {
-      throw new ForbiddenException(ExceptionMessageCode.USER_NOT_VERIFIED);
-    }
+    // show success page and button for redirecting to front end
   }
 
   private async genAccessAndRefreshToken(params: { userId: number; email: string }) {

@@ -1,5 +1,5 @@
-import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
