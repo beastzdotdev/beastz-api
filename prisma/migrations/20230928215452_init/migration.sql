@@ -61,8 +61,8 @@ CREATE TABLE "refresh_tokens" (
 CREATE TABLE "account_verifications" (
     "id" SERIAL NOT NULL,
     "security_token" TEXT NOT NULL,
+    "jti" UUID NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "new_password" VARCHAR(255) NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMPTZ,
 
@@ -73,6 +73,7 @@ CREATE TABLE "account_verifications" (
 CREATE TABLE "account_verifications_attempt_count" (
     "id" SERIAL NOT NULL,
     "count" SMALLINT NOT NULL DEFAULT 0,
+    "count_increase_last_update_date" TIMESTAMPTZ,
     "account_verification_id" INTEGER NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMPTZ,
@@ -84,7 +85,9 @@ CREATE TABLE "account_verifications_attempt_count" (
 CREATE TABLE "recover_passwords" (
     "id" SERIAL NOT NULL,
     "security_token" TEXT NOT NULL,
+    "jti" UUID NOT NULL,
     "user_id" INTEGER NOT NULL,
+    "new_password" VARCHAR(255) NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMPTZ,
 
@@ -95,11 +98,37 @@ CREATE TABLE "recover_passwords" (
 CREATE TABLE "recover_passwords_attempt_count" (
     "id" SERIAL NOT NULL,
     "count" SMALLINT NOT NULL DEFAULT 0,
+    "count_increase_last_update_date" TIMESTAMPTZ,
     "recover_password_id" INTEGER NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMPTZ,
 
     CONSTRAINT "recover_passwords_attempt_count_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "reset_passwords" (
+    "id" SERIAL NOT NULL,
+    "security_token" TEXT NOT NULL,
+    "jti" UUID NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "new_password" VARCHAR(255) NOT NULL,
+    "deleted_at" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "reset_passwords_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "reset_passwords_attempt_count" (
+    "id" SERIAL NOT NULL,
+    "count" SMALLINT NOT NULL DEFAULT 0,
+    "count_increase_last_update_date" TIMESTAMPTZ,
+    "recover_password_id" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deleted_at" TIMESTAMPTZ,
+
+    CONSTRAINT "reset_passwords_attempt_count_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -153,10 +182,22 @@ CREATE UNIQUE INDEX "refresh_tokens_jti_key" ON "refresh_tokens"("jti");
 CREATE INDEX "refresh_tokens_jti_idx" ON "refresh_tokens"("jti");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "account_verifications_jti_key" ON "account_verifications"("jti");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "account_verifications_attempt_count_account_verification_id_key" ON "account_verifications_attempt_count"("account_verification_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "recover_passwords_jti_key" ON "recover_passwords"("jti");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "recover_passwords_attempt_count_recover_password_id_key" ON "recover_passwords_attempt_count"("recover_password_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "reset_passwords_jti_key" ON "reset_passwords"("jti");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "reset_passwords_attempt_count_recover_password_id_key" ON "reset_passwords_attempt_count"("recover_password_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "legal_documents_type_key" ON "legal_documents"("type");
@@ -178,6 +219,12 @@ ALTER TABLE "recover_passwords" ADD CONSTRAINT "recover_passwords_user_id_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "recover_passwords_attempt_count" ADD CONSTRAINT "recover_passwords_attempt_count_recover_password_id_fkey" FOREIGN KEY ("recover_password_id") REFERENCES "recover_passwords"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "reset_passwords" ADD CONSTRAINT "reset_passwords_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "reset_passwords_attempt_count" ADD CONSTRAINT "reset_passwords_attempt_count_recover_password_id_fkey" FOREIGN KEY ("recover_password_id") REFERENCES "reset_passwords"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "legal_document_paragraphs" ADD CONSTRAINT "legal_document_paragraphs_legal_document_id_fkey" FOREIGN KEY ("legal_document_id") REFERENCES "legal_documents"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

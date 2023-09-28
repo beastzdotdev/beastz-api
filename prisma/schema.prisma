@@ -54,10 +54,11 @@ model User {
   profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
 
   userIdentity         UserIdentity?
-  refreshTokens        RefreshToken[]
   feedbacks            Feedback[]
-  accountVerifications AccountVerification[]
+  refreshTokens        RefreshToken[]
   recoverPasswords     RecoverPassword[]
+  accountVerifications AccountVerification[]
+  resetPasswords       ResetPassword[]
 
   @@index([email])
   @@map("users")
@@ -156,6 +157,34 @@ model RecoverPasswordAttemptCount {
   recoverPassword RecoverPassword @relation(fields: [recoverPasswordId], references: [id])
 
   @@map("recover_passwords_attempt_count")
+}
+
+model ResetPassword {
+  id            Int       @id @default(autoincrement())
+  securityToken String    @map("security_token")
+  jti           String    @unique @db.Uuid()
+  userId        Int       @map("user_id")
+  newPassword   String    @map("new_password") @db.VarChar(255)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user                      User                       @relation(fields: [userId], references: [id])
+  resetPasswordAttemptCount ResetPasswordAttemptCount?
+
+  @@map("reset_passwords")
+}
+
+model ResetPasswordAttemptCount {
+  id                          Int       @id @default(autoincrement())
+  count                       Int       @default(0) @db.SmallInt
+  countIncreaseLastUpdateDate DateTime? @map("count_increase_last_update_date") @db.Timestamptz()
+  resetPasswordId             Int       @unique @map("recover_password_id")
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt                   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  resetPassword ResetPassword @relation(fields: [resetPasswordId], references: [id])
+
+  @@map("reset_passwords_attempt_count")
 }
 
 model LegalDocument {

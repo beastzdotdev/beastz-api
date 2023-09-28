@@ -26,18 +26,18 @@ import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-exp
 import { CookieService } from '../@global/cookie/cookie.service';
 import { Response } from 'express';
 import { PlatformWrapper } from '../../model/platform.wrapper';
-import { UserLockedException } from '../../exceptions/user-locked.exception';
-import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserNotVerifiedException } from '../../exceptions/user-not-verified.exception';
 import { RecoverPasswordAttemptCountService } from './modules/recover-password-attempt-count/recover-password-attempt-count.service';
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
 import { RefreshParams, SignInParams, SignUpWithTokenParams } from './authentication.types';
+import { Constants } from '../../common/constants';
+import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
+import { ResetPasswordService } from './modules/reset-password/reset-password.service';
 import {
   AccountVerificationConfirmQueryDto,
   AuthenticationPayloadResponseDto,
   RecoverPasswordVerifyQueryDto,
 } from './dto';
-import { Constants } from '../../common/constants';
 
 @Injectable()
 export class AuthenticationService {
@@ -56,6 +56,7 @@ export class AuthenticationService {
     private readonly userIdentityService: UserIdentityService,
     private readonly recoverPasswordAttemptCountService: RecoverPasswordAttemptCountService,
     private readonly accVerifyAttemptCountServic: AccountVerificationAttemptCountService,
+    private readonly resetPasswordHistoryService: ResetPasswordService,
   ) {}
 
   async signUpWithToken(res: Response, params: SignUpWithTokenParams, platform: PlatformWrapper): Promise<Response> {
@@ -112,33 +113,12 @@ export class AuthenticationService {
 
   async signInWithToken(res: Response, params: SignInParams, platform: PlatformWrapper): Promise<Response> {
     const user = await this.userService.getByEmailIncludeIdentity(params.email);
-
-    if (!user) {
-      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
-    }
-
-    if (!user.userIdentity) {
-      throw new UnauthorizedException(ExceptionMessageCode.USER_IDENTITY_NOT_FOUND);
-    }
+    this.userService.validateUser(user, { showNotVerifiedErr: true });
 
     const passwordMatches = await this.encoderService.matches(params.password, user.userIdentity.password);
 
     if (!passwordMatches) {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
-    }
-
-    if (user.userIdentity.isBlocked) {
-      throw new UserBlockedException();
-    }
-
-    if (user.userIdentity.isLocked) {
-      throw new UserLockedException();
-    }
-
-    const isAccountVerified = user.userIdentity?.isAccountVerified ?? false;
-
-    if (!isAccountVerified) {
-      throw new UserNotVerifiedException();
     }
 
     const { accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted } =
@@ -174,6 +154,26 @@ export class AuthenticationService {
     }
 
     return res.json({ msg: 'Something went wrong' }).status(500);
+  }
+
+  async resetPassword(body: ResetPasswordBodyDto, userId: number): Promise<void> {
+    const { newPassword, oldPassword } = body;
+    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+
+    this.userService.validateUser(user, { showNotVerifiedErr: true });
+
+    const passwordMatches = await this.encoderService.matches(oldPassword, user.userIdentity.password);
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
+
+    const hashedPassword = await this.encoderService.encode(newPassword);
+
+    await Promise.all([
+      this.userIdentityService.updatePasswordById(user.userIdentity.id, hashedPassword),
+      this.resetPasswordHistoryService.create({ userId: user.id, userIdentityId: user.userIdentity.id }),
+    ]);
   }
 
   async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {

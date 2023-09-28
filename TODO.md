@@ -29,6 +29,11 @@ TODO Implement https://www.dicebear.com/ for profile image path
 TODO Basic throttle
 TODO Origin checkup for prod
 
+TODO Index necessary fields in prisma
+TODO Safe passwords fields in every dtos
+
+
+
 TODO Implement email service mailgun
   [ ask toko for downgrading to basic plan, default will force you to pay ]
   send email for reseting password (message: we have detected credential reuse) - method refreshToken

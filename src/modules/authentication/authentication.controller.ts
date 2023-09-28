@@ -28,6 +28,10 @@ import {
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
+import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
+import { platform } from 'os';
+import { AuthPayload } from '../../decorator/auth-payload.decorator';
+import { AuthPayloadType } from '../../model/auth.types';
 
 @UseGuards(AuthPlatformHeaderGuard)
 @Controller('authentication')
@@ -73,6 +77,16 @@ export class AuthenticationController {
     }
 
     return this.authenticationService.refreshToken(res, { oldRefreshTokenString: refreshToken }, platform);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('reset-password')
+  async resetPassword(
+    @Body() body: ResetPasswordBodyDto,
+    @AuthPayload() authPayload: AuthPayloadType,
+  ): Promise<{ msg: string }> {
+    await this.authenticationService.resetPassword(body, authPayload.user.id);
+    return { msg: 'Reset password successfull' };
   }
 
   @NoAuth()
