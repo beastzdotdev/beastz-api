@@ -8,10 +8,6 @@ import { Logger } from '@nestjs/common';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 
-//TODO MAIN
-// recover_password/account_verification attempt count validation must be implemented
-// recover password need some adjustments
-
 NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
   const logger = new Logger('Main logger');

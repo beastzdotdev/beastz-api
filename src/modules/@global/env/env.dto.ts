@@ -53,6 +53,11 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
+  RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC: number;
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsNumber()
   ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
@@ -71,4 +76,8 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   RECOVER_PASSWORD_TOKEN_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  RESET_PASSWORD_TOKEN_SECRET: string;
 }

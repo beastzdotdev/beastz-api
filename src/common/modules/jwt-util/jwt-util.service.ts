@@ -219,6 +219,20 @@ export class JwtUtilService {
     });
   }
 
+  genResetPasswordToken(params: { userId: number; email: string; jti: string }) {
+    const tokenPayload: { userId: number } = {
+      userId: params.userId,
+    };
+
+    return jwt.sign(tokenPayload, this.envService.get('RESET_PASSWORD_TOKEN_SECRET').toString(), {
+      expiresIn: this.envService.get('RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
+      algorithm: 'HS256',
+      issuer: Constants.JWT_ISSUER,
+      subject: params.email,
+      jwtid: params.jti,
+    });
+  }
+
   getAccessTokenPayload(token: string): AccessTokenPayload {
     const payload = <AccessTokenPayload>jwt.decode(token, { json: true });
 

@@ -158,7 +158,13 @@ export class AuthenticationService {
 
   async resetPassword(body: ResetPasswordBodyDto, userId: number): Promise<void> {
     const { newPassword, oldPassword } = body;
-    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+
+    // we should not let user know that user not exists than user will use this info for password
+    const user = await this.userService.getByIdIncludeIdentityForGuardNotThrow(userId);
+
+    if (!user) {
+      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+    }
 
     this.userService.validateUser(user, { showNotVerifiedErr: true });
 
@@ -168,12 +174,63 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }
 
-    const hashedPassword = await this.encoderService.encode(newPassword);
+    const { email } = user;
+    const jti = uuid();
+    const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
+    const newPasswordHashed = await this.encoderService.encode(newPassword);
 
-    await Promise.all([
-      this.userIdentityService.updatePasswordById(user.userIdentity.id, hashedPassword),
-      this.resetPasswordHistoryService.create({ userId: user.id, userIdentityId: user.userIdentity.id }),
-    ]);
+    //TODO also add reset password confirm
+
+    //TODO
+    // let recoverPassword = await this.recoverPasswordService.getByUserId(user.id);
+
+    // if (recoverPassword) {
+    //   recoverPassword = await this.recoverPasswordService.updateById(recoverPassword.id, {
+    //     securityToken,
+    //     newPassword: newPasswordHashed,
+    //     jti,
+    //   });
+    // } else {
+    //   recoverPassword = await this.recoverPasswordService.create({
+    //     userId,
+    //     securityToken,
+    //     newPassword: newPasswordHashed,
+    //     jti,
+    //   });
+    // }
+
+    // let recoverPasswordAttemptCount = await this.recoverPasswordAttemptCountService.getByRecoverPasswordId(
+    //   recoverPassword.id,
+    // );
+
+    // if (!recoverPasswordAttemptCount) {
+    //   recoverPasswordAttemptCount = await this.recoverPasswordAttemptCountService.create({
+    //     recoverPasswordId: recoverPassword.id,
+    //   });
+    // } else {
+    //   const { count, countIncreaseLastUpdateDate } = recoverPasswordAttemptCount;
+    //   const today = moment();
+
+    //   if (count < 5) {
+    //     await this.recoverPasswordAttemptCountService.updateById(recoverPasswordAttemptCount.id, {
+    //       count: count + 1,
+    //       countIncreaseLastUpdateDate: today.toDate(),
+    //     });
+
+    //     return;
+    //   }
+
+    //   // if attempt is max and one day is not gone by at least throw error
+    //   // count >= 5 and less then one day passed
+    //   if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+    //     throw new ForbiddenException('Please wait for another day to recover password');
+    //   }
+
+    //   await this.recoverPasswordAttemptCountService.updateById(recoverPasswordAttemptCount.id, {
+    //     count: 0,
+    //     countIncreaseLastUpdateDate: today.toDate(),
+    //   });
+    // }
   }
 
   async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {
