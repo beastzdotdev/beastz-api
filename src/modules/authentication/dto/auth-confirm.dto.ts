@@ -1,11 +1,11 @@
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class AccountVerificationConfirmQueryDto {
+export class AuthConfirmQueryDto {
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
-  userId: number;
+  id: number;
 
   @IsNotEmpty()
   @IsString()

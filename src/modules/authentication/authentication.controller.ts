@@ -18,20 +18,18 @@ import { PlatformHeader } from '../../decorator/platform-header.decorator';
 import { CookieStrict } from '../../decorator/cookie-decorator';
 import { Constants } from '../../common/constants';
 import { PlatformWrapper } from '../../model/platform.wrapper';
-import { AccountVerifySendCodeDto } from './dto/account-verify-send-code.dto';
 import { NoPlatformHeader } from '../../decorator/no-platform-header.decorator';
+import { AuthPayload } from '../../decorator/auth-payload.decorator';
+import { AuthPayloadType } from '../../model/auth.types';
 import {
-  AccountVerificationConfirmQueryDto,
+  AccountVerifySendCodeDto,
+  AuthConfirmQueryDto,
   RecoverPasswordSendDto,
-  RecoverPasswordVerifyQueryDto as RecoverPasswordConfirmQueryDto,
   RefreshTokenBodyDto,
+  ResetPasswordBodyDto,
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
-import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
-import { AuthPayload } from '../../decorator/auth-payload.decorator';
-import { AuthPayloadType } from '../../model/auth.types';
-import { ResetPasswordVerifyQueryDto } from './dto/reset-password-confirm.dto';
 
 @UseGuards(AuthPlatformHeaderGuard)
 @Controller('authentication')
@@ -115,21 +113,21 @@ export class AuthenticationController {
   @NoAuth()
   @NoPlatformHeader()
   @Get('reset-password/confirm')
-  async resetPasswordConfirm(@Query() body: ResetPasswordVerifyQueryDto) {
+  async resetPasswordConfirm(@Query() body: AuthConfirmQueryDto) {
     await this.authenticationService.resetPasswordConfirm(body);
   }
 
   @NoAuth()
   @NoPlatformHeader()
   @Get('recover-password/confirm')
-  async recoverPassword(@Query() body: RecoverPasswordConfirmQueryDto): Promise<void> {
+  async recoverPassword(@Query() body: AuthConfirmQueryDto): Promise<void> {
     await this.authenticationService.recoverPasswordConfirm(body);
   }
 
   @NoAuth()
   @NoPlatformHeader()
   @Get('account-verify/confirm')
-  async accountVerificationConfirmCode(@Query() body: AccountVerificationConfirmQueryDto) {
+  async accountVerificationConfirmCode(@Query() body: AuthConfirmQueryDto) {
     await this.authenticationService.accountVerificationConfirm(body);
   }
 }

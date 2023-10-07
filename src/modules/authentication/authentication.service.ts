@@ -33,12 +33,7 @@ import { Constants } from '../../common/constants';
 import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
 import { ResetPasswordService } from './modules/reset-password/reset-password.service';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
-import {
-  AccountVerificationConfirmQueryDto,
-  AuthenticationPayloadResponseDto,
-  RecoverPasswordVerifyQueryDto,
-} from './dto';
-import { ResetPasswordVerifyQueryDto } from './dto/reset-password-confirm.dto';
+import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto } from './dto';
 
 @Injectable()
 export class AuthenticationService {
@@ -158,77 +153,6 @@ export class AuthenticationService {
     return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
-  async resetPasswordSend(body: ResetPasswordBodyDto, userId: number): Promise<void> {
-    const { newPassword, oldPassword } = body;
-
-    // we should not let user know that user not exists than user will use this info for password
-    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
-    const passwordMatches = await this.encoderService.matches(oldPassword, user.userIdentity.password);
-
-    if (!passwordMatches) {
-      throw new UnauthorizedException(ExceptionMessageCode.PASSWORD_INVALID);
-    }
-
-    if (oldPassword === newPassword) {
-      throw new UnauthorizedException(ExceptionMessageCode.NEW_PASSWORD_SAME);
-    }
-
-    this.userService.validateUser(user, { showNotVerifiedErr: true });
-
-    const { email } = user;
-    const jti = uuid();
-    const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
-    const newPasswordHashed = await this.encoderService.encode(newPassword);
-
-    let resetPassword = await this.resetPasswordService.getByUserId(user.id);
-
-    if (resetPassword) {
-      resetPassword = await this.resetPasswordService.updateById(resetPassword.id, {
-        securityToken,
-        newPassword: newPasswordHashed,
-        jti,
-      });
-    } else {
-      resetPassword = await this.resetPasswordService.create({
-        userId,
-        securityToken,
-        newPassword: newPasswordHashed,
-        jti,
-      });
-    }
-
-    let resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.getByResetPasswordId(resetPassword.id);
-
-    if (!resetPasswordAttemptCount) {
-      resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.create({
-        resetPasswordId: resetPassword.id,
-      });
-    } else {
-      const { count, countIncreaseLastUpdateDate } = resetPasswordAttemptCount;
-      const today = moment();
-
-      if (count < 5) {
-        await this.resetPasswordAttemptCountService.updateById(resetPasswordAttemptCount.id, {
-          count: count + 1,
-          countIncreaseLastUpdateDate: today.toDate(),
-        });
-
-        return;
-      }
-
-      // if attempt is max and one day is not gone by at least throw error
-      // count >= 5 and less then one day passed
-      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
-        throw new ForbiddenException('Please wait for another day to recover password');
-      }
-
-      await this.resetPasswordAttemptCountService.updateById(resetPasswordAttemptCount.id, {
-        count: 0,
-        countIncreaseLastUpdateDate: today.toDate(),
-      });
-    }
-  }
-
   async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {
     const { oldRefreshTokenString } = params;
     const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshTokenString);
@@ -299,6 +223,79 @@ export class AuthenticationService {
     return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
+  async resetPasswordSend(body: ResetPasswordBodyDto, userId: number): Promise<void> {
+    const { newPassword, oldPassword } = body;
+
+    // we should not let user know that user not exists than user will use this info for password
+    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+    const passwordMatches = await this.encoderService.matches(oldPassword, user.userIdentity.password);
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException(ExceptionMessageCode.PASSWORD_INVALID);
+    }
+
+    if (oldPassword === newPassword) {
+      throw new UnauthorizedException(ExceptionMessageCode.NEW_PASSWORD_SAME);
+    }
+
+    this.userService.validateUser(user, { showNotVerifiedErr: true });
+
+    const { email } = user;
+    const jti = uuid();
+    const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
+    const newPasswordHashed = await this.encoderService.encode(newPassword);
+
+    let resetPassword = await this.resetPasswordService.getByUserId(user.id);
+
+    if (resetPassword) {
+      resetPassword = await this.resetPasswordService.updateById(resetPassword.id, {
+        securityToken,
+        newPassword: newPasswordHashed,
+        jti,
+      });
+    } else {
+      resetPassword = await this.resetPasswordService.create({
+        userId,
+        securityToken,
+        newPassword: newPasswordHashed,
+        jti,
+      });
+    }
+
+    let resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.getByResetPasswordId(resetPassword.id);
+
+    if (!resetPasswordAttemptCount) {
+      resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.create({
+        resetPasswordId: resetPassword.id,
+      });
+    } else {
+      const { count, countIncreaseLastUpdateDate } = resetPasswordAttemptCount;
+      const today = moment();
+
+      if (count < 5) {
+        await this.resetPasswordAttemptCountService.updateById(resetPasswordAttemptCount.id, {
+          count: count + 1,
+          countIncreaseLastUpdateDate: today.toDate(),
+        });
+
+        return;
+      }
+
+      // if attempt is max and one day is not gone by at least throw error
+      // count >= 5 and less then one day passed
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+        throw new ForbiddenException('Please wait for another day to recover password');
+      }
+
+      await this.resetPasswordAttemptCountService.updateById(resetPasswordAttemptCount.id, {
+        count: 0,
+        countIncreaseLastUpdateDate: today.toDate(),
+      });
+    }
+
+    // send token url on email
+  }
+
   async recoverPasswordSend(email: string): Promise<void> {
     const user = await this.userService.getByEmailIncludeIdentity(email);
     this.userService.validateUser(user, { showNotVerifiedErr: true });
@@ -359,13 +356,62 @@ export class AuthenticationService {
       });
     }
 
-    // send recover password id and security token and platform and new password
+    // send token url on email
   }
 
-  async resetPasswordConfirm(body: ResetPasswordVerifyQueryDto): Promise<void> {
-    const { token, userId } = body;
+  async accountVerifySend(email: string): Promise<void> {
+    const user = await this.userService.getByEmailIncludeIdentity(email);
+    this.userService.validateUser(user, { showIsVerifiedErr: true });
 
-    const { jti } = this.jwtUtilService.getResetPasswordTokenPayload(token);
+    const { id: userId } = user;
+    const jti = uuid();
+    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
+
+    let accountVerify = await this.accountVerificationService.getByUserId(userId);
+
+    if (accountVerify) {
+      accountVerify = await this.accountVerificationService.updateById(accountVerify.id, { securityToken, jti });
+    } else {
+      accountVerify = await this.accountVerificationService.create({ userId, securityToken, jti });
+    }
+
+    let accVerifyAttemptCount = await this.accVerifyAttemptCountService.getByAccVerifyId(accountVerify.id);
+
+    if (!accVerifyAttemptCount) {
+      accVerifyAttemptCount = await this.accVerifyAttemptCountService.create({
+        accountVerificationId: accountVerify.id,
+      });
+    } else {
+      const { count, countIncreaseLastUpdateDate } = accVerifyAttemptCount;
+      const today = moment();
+
+      if (count < 5) {
+        await this.accVerifyAttemptCountService.updateById(accVerifyAttemptCount.id, {
+          count: count + 1,
+          countIncreaseLastUpdateDate: today.toDate(),
+        });
+
+        return;
+      }
+
+      // if attempt is max and one day is not gone by at least throw error
+      // count >= 5 and less then one day passed
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+        throw new ForbiddenException('Please wait for another day to recover password');
+      }
+
+      await this.accVerifyAttemptCountService.updateById(accVerifyAttemptCount.id, {
+        count: 0,
+        countIncreaseLastUpdateDate: today.toDate(),
+      });
+    }
+
+    // send token url on email
+  }
+
+  async resetPasswordConfirm(body: AuthConfirmQueryDto): Promise<void> {
+    const { token } = body;
+    const { jti, userId } = this.jwtUtilService.getResetPasswordTokenPayload(token);
 
     const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
 
@@ -427,10 +473,9 @@ export class AuthenticationService {
     // show success page and button for redirecting to front end
   }
 
-  async recoverPasswordConfirm(body: RecoverPasswordVerifyQueryDto): Promise<void> {
-    const { token, userId } = body;
-
-    const { jti } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
+  async recoverPasswordConfirm(body: AuthConfirmQueryDto): Promise<void> {
+    const { token } = body;
+    const { jti, userId } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
 
     const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
 
@@ -495,58 +540,9 @@ export class AuthenticationService {
     // show success page and button for redirecting to front end
   }
 
-  async accountVerifySend(email: string): Promise<void> {
-    const user = await this.userService.getByEmailIncludeIdentity(email);
-    this.userService.validateUser(user, { showIsVerifiedErr: true });
-
-    const { id: userId } = user;
-    const jti = uuid();
-    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
-
-    let accountVerify = await this.accountVerificationService.getByUserId(userId);
-
-    if (accountVerify) {
-      accountVerify = await this.accountVerificationService.updateById(accountVerify.id, { securityToken, jti });
-    } else {
-      accountVerify = await this.accountVerificationService.create({ userId, securityToken, jti });
-    }
-
-    let accVerifyAttemptCount = await this.accVerifyAttemptCountService.getByAccVerifyId(accountVerify.id);
-
-    if (!accVerifyAttemptCount) {
-      accVerifyAttemptCount = await this.accVerifyAttemptCountService.create({
-        accountVerificationId: accountVerify.id,
-      });
-    } else {
-      const { count, countIncreaseLastUpdateDate } = accVerifyAttemptCount;
-      const today = moment();
-
-      if (count < 5) {
-        await this.accVerifyAttemptCountService.updateById(accVerifyAttemptCount.id, {
-          count: count + 1,
-          countIncreaseLastUpdateDate: today.toDate(),
-        });
-
-        return;
-      }
-
-      // if attempt is max and one day is not gone by at least throw error
-      // count >= 5 and less then one day passed
-      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
-        throw new ForbiddenException('Please wait for another day to recover password');
-      }
-
-      await this.accVerifyAttemptCountService.updateById(accVerifyAttemptCount.id, {
-        count: 0,
-        countIncreaseLastUpdateDate: today.toDate(),
-      });
-    }
-  }
-
-  async accountVerificationConfirm(body: AccountVerificationConfirmQueryDto): Promise<void> {
-    const { token, userId } = body;
-
-    const { jti } = this.jwtUtilService.getAccountVerifyTokenPayload(token);
+  async accountVerificationConfirm(body: AuthConfirmQueryDto): Promise<void> {
+    const { token } = body;
+    const { jti, userId } = this.jwtUtilService.getAccountVerifyTokenPayload(token);
 
     const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
 

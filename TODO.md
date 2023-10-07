@@ -5,8 +5,6 @@ TODO More security
 TODO PKCE add in both backend and frontend
  https://developers.onelogin.com/blog/pkce-dust-react-app,
  https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce
-TODO Move web version to httpOnly/Secure cookie for csrf and xss attack
-https://medium.com/lightrail/getting-token-authentication-right-in-a-stateless-single-page-application-57d0c6474e3
 
 TODO validate user locking and blocking and everything in authentication controller and routes which has no auth
 TODO do everything in authentication as transaction
