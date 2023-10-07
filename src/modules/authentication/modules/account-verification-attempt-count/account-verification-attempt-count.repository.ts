@@ -17,11 +17,14 @@ export class AccountVerificationAttemptCountRepository {
       },
     });
   }
-  async getByAccountVerificationId(accountVerificationId: number): Promise<AccountVerificationAttemptCount | null> {
+  async getByAccVerifyId(
+    accountVerificationId: number,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<AccountVerificationAttemptCount | null> {
     return this.prismaService.accountVerificationAttemptCount.findUnique({
       where: {
         accountVerificationId,
-        deletedAt: null,
+        ...(flags && flags.includeDeleted ? {} : { deletedAt: null }),
       },
     });
   }

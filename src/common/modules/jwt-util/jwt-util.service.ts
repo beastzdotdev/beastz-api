@@ -1,4 +1,4 @@
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
 import { isObject } from '@nestjs/class-validator';
 import { PlatformForJwt } from '@prisma/client';
@@ -14,10 +14,12 @@ import {
   AccountVerifyTokenPayload,
   RecoverPasswordTokenPayload,
   RefreshTokenPayload,
+  ResetPasswordTokenPayload,
   ValidateAccesssTokenPayload,
   ValidateAccountVerifyTokenPayload,
   ValidateRecoverPasswordTokenPayload,
   ValidateRefreshTokenPayload,
+  ValidateResetPasswordTokenPayload,
 } from './jwt-util.type';
 
 @Injectable()
@@ -162,6 +164,39 @@ export class JwtUtilService {
     );
   }
 
+  async validateResetPasswordToken(token: string, validateOptions: ValidateResetPasswordTokenPayload) {
+    if (!token) {
+      throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
+    }
+
+    const secret = this.envService.get('RESET_PASSWORD_TOKEN_SECRET');
+    const tokenPayload = this.getResetPasswordTokenPayload(token);
+
+    const { sub, userId, jti } = validateOptions;
+
+    if (tokenPayload.userId !== userId) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_USERID);
+    }
+
+    jwt.verify(
+      token,
+      secret,
+      {
+        algorithms: ['HS256'],
+        issuer: Constants.JWT_ISSUER,
+        subject: sub,
+        jwtid: jti,
+      },
+      err => {
+        if (err instanceof jwt.TokenExpiredError) {
+          throw new ForbiddenException(ExceptionMessageCode.RESET_PASSWORD_REQUEST_TIMED_OUT);
+        }
+
+        this.jwtVerifyError(err);
+      },
+    );
+  }
+
   genAccessToken(params: { userId: number; email: string }): string {
     const authTokenPayload: AuthTokenPayload = {
       userId: params.userId,
@@ -291,6 +326,24 @@ export class JwtUtilService {
 
   getRecoverPasswordTokenPayload(token: string): RecoverPasswordTokenPayload {
     const payload = <RecoverPasswordTokenPayload>jwt.decode(token, { json: true });
+
+    if (
+      !isObject(payload) ||
+      !payload.userId ||
+      !payload.exp ||
+      !payload.sub ||
+      !payload.jti ||
+      !payload.iss ||
+      !payload.iat
+    ) {
+      throw new ForbiddenException(ExceptionMessageCode.JWT_INVALID_PAYLOAD);
+    }
+
+    return payload;
+  }
+
+  getResetPasswordTokenPayload(token: string): ResetPasswordTokenPayload {
+    const payload = <ResetPasswordTokenPayload>jwt.decode(token, { json: true });
 
     if (
       !isObject(payload) ||

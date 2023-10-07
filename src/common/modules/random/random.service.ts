@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()

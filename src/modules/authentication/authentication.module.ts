@@ -11,6 +11,8 @@ import { RefreshTokenModule } from './modules/refresh-token/refresh-tokem.module
 import { UserIdentityModule } from '../user-identity/user-identity.module';
 import { AccountVerificationAttemptCountModule } from './modules/account-verification-attempt-count/account-verification-attempt-count.module';
 import { RecoverPasswordAttemptCountModule } from './modules/recover-password-attempt-count/recover-password-attempt-count.module';
+import { ResetPasswordAttemptCountModule } from './modules/reset-password-attempt-count/reset-password-attempt-count.module';
+import { ResetPasswordModule } from './modules/reset-password/reset-password.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { RecoverPasswordAttemptCountModule } from './modules/recover-password-at
     RecoverPasswordAttemptCountModule,
     AccountVerificationModule,
     AccountVerificationAttemptCountModule,
+    ResetPasswordAttemptCountModule,
+    ResetPasswordModule,
     RandomModule,
     EncoderModule,
     UserIdentityModule,

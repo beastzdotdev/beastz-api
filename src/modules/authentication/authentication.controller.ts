@@ -29,9 +29,9 @@ import {
   SignUpBodyDto,
 } from './dto';
 import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
-import { platform } from 'os';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
+import { ResetPasswordVerifyQueryDto } from './dto/reset-password-confirm.dto';
 
 @UseGuards(AuthPlatformHeaderGuard)
 @Controller('authentication')
@@ -79,16 +79,6 @@ export class AuthenticationController {
     return this.authenticationService.refreshToken(res, { oldRefreshTokenString: refreshToken }, platform);
   }
 
-  @HttpCode(HttpStatus.OK)
-  @Post('reset-password')
-  async resetPassword(
-    @Body() body: ResetPasswordBodyDto,
-    @AuthPayload() authPayload: AuthPayloadType,
-  ): Promise<{ msg: string }> {
-    await this.authenticationService.resetPassword(body, authPayload.user.id);
-    return { msg: 'Reset password successfull' };
-  }
-
   @NoAuth()
   @HttpCode(HttpStatus.OK)
   @Post('refresh/by-body')
@@ -98,6 +88,12 @@ export class AuthenticationController {
     @PlatformHeader() platform: PlatformWrapper,
   ): Promise<Response> {
     return this.authenticationService.refreshToken(res, { oldRefreshTokenString: body.refreshToken }, platform);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('reset-password/send')
+  async resetPasswordSend(@Body() body: ResetPasswordBodyDto, @AuthPayload() authPayload: AuthPayloadType) {
+    await this.authenticationService.resetPasswordSend(body, authPayload.user.id);
   }
 
   @NoAuth()
@@ -114,6 +110,13 @@ export class AuthenticationController {
   @Post('account-verify/send')
   async sendAccountVerificationCode(@Body() body: AccountVerifySendCodeDto) {
     await this.authenticationService.accountVerifySend(body.email);
+  }
+
+  @NoAuth()
+  @NoPlatformHeader()
+  @Get('reset-password/confirm')
+  async resetPasswordConfirm(@Query() body: ResetPasswordVerifyQueryDto) {
+    await this.authenticationService.resetPasswordConfirm(body);
   }
 
   @NoAuth()

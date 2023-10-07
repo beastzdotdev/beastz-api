@@ -1,4 +1,11 @@
-import { BadRequestException, CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
@@ -82,8 +89,8 @@ export class AuthGuard implements CanActivate {
     }
 
     if (!authorizationHeader) {
-      throw new BadRequestException(
-        `Incorrect header "${Constants.PLATFORM_HEADER_NAME}" or "${Constants.PLATFORM_HEADER_NAME.toLowerCase()}"`,
+      throw new UnauthorizedException(
+        `Incorrect header "${Constants.AUTH_HEADER_NAME}" or "${Constants.AUTH_HEADER_NAME.toLowerCase()}"`,
       );
     }
 

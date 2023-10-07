@@ -21,11 +21,14 @@ export class RecoverPasswordAttemptCountRepository {
     });
   }
 
-  async getByRecoverPasswordId(recoverPasswordId: number): Promise<RecoverPasswordAttemptCount | null> {
+  async getByRecoverPasswordId(
+    recoverPasswordId: number,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<RecoverPasswordAttemptCount | null> {
     return this.prismaService.recoverPasswordAttemptCount.findUnique({
       where: {
         recoverPasswordId,
-        deletedAt: null,
+        ...(flags && flags.includeDeleted ? {} : { deletedAt: null }),
       },
     });
   }

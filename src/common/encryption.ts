@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import { generateRandomString } from './helper';
 
 export const encryption = {

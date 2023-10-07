@@ -14,8 +14,11 @@ export class RecoverPasswordAttemptCountService {
     return this.recoverPasswordAttemptCountRepository.create(params);
   }
 
-  async getByRecoverPasswordId(recoverPasswordId: number): Promise<RecoverPasswordAttemptCount | null> {
-    return this.recoverPasswordAttemptCountRepository.getByRecoverPasswordId(recoverPasswordId);
+  async getByRecoverPasswordId(
+    recoverPasswordId: number,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<RecoverPasswordAttemptCount | null> {
+    return this.recoverPasswordAttemptCountRepository.getByRecoverPasswordId(recoverPasswordId, flags);
   }
 
   async updateById(id: number, params: RecoverPasswordAttemptCountUpdate) {

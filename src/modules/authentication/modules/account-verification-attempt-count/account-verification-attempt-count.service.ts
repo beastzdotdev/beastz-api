@@ -11,8 +11,11 @@ export class AccountVerificationAttemptCountService {
     return this.accountVerificationAttemptCountRepository.create(params);
   }
 
-  async getByAccountVerificationId(accVerifyId: number): Promise<AccountVerificationAttemptCount | null> {
-    return this.accountVerificationAttemptCountRepository.getByAccountVerificationId(accVerifyId);
+  async getByAccVerifyId(
+    accVerifyId: number,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<AccountVerificationAttemptCount | null> {
+    return this.accountVerificationAttemptCountRepository.getByAccVerifyId(accVerifyId, flags);
   }
 
   async updateById(id: number, params: AccVerifyAttemptCountUpdate): Promise<AccountVerificationAttemptCount | null> {

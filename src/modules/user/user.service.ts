@@ -54,16 +54,6 @@ export class UserService {
     return { ...user, userIdentity: user.userIdentity };
   }
 
-  async getByIdIncludeIdentityForGuardNotThrow(id: number): Promise<UserIncludeIdentity | null> {
-    const user = await this.userRepository.getByIdIncludeIdentityForGuard(id);
-
-    if (!user || !user.userIdentity) {
-      return null;
-    }
-
-    return { ...user, userIdentity: user.userIdentity };
-  }
-
   async getIdByEmail(email: string): Promise<number> {
     const userId = await this.userRepository.getIdByEmail(email);
 

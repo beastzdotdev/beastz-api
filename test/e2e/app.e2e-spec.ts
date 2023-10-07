@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import request from 'supertest';
 import { json, urlencoded } from 'express';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from 'testcontainers';
 import { Test, TestingModule } from '@nestjs/testing';
