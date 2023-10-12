@@ -12,7 +12,11 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
   const logger = new Logger('Main logger');
 
-  app.enableCors();
+  app.enableCors({
+    credentials: true,
+    origin: [envService.get('FRONTEND_DOMAIN')],
+  });
+
   app.enableShutdownHooks();
   app.set('trust proxy', true);
   app.use(json({ limit: '50mb' }));

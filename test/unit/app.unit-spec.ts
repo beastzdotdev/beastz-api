@@ -26,7 +26,7 @@ describe('App (e2e)', () => {
     const envValues: Partial<EnvironmentVariables> = {
       DATABASE_URL: postgreSqlContainer.getConnectionUri(),
       DATABASE_LOG_QUERY: true,
-      DEBUG: EnvironmentType.Dev,
+      DEBUG: EnvironmentType.DEV,
       PORT: 4000,
     };
 

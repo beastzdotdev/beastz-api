@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentVariables } from './env.dto';
+import { EnvironmentType } from './env.interface';
 
 @Injectable()
 export class EnvService {
   constructor(private readonly configService: ConfigService<EnvironmentVariables>) {}
 
   get<T extends keyof EnvironmentVariables>(key: T): EnvironmentVariables[T] {
-    return this.configService.get(key) as unknown as EnvironmentVariables[T];
+    return this.configService.getOrThrow<EnvironmentVariables[T]>(key);
   }
 
   getInstance() {
@@ -15,6 +16,6 @@ export class EnvService {
   }
 
   isProd(): boolean {
-    return this.get('DEBUG') !== 'dev';
+    return this.get('DEBUG') === EnvironmentType.PROD;
   }
 }
