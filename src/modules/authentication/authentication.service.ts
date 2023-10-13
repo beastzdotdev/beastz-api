@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import moment from 'moment';
 import { v4 as uuid } from 'uuid';
 import {
@@ -11,7 +12,6 @@ import {
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
 import { RandomService } from '../../common/modules/random/random.service';
-import { EncoderService } from '../../common/modules/encoder/encoder.service';
 import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
 import { AccountVerificationService } from './modules/account-verification/account-verification.service';
 import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
@@ -44,7 +44,6 @@ export class AuthenticationService {
     private readonly cookieService: CookieService,
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
-    private readonly encoderService: EncoderService,
     private readonly jwtUtilService: JwtUtilService,
     private readonly randomService: RandomService,
     private readonly recoverPasswordService: RecoverPasswordService,
@@ -62,7 +61,7 @@ export class AuthenticationService {
     }
 
     const { password, ...otherParams } = params;
-    const hashedPassword = await this.encoderService.encode(password);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await this.userService.create({
       ...otherParams,
@@ -112,7 +111,7 @@ export class AuthenticationService {
     const user = await this.userService.getByEmailIncludeIdentity(params.email);
     this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-    const passwordMatches = await this.encoderService.matches(params.password, user.userIdentity.password);
+    const passwordMatches = await bcrypt.compare(params.password, user.userIdentity.password);
 
     if (!passwordMatches) {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
@@ -228,7 +227,7 @@ export class AuthenticationService {
 
     // we should not let user know that user not exists than user will use this info for password
     const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
-    const passwordMatches = await this.encoderService.matches(oldPassword, user.userIdentity.password);
+    const passwordMatches = await bcrypt.compare(oldPassword, user.userIdentity.password);
 
     if (!passwordMatches) {
       throw new UnauthorizedException(ExceptionMessageCode.PASSWORD_INVALID);
@@ -243,7 +242,7 @@ export class AuthenticationService {
     const { email } = user;
     const jti = uuid();
     const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
-    const newPasswordHashed = await this.encoderService.encode(newPassword);
+    const newPasswordHashed = await bcrypt.hash(newPassword, 10);
 
     let resetPassword = await this.resetPasswordService.getByUserId(user.id);
 
@@ -304,7 +303,7 @@ export class AuthenticationService {
     const jti = uuid();
     const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, jti });
     const newPasswordText = this.randomService.generateRandomInt(100000, 999999).toString();
-    const newPasswordHashed = await this.encoderService.encode(newPasswordText);
+    const newPasswordHashed = await bcrypt.hash(newPasswordText, 10);
 
     let recoverPassword = await this.recoverPasswordService.getByUserId(user.id);
 
