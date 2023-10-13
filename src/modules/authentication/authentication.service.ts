@@ -11,7 +11,6 @@ import {
 
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
-import { RandomService } from '../../common/modules/random/random.service';
 import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
 import { AccountVerificationService } from './modules/account-verification/account-verification.service';
 import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
@@ -34,6 +33,7 @@ import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
 import { ResetPasswordService } from './modules/reset-password/reset-password.service';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
 import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto } from './dto';
+import { random } from '../../common/random';
 
 @Injectable()
 export class AuthenticationService {
@@ -45,7 +45,6 @@ export class AuthenticationService {
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly jwtUtilService: JwtUtilService,
-    private readonly randomService: RandomService,
     private readonly recoverPasswordService: RecoverPasswordService,
     private readonly accountVerificationService: AccountVerificationService,
     private readonly userIdentityService: UserIdentityService,
@@ -302,7 +301,7 @@ export class AuthenticationService {
     const { id: userId } = user;
     const jti = uuid();
     const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, jti });
-    const newPasswordText = this.randomService.generateRandomInt(100000, 999999).toString();
+    const newPasswordText = random.generateRandomInt(100000, 999999).toString();
     const newPasswordHashed = await bcrypt.hash(newPasswordText, 10);
 
     let recoverPassword = await this.recoverPasswordService.getByUserId(user.id);
@@ -623,7 +622,7 @@ export class AuthenticationService {
   }
 
   private async genRefreshToken(params: { userId: number; email: string }) {
-    const refreshTokenSecret = this.randomService.generateRandomASCII(32);
+    const refreshTokenSecret = random.generateRandomASCII(32);
     const cypherIV = encryption.aes256cbc.genIv();
     const refreshKeyEncrypted = await encryption.aes256cbc.encrypt(
       refreshTokenSecret,

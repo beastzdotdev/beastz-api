@@ -16,4 +16,7 @@ export class Constants {
   static readonly ONE_TIME_CODE_MAX = 999999;
 
   static readonly ONE_DAY_IN_SEC = 24 * 3600;
+
+  static readonly ASCII = '!"#$%&()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz0123456789{}~';
+  static readonly HEX = 'abcdefghijklmnopqrstuvwxyz0123456789';
 }

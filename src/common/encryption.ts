@@ -1,12 +1,12 @@
 import crypto from 'crypto';
-import { generateRandomString } from './helper';
+import { random } from './random';
 
 export const encryption = {
   aes256cbc: {
     alg: 'aes-256-cbc',
 
     genIv() {
-      return generateRandomString(16);
+      return random.generateRandomString(16);
     },
 
     async encrypt(text: string, key: string, iv: string): Promise<string | null> {

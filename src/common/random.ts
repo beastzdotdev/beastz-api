@@ -1,13 +1,15 @@
 import crypto from 'crypto';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Constants } from './constants';
+import { InternalServerErrorException } from '@nestjs/common';
 
-@Injectable()
-export class RandomService {
-  static readonly ASCII = '!"#$%&()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz0123456789{}~';
-  static readonly HEX = 'abcdefghijklmnopqrstuvwxyz0123456789';
+export const random = {
+  generateRandomASCII(len: number): string {
+    return this.genRanStringFromCharset(len, Constants.ASCII);
+  },
 
-  generateRandomASCII = (len: number) => this.genRanStringFromCharset(len, RandomService.ASCII);
-  generateRandomHEX = (len: number) => this.genRanStringFromCharset(len, RandomService.HEX);
+  generateRandomHEX(len: number): string {
+    return this.genRanStringFromCharset(len, Constants.HEX);
+  },
 
   genRanStringFromCharset(length: number, charset: string): string {
     const charsetLength = charset.length;
@@ -21,7 +23,17 @@ export class RandomService {
     }
 
     return randomString;
-  }
+  },
+
+  generateRandomString(length: number): string {
+    let s = '';
+
+    for (let i = 0; i < length; i++) {
+      s += Constants.ASCII.charAt(Math.floor(Math.random() * Constants.ASCII.length));
+    }
+
+    return s;
+  },
 
   /**
    * `Math.floor(max) + 1` to include the upper bound in the range
@@ -34,5 +46,5 @@ export class RandomService {
     }
 
     return crypto.randomInt(Math.ceil(min), Math.floor(max) + 1);
-  }
-}
+  },
+};

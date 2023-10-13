@@ -2,17 +2,14 @@ import { ForbiddenException, Injectable, NotFoundException, UnauthorizedExceptio
 import { CreateUserParams, UpdateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
-import { RandomService } from '../../common/modules/random/random.service';
 import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../exceptions/user-locked.exception';
 import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.types';
+import { random } from '../../common/random';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly randomService: RandomService,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   async getByEmailIncludeIdentity(email: string): Promise<UserIncludeIdentity> {
     const user = await this.userRepository.getByEmailIncludeIdentity(email);
@@ -29,7 +26,7 @@ export class UserService {
   }
 
   async create(params: Omit<CreateUserParams, 'socketId'>): Promise<UserWithRelations> {
-    const socketId = this.randomService.generateRandomHEX(32);
+    const socketId = random.generateRandomHEX(32);
 
     return this.userRepository.createUser({ ...params, socketId });
   }

@@ -1,15 +1,14 @@
 import moment from 'moment';
-import { InternalServerErrorException } from '@nestjs/common';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { plainToInstance } from 'class-transformer';
-import { ClassConstructor } from 'class-transformer/types/interfaces';
-import { ValidationError } from 'class-validator';
 import { Request } from 'express';
 import { extname } from 'path';
 import { match } from 'ts-pattern';
+import { plainToInstance } from 'class-transformer';
+import { ClassConstructor } from 'class-transformer/types/interfaces';
+import { ValidationError } from 'class-validator';
+import { InternalServerErrorException } from '@nestjs/common';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { SafeCallResult, ExceptionType, GeneralEnumType } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
-import { RandomService } from './modules/random/random.service';
 
 export async function prismaSafeCall<T>(call: () => T): Promise<SafeCallResult<T>> {
   try {
@@ -126,16 +125,6 @@ export function generateFileName(
   const fileName = `${uniqueSuffix}${fileExtName || '.jpg'}`;
 
   callback(null, fileName);
-}
-
-export function generateRandomString(length: number): string {
-  let s = '';
-
-  for (let i = 0; i < length; i++) {
-    s += RandomService.ASCII.charAt(Math.floor(Math.random() * RandomService.ASCII.length));
-  }
-
-  return s;
 }
 
 export function enumValueIncludes<E extends GeneralEnumType<E>>(someEnum: E, value: string) {
