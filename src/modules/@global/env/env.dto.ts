@@ -21,7 +21,7 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsExactBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
-  ENABLE_JWT_ENCRYPTION: boolean = false;
+  ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: boolean = false;
 
   @IsNotEmpty()
   @IsString()
@@ -85,4 +85,8 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   RESET_PASSWORD_TOKEN_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  SESSION_ACCESS_JWT_ENCRYPTION_KEY: string;
 }

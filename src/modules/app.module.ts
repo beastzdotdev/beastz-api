@@ -6,7 +6,7 @@ import { CookieModule } from './@global/cookie/cookie.module';
 import { AppController } from './app.controller';
 import { AuthGuard } from './authentication/guard/auth.guard';
 import { VerifiedEmailGuard } from './authentication/guard/verified-email.guard';
-import { JwtUtilModule } from './authentication/modules/jwt/jwt-util.module';
+import { JwtModule } from './authentication/modules/jwt/jwt.module';
 import { UserModule } from './user/user.module';
 import { AccountVerificationModule } from './authentication/modules/account-verification/account-verification.module';
 import { AuthenticationModule } from './authentication/authentication.module';
@@ -19,7 +19,7 @@ import { AdminModule } from './admin/admin.module';
     EnvModule.forRoot(),
     PrismaModule,
     CookieModule,
-    JwtUtilModule,
+    JwtModule,
     AccountVerificationModule,
     UserModule,
     AuthenticationModule,

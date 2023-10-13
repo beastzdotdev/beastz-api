@@ -30,4 +30,11 @@ export class AdminService {
       tx.user.deleteMany({ where: { id: userId } });
     });
   }
+
+  async blacklistUser(id: number, isLocked: boolean) {
+    return this.prismaService.userIdentity.update({
+      where: { userId: id },
+      data: { isLocked },
+    });
+  }
 }

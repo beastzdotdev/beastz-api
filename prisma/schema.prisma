@@ -88,7 +88,6 @@ model RefreshToken {
   exp                String
   jti                String         @unique @db.Uuid()
   iat                String
-  cypherIV           String         @map("cypher_iv")
   isUsed             Boolean        @default(false) @map("is_used")
   secretKeyEncrypted String         @map("secret_key_encrypted") @db.VarChar(255)
   createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz()

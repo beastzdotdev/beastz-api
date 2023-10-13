@@ -10,7 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { PlatformForJwt } from '@prisma/client';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
-import { JwtUtilService } from '../modules/jwt/jwt-util.service';
+import { JwtService } from '../modules/jwt/jwt.service';
 import { constants } from '../../../common/constants';
 import { UserService } from '../../user/user.service';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
@@ -23,7 +23,7 @@ import { UserLockedException } from '../../../exceptions/user-locked.exception';
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly jwtUtilService: JwtUtilService,
+    private readonly jwtUtilService: JwtService,
     private readonly userService: UserService,
   ) {}
 

@@ -20,10 +20,10 @@ import {
   ValidateRecoverPasswordTokenPayload,
   ValidateRefreshTokenPayload,
   ValidateResetPasswordTokenPayload,
-} from './jwt-util.type';
+} from './jwt.type';
 
 @Injectable()
-export class JwtUtilService {
+export class JwtService {
   constructor(
     @InjectEnv()
     private readonly envService: EnvService,

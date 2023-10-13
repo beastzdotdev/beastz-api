@@ -17,7 +17,6 @@ export class RefreshTokenRepository {
         platform: params.platform,
         secretKeyEncrypted: params.secretKeyEncrypted,
         jti: params.jti,
-        cypherIV: params.cypherIV,
         exp: params.exp.toString(),
         iat: params.iat.toString(),
       },

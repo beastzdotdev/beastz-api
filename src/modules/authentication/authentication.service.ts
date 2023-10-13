@@ -12,7 +12,7 @@ import {
 import { Response } from 'express';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
-import { JwtUtilService } from './modules/jwt/jwt-util.service';
+import { JwtService } from './modules/jwt/jwt.service';
 import { AccountVerificationService } from './modules/account-verification/account-verification.service';
 import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
 import { RefreshTokenService } from './modules/refresh-token/refresh-token.service';
@@ -44,7 +44,7 @@ export class AuthenticationService {
     private readonly cookieService: CookieService,
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
-    private readonly jwtUtilService: JwtUtilService,
+    private readonly jwtUtilService: JwtService,
     private readonly recoverPasswordService: RecoverPasswordService,
     private readonly accountVerificationService: AccountVerificationService,
     private readonly userIdentityService: UserIdentityService,
@@ -68,11 +68,12 @@ export class AuthenticationService {
       profileImagePath: null,
     });
 
-    const { accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted } =
-      await this.genAccessAndRefreshToken({
+    const { accessToken, refreshToken, refreshTokenPayload, refreshKeyEncrypted } = await this.genAccessAndRefreshToken(
+      {
         userId: user.id,
         email: params.email,
-      });
+      },
+    );
 
     await Promise.all([
       this.userIdentityService.create({ password: hashedPassword, userId: user.id }),
@@ -80,7 +81,6 @@ export class AuthenticationService {
         ...refreshTokenPayload,
         secretKeyEncrypted: refreshKeyEncrypted,
         token: refreshToken,
-        cypherIV,
       }),
     ]);
 
@@ -116,17 +116,17 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }
 
-    const { accessToken, refreshToken, refreshTokenPayload, cypherIV, refreshKeyEncrypted } =
-      await this.genAccessAndRefreshToken({
+    const { accessToken, refreshToken, refreshTokenPayload, refreshKeyEncrypted } = await this.genAccessAndRefreshToken(
+      {
         userId: user.id,
         email: params.email,
-      });
+      },
+    );
 
     await this.refreshTokenService.addRefreshTokenByUserId({
       ...refreshTokenPayload,
       secretKeyEncrypted: refreshKeyEncrypted,
       token: refreshToken,
-      cypherIV,
     });
 
     if (platform.isWeb()) {
@@ -160,10 +160,9 @@ export class AuthenticationService {
     const user = await this.userService.getById(refreshTokenPayload.userId);
 
     // get refresh token secret and decrypt it
-    const refreshTokenSecretDecrypted = await encryption.aes256cbc.decrypt(
+    const refreshTokenSecretDecrypted = await encryption.aes256gcm.decrypt(
       refreshTokenFromDB.secretKeyEncrypted,
       this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-      refreshTokenFromDB.cypherIV,
     );
 
     // should not happen
@@ -607,7 +606,7 @@ export class AuthenticationService {
       userId: params.userId,
       email: params.email,
     });
-    const { cypherIV, refreshKeyEncrypted, refreshToken, refreshTokenPayload } = await this.genRefreshToken({
+    const { refreshKeyEncrypted, refreshToken, refreshTokenPayload } = await this.genRefreshToken({
       userId: params.userId,
       email: params.email,
     });
@@ -617,17 +616,14 @@ export class AuthenticationService {
       refreshToken,
       refreshTokenPayload,
       refreshKeyEncrypted,
-      cypherIV,
     };
   }
 
   private async genRefreshToken(params: { userId: number; email: string }) {
     const refreshTokenSecret = random.generateRandomASCII(32);
-    const cypherIV = encryption.aes256cbc.genIv();
-    const refreshKeyEncrypted = await encryption.aes256cbc.encrypt(
+    const refreshKeyEncrypted = await encryption.aes256gcm.encrypt(
       refreshTokenSecret,
       this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-      cypherIV,
     );
 
     if (!refreshKeyEncrypted) {
@@ -646,7 +642,6 @@ export class AuthenticationService {
       refreshToken,
       refreshTokenPayload,
       refreshKeyEncrypted,
-      cypherIV,
     };
   }
 
