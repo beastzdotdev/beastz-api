@@ -1,5 +1,7 @@
+import figlet from 'figlet';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+
 import { json, urlencoded } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -7,6 +9,7 @@ import { AppModule } from './modules/app.module';
 import { Logger } from '@nestjs/common';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
+import { cyanLog } from './common/helper';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
@@ -29,4 +32,5 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
   // log misc stuff
   const apiUrl: string = await app.getUrl();
   logger.verbose(`GorillaVault api listening on --- ${apiUrl}`);
+  cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
 });

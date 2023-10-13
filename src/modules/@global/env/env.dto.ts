@@ -16,7 +16,12 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsExactBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
-  DATABASE_LOG_QUERY = true;
+  DATABASE_LOG_QUERY: boolean = true;
+
+  @IsOptional()
+  @IsExactBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  ENABLE_JWT_ENCRYPTION: boolean = false;
 
   @IsNotEmpty()
   @IsString()
