@@ -1,15 +1,14 @@
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { StrongPassword } from '../../../decorator/strong-password.decorator';
 
 export class ResetPasswordBodyDto {
   @IsNotEmpty()
   @IsString()
-  @MinLength(6)
-  @MaxLength(255)
+  @StrongPassword()
   oldPassword: string;
 
   @IsNotEmpty()
   @IsString()
-  @MinLength(6)
-  @MaxLength(255)
+  @StrongPassword()
   newPassword: string;
 }

@@ -6,7 +6,7 @@ export class AppController {
   constructor() {}
 
   @NoAuth()
-  @Get('/health')
+  @Get('health')
   healthCheck() {
     return 'ok';
   }

@@ -1,5 +1,6 @@
-import { IsString, MaxLength, MinLength } from '@nestjs/class-validator';
+import { IsString, MaxLength } from '@nestjs/class-validator';
 import { IsEmailCustom } from '../../../decorator/class-validator.decorator';
+import { StrongPassword } from '../../../decorator/strong-password.decorator';
 
 export class SignInBodyDto {
   @IsString()
@@ -8,7 +9,6 @@ export class SignInBodyDto {
   email: string;
 
   @IsString()
-  @MinLength(6)
-  @MaxLength(255)
+  @StrongPassword()
   password: string;
 }

@@ -1,7 +1,8 @@
-import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength, MinLength } from '@nestjs/class-validator';
+import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength } from '@nestjs/class-validator';
 import { Gender } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEmailCustom } from '../../../decorator/class-validator.decorator';
+import { StrongPassword } from '../../../decorator/strong-password.decorator';
 
 export class SignUpBodyDto {
   @IsNotEmpty()
@@ -26,7 +27,6 @@ export class SignUpBodyDto {
 
   @IsNotEmpty()
   @IsString()
-  @MinLength(6)
-  @MaxLength(255)
+  @StrongPassword()
   password: string;
 }
