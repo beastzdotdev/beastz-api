@@ -6,7 +6,7 @@ import { CookieModule } from './@global/cookie/cookie.module';
 import { AppController } from './app.controller';
 import { AuthGuard } from './authentication/guard/auth.guard';
 import { VerifiedEmailGuard } from './authentication/guard/verified-email.guard';
-import { JwtUtilModule } from '../common/modules/jwt-util/jwt-util.module';
+import { JwtUtilModule } from './authentication/modules/jwt/jwt-util.module';
 import { UserModule } from './user/user.module';
 import { AccountVerificationModule } from './authentication/modules/account-verification/account-verification.module';
 import { AuthenticationModule } from './authentication/authentication.module';

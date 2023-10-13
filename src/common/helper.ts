@@ -1,6 +1,3 @@
-import moment from 'moment';
-import { Request } from 'express';
-import { extname } from 'path';
 import { match } from 'ts-pattern';
 import { plainToInstance } from 'class-transformer';
 import { ClassConstructor } from 'class-transformer/types/interfaces';
@@ -112,19 +109,6 @@ export function getAllErrorConstraints(errors: ValidationError[]): string[] {
   }
 
   return constraints;
-}
-
-export function generateFileName(
-  _: Request,
-  file: Express.Multer.File,
-  callback: (e: Error | null, f: string) => void,
-) {
-  const uniqueSuffix = moment().valueOf() + '-' + Math.round(Math.random() * 1e9);
-
-  const fileExtName = extname(file.originalname);
-  const fileName = `${uniqueSuffix}${fileExtName || '.jpg'}`;
-
-  callback(null, fileName);
 }
 
 export function enumValueIncludes<E extends GeneralEnumType<E>>(someEnum: E, value: string) {

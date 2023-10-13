@@ -1,4 +1,4 @@
-import { HttpException, HttpExceptionBody, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { ImportantExceptionBody } from '../model/exception.type';
 

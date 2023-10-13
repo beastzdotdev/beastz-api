@@ -3,12 +3,12 @@ import { v4 as uuid } from 'uuid';
 import { isObject } from '@nestjs/class-validator';
 import { PlatformForJwt } from '@prisma/client';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
-import { InjectEnv } from '../../../modules/@global/env/env.decorator';
-import { EnvService } from '../../../modules/@global/env/env.service';
-import { AuthTokenPayload } from '../../../model/auth.types';
-import { Constants } from '../../constants';
-import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
+import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
+import { InjectEnv } from '../../../@global/env/env.decorator';
+import { EnvService } from '../../../@global/env/env.service';
+import { AuthTokenPayload } from '../../../../model/auth.types';
+import { constants } from '../../../../common/constants';
+import { TokenExpiredException } from '../../../../exceptions/token-expired-forbidden.exception';
 import {
   AccessTokenPayload,
   AccountVerifyTokenPayload,
@@ -52,7 +52,7 @@ export class JwtUtilService {
       secret,
       {
         algorithms: ['HS256'],
-        issuer: Constants.JWT_ISSUER,
+        issuer: constants.JWT_ISSUER,
         subject: sub,
       },
       this.jwtVerifyError,
@@ -117,7 +117,7 @@ export class JwtUtilService {
       secret,
       {
         algorithms: ['HS256'],
-        issuer: Constants.JWT_ISSUER,
+        issuer: constants.JWT_ISSUER,
         subject: sub,
         jwtid: jti,
       },
@@ -150,7 +150,7 @@ export class JwtUtilService {
       secret,
       {
         algorithms: ['HS256'],
-        issuer: Constants.JWT_ISSUER,
+        issuer: constants.JWT_ISSUER,
         subject: sub,
         jwtid: jti,
       },
@@ -183,7 +183,7 @@ export class JwtUtilService {
       secret,
       {
         algorithms: ['HS256'],
-        issuer: Constants.JWT_ISSUER,
+        issuer: constants.JWT_ISSUER,
         subject: sub,
         jwtid: jti,
       },
@@ -206,7 +206,7 @@ export class JwtUtilService {
     return jwt.sign(authTokenPayload, this.envService.get('ACCESS_TOKEN_SECRET').toString(), {
       expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'),
       algorithm: 'HS256',
-      issuer: Constants.JWT_ISSUER,
+      issuer: constants.JWT_ISSUER,
       subject: params.email,
     });
   }
@@ -220,7 +220,7 @@ export class JwtUtilService {
     return jwt.sign(authTokenPayload, params.refreshKeySecret, {
       expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'),
       algorithm: 'HS256',
-      issuer: Constants.JWT_ISSUER,
+      issuer: constants.JWT_ISSUER,
       subject: params.email,
       jwtid: uuid(),
     });
@@ -234,7 +234,7 @@ export class JwtUtilService {
     return jwt.sign(tokenPayload, this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET').toString(), {
       expiresIn: this.envService.get('ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC'),
       algorithm: 'HS256',
-      issuer: Constants.JWT_ISSUER,
+      issuer: constants.JWT_ISSUER,
       subject: params.email,
       jwtid: params.jti,
     });
@@ -248,7 +248,7 @@ export class JwtUtilService {
     return jwt.sign(tokenPayload, this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET').toString(), {
       expiresIn: this.envService.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
       algorithm: 'HS256',
-      issuer: Constants.JWT_ISSUER,
+      issuer: constants.JWT_ISSUER,
       subject: params.email,
       jwtid: params.jti,
     });
@@ -262,7 +262,7 @@ export class JwtUtilService {
     return jwt.sign(tokenPayload, this.envService.get('RESET_PASSWORD_TOKEN_SECRET').toString(), {
       expiresIn: this.envService.get('RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
       algorithm: 'HS256',
-      issuer: Constants.JWT_ISSUER,
+      issuer: constants.JWT_ISSUER,
       subject: params.email,
       jwtid: params.jti,
     });

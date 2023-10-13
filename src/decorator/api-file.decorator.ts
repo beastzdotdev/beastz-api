@@ -1,8 +1,19 @@
-import { applyDecorators, CallHandler, ExecutionContext, NestInterceptor, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import moment from 'moment';
+import { Request } from 'express';
+import { extname } from 'path';
 import { Observable } from 'rxjs';
-import { generateFileName } from '../common/helper';
+import { diskStorage } from 'multer';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { applyDecorators, CallHandler, ExecutionContext, NestInterceptor, UseInterceptors } from '@nestjs/common';
+
+function generateFileName(_: Request, file: Express.Multer.File, callback: (e: Error | null, f: string) => void) {
+  const uniqueSuffix = moment().valueOf() + '-' + Math.round(Math.random() * 1e9);
+
+  const fileExtName = extname(file.originalname);
+  const fileName = `${uniqueSuffix}${fileExtName || '.jpg'}`;
+
+  callback(null, fileName);
+}
 
 export const ApiFile = (fieldName: string) => {
   return applyDecorators(

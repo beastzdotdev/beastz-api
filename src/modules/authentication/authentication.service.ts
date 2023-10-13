@@ -11,7 +11,7 @@ import {
 
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
-import { JwtUtilService } from '../../common/modules/jwt-util/jwt-util.service';
+import { JwtUtilService } from './modules/jwt/jwt-util.service';
 import { AccountVerificationService } from './modules/account-verification/account-verification.service';
 import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
 import { RefreshTokenService } from './modules/refresh-token/refresh-token.service';
@@ -28,7 +28,7 @@ import { PlatformWrapper } from '../../model/platform.wrapper';
 import { RecoverPasswordAttemptCountService } from './modules/recover-password-attempt-count/recover-password-attempt-count.service';
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
 import { RefreshParams, SignInParams, SignUpWithTokenParams } from './authentication.types';
-import { Constants } from '../../common/constants';
+import { constants } from '../../common/constants';
 import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
 import { ResetPasswordService } from './modules/reset-password/reset-password.service';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
@@ -281,7 +281,7 @@ export class AuthenticationService {
 
       // if attempt is max and one day is not gone by at least throw error
       // count >= 5 and less then one day passed
-      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
         throw new ForbiddenException('Please wait for another day to recover password');
       }
 
@@ -344,7 +344,7 @@ export class AuthenticationService {
 
       // if attempt is max and one day is not gone by at least throw error
       // count >= 5 and less then one day passed
-      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
         throw new ForbiddenException('Please wait for another day to recover password');
       }
 
@@ -394,7 +394,7 @@ export class AuthenticationService {
 
       // if attempt is max and one day is not gone by at least throw error
       // count >= 5 and less then one day passed
-      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= Constants.ONE_DAY_IN_SEC) {
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
         throw new ForbiddenException('Please wait for another day to recover password');
       }
 
@@ -428,7 +428,7 @@ export class AuthenticationService {
 
       const now = moment().toDate();
       const tommorowFromCreation = moment(attemptCount.countIncreaseLastUpdateDate).add(
-        Constants.ONE_DAY_IN_SEC,
+        constants.ONE_DAY_IN_SEC,
         'seconds',
       );
 
@@ -495,7 +495,7 @@ export class AuthenticationService {
 
       const now = moment().toDate();
       const tommorowFromCreation = moment(attemptCount.countIncreaseLastUpdateDate).add(
-        Constants.ONE_DAY_IN_SEC,
+        constants.ONE_DAY_IN_SEC,
         'seconds',
       );
 
@@ -559,7 +559,7 @@ export class AuthenticationService {
 
       const now = moment().toDate();
       const tommorowFromCreation = moment(attemptCount.countIncreaseLastUpdateDate).add(
-        Constants.ONE_DAY_IN_SEC,
+        constants.ONE_DAY_IN_SEC,
         'seconds',
       );
 

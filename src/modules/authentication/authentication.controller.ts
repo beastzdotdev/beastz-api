@@ -16,7 +16,7 @@ import { Response } from 'express';
 import { AuthPlatformHeaderGuard } from './guard/auth-platform-header.guard';
 import { PlatformHeader } from '../../decorator/platform-header.decorator';
 import { CookieStrict } from '../../decorator/cookie-decorator';
-import { Constants } from '../../common/constants';
+import { constants } from '../../common/constants';
 import { PlatformWrapper } from '../../model/platform.wrapper';
 import { NoPlatformHeader } from '../../decorator/no-platform-header.decorator';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
@@ -64,7 +64,7 @@ export class AuthenticationController {
     @Res() res: Response,
     @PlatformHeader() platform: PlatformWrapper,
     @CookieStrict({
-      cookieName: Constants.COOKIE_REFRESH_NAME,
+      cookieName: constants.COOKIE_REFRESH_NAME,
       cls: UnauthorizedException,
       message: 'Missing refresh token',
     })

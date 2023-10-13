@@ -1,14 +1,14 @@
 import crypto from 'crypto';
-import { Constants } from './constants';
 import { InternalServerErrorException } from '@nestjs/common';
+import { constants } from './constants';
 
-export const random = {
+export const random = Object.freeze({
   generateRandomASCII(len: number): string {
-    return this.genRanStringFromCharset(len, Constants.ASCII);
+    return this.genRanStringFromCharset(len, constants.ASCII);
   },
 
   generateRandomHEX(len: number): string {
-    return this.genRanStringFromCharset(len, Constants.HEX);
+    return this.genRanStringFromCharset(len, constants.HEX);
   },
 
   genRanStringFromCharset(length: number, charset: string): string {
@@ -29,7 +29,7 @@ export const random = {
     let s = '';
 
     for (let i = 0; i < length; i++) {
-      s += Constants.ASCII.charAt(Math.floor(Math.random() * Constants.ASCII.length));
+      s += constants.ASCII.charAt(Math.floor(Math.random() * constants.ASCII.length));
     }
 
     return s;
@@ -47,4 +47,4 @@ export const random = {
 
     return crypto.randomInt(Math.ceil(min), Math.floor(max) + 1);
   },
-};
+});

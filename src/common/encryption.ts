@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { random } from './random';
 
-export const encryption = {
+export const encryption = Object.freeze({
   aes256cbc: {
     alg: 'aes-256-cbc',
 
@@ -35,4 +35,4 @@ export const encryption = {
       });
     },
   },
-};
+});

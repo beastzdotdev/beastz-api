@@ -9,8 +9,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
-import { JwtUtilService } from '../../../common/modules/jwt-util/jwt-util.service';
-import { Constants } from '../../../common/constants';
+import { JwtUtilService } from '../modules/jwt/jwt-util.service';
+import { constants } from '../../../common/constants';
 import { UserService } from '../../user/user.service';
 import { PlatformForJwt } from '@prisma/client';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
@@ -40,7 +40,7 @@ export class AuthGuard implements CanActivate {
     let accessToken: string | undefined;
 
     if (platform.isWeb()) {
-      accessToken = request.cookies[Constants.COOKIE_ACCESS_NAME];
+      accessToken = request.cookies[constants.COOKIE_ACCESS_NAME];
     }
 
     if (platform.isMobile()) {
@@ -76,21 +76,21 @@ export class AuthGuard implements CanActivate {
 
   private validateHeaders(request: AuthPayloadAndRequest) {
     const authorizationHeader =
-      <string>request.headers[Constants.AUTH_HEADER_NAME.toLowerCase()] ||
-      <string>request.headers[Constants.AUTH_HEADER_NAME];
-    const platform = request.headers?.[Constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
+      <string>request.headers[constants.AUTH_HEADER_NAME.toLowerCase()] ||
+      <string>request.headers[constants.AUTH_HEADER_NAME];
+    const platform = request.headers?.[constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
 
     if (!platform) {
-      throw new BadRequestException(`Header missing "${Constants.PLATFORM_HEADER_NAME}"`);
+      throw new BadRequestException(`Header missing "${constants.PLATFORM_HEADER_NAME}"`);
     }
 
     if (!enumValueIncludes(PlatformForJwt, platform)) {
-      throw new BadRequestException(`Incorrect header "${Constants.PLATFORM_HEADER_NAME}"`);
+      throw new BadRequestException(`Incorrect header "${constants.PLATFORM_HEADER_NAME}"`);
     }
 
     if (!authorizationHeader) {
       throw new UnauthorizedException(
-        `Incorrect header "${Constants.AUTH_HEADER_NAME}" or "${Constants.AUTH_HEADER_NAME.toLowerCase()}"`,
+        `Incorrect header "${constants.AUTH_HEADER_NAME}" or "${constants.AUTH_HEADER_NAME.toLowerCase()}"`,
       );
     }
 

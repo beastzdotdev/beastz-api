@@ -1,7 +1,7 @@
 import { ValidationOptions, registerDecorator, ValidationArguments } from 'class-validator';
-import { Constants } from '../common/constants';
+import { constants } from '../common/constants';
 
-export function IsExactBoolean(validationOptions?: ValidationOptions) {
+export const IsExactBoolean = (validationOptions?: ValidationOptions) => {
   return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'IsExactBoolean',
@@ -20,9 +20,9 @@ export function IsExactBoolean(validationOptions?: ValidationOptions) {
       },
     });
   };
-}
+};
 
-export function IsEmailCustom(validationOptions?: ValidationOptions) {
+export const IsEmailCustom = (validationOptions?: ValidationOptions) => {
   return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'IsEmailCustom',
@@ -35,9 +35,9 @@ export function IsEmailCustom(validationOptions?: ValidationOptions) {
       },
       validator: {
         validate(value: unknown) {
-          return typeof value === 'string' && Constants.EMAIL_REGEX.test(value);
+          return typeof value === 'string' && constants.EMAIL_REGEX.test(value);
         },
       },
     });
   };
-}
+};

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import { AuthenticationController } from './authentication.controller';
 import { UserModule } from '../user/user.module';
-import { JwtUtilModule } from '../../common/modules/jwt-util/jwt-util.module';
+import { JwtUtilModule } from './modules/jwt/jwt-util.module';
 import { AccountVerificationModule } from './modules/account-verification/account-verification.module';
 import { RecoverPasswordModule } from './modules/recover-password/recover-password.module';
 import { RefreshTokenModule } from './modules/refresh-token/refresh-tokem.module';
