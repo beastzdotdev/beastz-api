@@ -1,7 +1,7 @@
 import moment from 'moment';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../@global/prisma/prisma.service';
 import { ResetPassword } from '@prisma/client';
+import { PrismaService } from '../../../@global/prisma/prisma.service';
 import { CreateResetPasswordParams, UpdateResetPasswordParams } from './reset-password.type';
 
 @Injectable()

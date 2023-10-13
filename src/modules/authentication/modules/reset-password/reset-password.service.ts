@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ResetPassword } from '@prisma/client';
 import { ResetPasswordRepository } from './reset-password.repository';
 import { CreateResetPasswordParams, UpdateResetPasswordParams } from './reset-password.type';
-import { ResetPassword } from '@prisma/client';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
 
 @Injectable()

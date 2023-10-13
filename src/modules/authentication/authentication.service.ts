@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
+import { Response } from 'express';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserService } from '../user/user.service';
 import { JwtUtilService } from './modules/jwt/jwt-util.service';
@@ -23,7 +24,6 @@ import { AuthRefreshResponseDto } from './dto/auth-refreh-response.dto';
 import { TokenExpiredException } from '../../exceptions/token-expired-forbidden.exception';
 import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-expired.exception';
 import { CookieService } from '../@global/cookie/cookie.service';
-import { Response } from 'express';
 import { PlatformWrapper } from '../../model/platform.wrapper';
 import { RecoverPasswordAttemptCountService } from './modules/recover-password-attempt-count/recover-password-attempt-count.service';
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';

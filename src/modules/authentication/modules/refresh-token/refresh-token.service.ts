@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { RefreshToken } from '@prisma/client';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { CreateRefreshTokenParams } from './refresh-token.type';
-import { RefreshToken } from '@prisma/client';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
 
 @Injectable()

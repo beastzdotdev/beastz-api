@@ -14,7 +14,7 @@ export class PrismaService
     @InjectEnv()
     private readonly envService: EnvService,
   ) {
-    let config: Prisma.PrismaClientOptions = {
+    const config: Prisma.PrismaClientOptions = {
       datasources: {
         db: {
           url: envService.get('DATABASE_URL'),

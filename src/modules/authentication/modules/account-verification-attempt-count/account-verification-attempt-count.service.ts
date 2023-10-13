@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AccountVerificationAttemptCountRepository } from './account-verification-attempt-count.repository';
 import { AccountVerificationAttemptCount } from '@prisma/client';
+import { AccountVerificationAttemptCountRepository } from './account-verification-attempt-count.repository';
 import { AccVerifyAttemptCountCreate, AccVerifyAttemptCountUpdate } from './account-verification-attempt-count.type';
 
 @Injectable()

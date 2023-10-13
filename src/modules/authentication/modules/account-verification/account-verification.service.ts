@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { AccountVerification } from '@prisma/client';
 import { AccountVerificationRepository } from './account-verification.repository';
 import { CreateAccountVerificationParams, UpdateAccountVerificationParams } from './account-verification.type';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
-import { AccountVerification } from '@prisma/client';
 
 @Injectable()
 export class AccountVerificationService {

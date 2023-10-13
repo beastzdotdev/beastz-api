@@ -1,9 +1,9 @@
+import moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { CookieOptions, Response } from 'express';
 import { EnvService } from '../env/env.service';
 import { InjectEnv } from '../env/env.decorator';
 import { constants } from '../../../common/constants';
-import moment from 'moment';
 
 @Injectable()
 export class CookieService {
@@ -26,7 +26,7 @@ export class CookieService {
   public createCookie(res: Response, params: { accessToken?: string; refreshToken?: string }): void {
     const { accessToken, refreshToken } = params;
 
-    let cookieOptions: CookieOptions = {
+    const cookieOptions: CookieOptions = {
       httpOnly: true,
       sameSite: true,
     };

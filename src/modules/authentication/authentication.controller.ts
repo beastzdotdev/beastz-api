@@ -10,9 +10,9 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { AuthenticationService } from './authentication.service';
-import { Response } from 'express';
 import { AuthPlatformHeaderGuard } from './guard/auth-platform-header.guard';
 import { PlatformHeader } from '../../decorator/platform-header.decorator';
 import { CookieStrict } from '../../decorator/cookie-decorator';

@@ -1,4 +1,5 @@
-import { ValidationOptions, registerDecorator, ValidationArguments } from 'class-validator';
+import { registerDecorator } from 'class-validator';
+import type { ValidationOptions, ValidationArguments } from 'class-validator';
 import { constants } from '../common/constants';
 
 export const IsExactBoolean = (validationOptions?: ValidationOptions) => {

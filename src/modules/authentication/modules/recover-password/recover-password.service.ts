@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RecoverPasswordRepository } from './recover-password.repository';
 import { RecoverPassword } from '@prisma/client';
+import { RecoverPasswordRepository } from './recover-password.repository';
 import { CreateRecoverPasswordParams, UpdateRecoverPasswordParams } from './recover-password.type';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
 

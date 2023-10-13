@@ -7,27 +7,27 @@ export class AdminService {
 
   async deleteUserInfo(userId: number) {
     return this.prismaService.$transaction(async tx => {
-      const accountVerifys = await this.prismaService.accountVerification.findMany({ where: { userId } });
-      const recoverPasswords = await this.prismaService.recoverPassword.findMany({ where: { userId } });
+      const accountVerifys = await tx.accountVerification.findMany({ where: { userId } });
+      const recoverPasswords = await tx.recoverPassword.findMany({ where: { userId } });
 
       const accountVerifyIds = accountVerifys.map(e => e.id);
       const recoverPasswordIds = recoverPasswords.map(e => e.id);
 
       await Promise.all([
-        this.prismaService.accountVerification.deleteMany({ where: { userId } }),
-        this.prismaService.recoverPassword.deleteMany({ where: { userId } }),
-        this.prismaService.refreshToken.deleteMany({ where: { userId } }),
-        this.prismaService.userIdentity.deleteMany({ where: { userId } }),
-        this.prismaService.feedback.deleteMany({ where: { userId } }),
+        tx.accountVerification.deleteMany({ where: { userId } }),
+        tx.recoverPassword.deleteMany({ where: { userId } }),
+        tx.refreshToken.deleteMany({ where: { userId } }),
+        tx.userIdentity.deleteMany({ where: { userId } }),
+        tx.feedback.deleteMany({ where: { userId } }),
       ]);
 
       await Promise.all([
-        this.prismaService.accountVerificationAttemptCount.deleteMany({ where: { id: { in: accountVerifyIds } } }),
-        this.prismaService.recoverPasswordAttemptCount.deleteMany({ where: { id: { in: recoverPasswordIds } } }),
+        tx.accountVerificationAttemptCount.deleteMany({ where: { id: { in: accountVerifyIds } } }),
+        tx.recoverPasswordAttemptCount.deleteMany({ where: { id: { in: recoverPasswordIds } } }),
       ]);
 
       // last
-      this.prismaService.user.deleteMany({ where: { id: userId } });
+      tx.user.deleteMany({ where: { id: userId } });
     });
   }
 }

@@ -7,12 +7,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { PlatformForJwt } from '@prisma/client';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { JwtUtilService } from '../modules/jwt/jwt-util.service';
 import { constants } from '../../../common/constants';
 import { UserService } from '../../user/user.service';
-import { PlatformForJwt } from '@prisma/client';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
 import { enumValueIncludes } from '../../../common/helper';
 import { PlatformWrapper } from '../../../model/platform.wrapper';

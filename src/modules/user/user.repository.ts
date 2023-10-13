@@ -1,6 +1,6 @@
-import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
+import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
 import { PrismaService } from '../@global/prisma/prisma.service';
 
 @Injectable()

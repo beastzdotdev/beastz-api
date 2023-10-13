@@ -1,10 +1,10 @@
-import { BadRequestException, CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
-import { constants } from '../../../common/constants';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { PlatformForJwt } from '@prisma/client';
+import { Reflector } from '@nestjs/core';
+import { constants } from '../../../common/constants';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
 import { enumValueIncludes } from '../../../common/helper';
 import { PlatformWrapper } from '../../../model/platform.wrapper';
-import { Reflector } from '@nestjs/core';
 import { NO_PLATFORM_HEADER } from '../../../decorator/no-platform-header.decorator';
 
 @Injectable()

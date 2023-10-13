@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { RecoverPasswordAttemptCountRepository } from './recover-password-attempt-count.repository';
 import { RecoverPasswordAttemptCount } from '@prisma/client';
+import { RecoverPasswordAttemptCountRepository } from './recover-password-attempt-count.repository';
 import {
   RecoverPasswordAttemptCountCreate,
   RecoverPasswordAttemptCountUpdate,
