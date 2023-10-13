@@ -7,7 +7,6 @@ TODO PKCE add in both backend and frontend
  https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce
 
 
-TODO Return hashed jwt to frontend and make it optional from env add is_jwt_hashed and jwt_hash_secret
 TODO Implement https://www.dicebear.com/ for profile image path
 
 
