@@ -18,10 +18,16 @@ import { enumValueIncludes } from '../../../common/helper';
 import { PlatformWrapper } from '../../../model/platform.wrapper';
 import { UserBlockedException } from '../../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../../exceptions/user-locked.exception';
+import { InjectEnv } from '../../@global/env/env.decorator';
+import { EnvService } from '../../@global/env/env.service';
+import { encryption } from '../../../common/encryption';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
+    @InjectEnv()
+    private readonly envService: EnvService,
+
     private readonly reflector: Reflector,
     private readonly jwtUtilService: JwtService,
     private readonly userService: UserService,
@@ -51,7 +57,19 @@ export class AuthGuard implements CanActivate {
       throw new ForbiddenException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
-    const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(accessToken);
+    // Decrypt is session is enabled
+    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+
+    const finalAccessToken = isEncryptionSessionActive
+      ? await encryption.aes256gcm.decrypt(accessToken, key)
+      : accessToken;
+
+    if (!finalAccessToken) {
+      throw new UnauthorizedException('Incalid token found');
+    }
+
+    const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(finalAccessToken);
     const user = await this.userService.getByIdIncludeIdentityForGuard(accessTokenPayload.userId);
 
     if (user.userIdentity.isBlocked) {
@@ -62,7 +80,7 @@ export class AuthGuard implements CanActivate {
       throw new UserLockedException();
     }
 
-    await this.jwtUtilService.validateAccessToken(accessToken, {
+    await this.jwtUtilService.validateAccessToken(finalAccessToken, {
       platform: platform.getPlatform(),
       sub: user.email,
       userId: user.id,

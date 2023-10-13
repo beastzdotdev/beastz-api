@@ -84,10 +84,21 @@ export class AuthenticationService {
       }),
     ]);
 
+    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+
+    const finalAccessToken = isEncryptionSessionActive
+      ? await encryption.aes256gcm.encrypt(accessToken, key)
+      : accessToken;
+
+    const finalRefreshToken = isEncryptionSessionActive
+      ? await encryption.aes256gcm.encrypt(refreshToken, key)
+      : refreshToken;
+
     if (platform.isWeb()) {
       this.cookieService.createCookie(res, {
-        accessToken,
-        refreshToken,
+        accessToken: finalAccessToken,
+        refreshToken: finalRefreshToken,
       });
 
       return res.json(<Partial<AuthenticationPayloadResponseDto>>{
@@ -97,8 +108,8 @@ export class AuthenticationService {
 
     if (platform.isMobile()) {
       return res.json(<AuthenticationPayloadResponseDto>{
-        accessToken,
-        refreshToken,
+        accessToken: finalAccessToken,
+        refreshToken: finalRefreshToken,
         isAccountVerified: false,
       });
     }
@@ -129,10 +140,21 @@ export class AuthenticationService {
       token: refreshToken,
     });
 
+    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+
+    const finalAccessToken = isEncryptionSessionActive
+      ? await encryption.aes256gcm.encrypt(accessToken, key)
+      : accessToken;
+
+    const finalRefreshToken = isEncryptionSessionActive
+      ? await encryption.aes256gcm.encrypt(refreshToken, key)
+      : refreshToken;
+
     if (platform.isWeb()) {
       this.cookieService.createCookie(res, {
-        accessToken,
-        refreshToken,
+        accessToken: finalAccessToken,
+        refreshToken: finalRefreshToken,
       });
 
       return res.json(<Partial<AuthenticationPayloadResponseDto>>{
@@ -142,8 +164,8 @@ export class AuthenticationService {
 
     if (platform.isMobile()) {
       return res.json(<AuthenticationPayloadResponseDto>{
-        accessToken,
-        refreshToken,
+        accessToken: finalAccessToken,
+        refreshToken: finalRefreshToken,
         isAccountVerified: user.userIdentity.isAccountVerified,
       });
     }
@@ -153,7 +175,20 @@ export class AuthenticationService {
 
   async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {
     const { oldRefreshTokenString } = params;
-    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(oldRefreshTokenString);
+
+    // Decrypt is session is enabled
+    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+
+    const finalOldRefreshTokenString = isEncryptionSessionActive
+      ? await encryption.aes256gcm.decrypt(oldRefreshTokenString, key)
+      : oldRefreshTokenString;
+
+    if (!finalOldRefreshTokenString) {
+      throw new UnauthorizedException('Incalid token found');
+    }
+
+    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(finalOldRefreshTokenString);
     const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti);
 
     // validate user existence from token
@@ -172,7 +207,7 @@ export class AuthenticationService {
 
     // validate fully
     try {
-      await this.jwtUtilService.validateRefreshToken(oldRefreshTokenString, {
+      await this.jwtUtilService.validateRefreshToken(finalOldRefreshTokenString, {
         ...refreshTokenFromDB,
         exp: parseInt(refreshTokenFromDB.exp),
         iat: parseInt(refreshTokenFromDB.iat),
@@ -208,13 +243,22 @@ export class AuthenticationService {
       email: user.email,
     });
 
+    const finalAccessToken = isEncryptionSessionActive
+      ? await encryption.aes256gcm.encrypt(accessToken, key)
+      : accessToken;
+
     if (platform.isWeb()) {
-      this.cookieService.createCookie(res, { accessToken });
+      this.cookieService.createCookie(res, {
+        accessToken: finalAccessToken,
+      });
+
       return res.json({ msg: 'success' });
     }
 
     if (platform.isMobile()) {
-      return res.json(<AuthRefreshResponseDto>{ accessToken });
+      return res.json(<AuthRefreshResponseDto>{
+        accessToken: finalAccessToken,
+      });
     }
 
     return res.json({ msg: 'Something went wrong' }).status(500);
