@@ -5,6 +5,7 @@ TODO More security
 TODO PKCE add in both backend and frontend
  https://developers.onelogin.com/blog/pkce-dust-react-app,
  https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce
+ https://auth0.com/blog/oauth2-implicit-grant-and-spa/
 
 
 TODO Implement https://www.dicebear.com/ for profile image path

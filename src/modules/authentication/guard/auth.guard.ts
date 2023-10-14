@@ -70,7 +70,7 @@ export class AuthGuard implements CanActivate {
     }
 
     const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(finalAccessToken);
-    const user = await this.userService.getByIdIncludeIdentityForGuard(accessTokenPayload.userId);
+    const user = await this.userService.getByIdIncludeIdentity(accessTokenPayload.userId);
 
     if (user.userIdentity.isBlocked) {
       throw new UserBlockedException();

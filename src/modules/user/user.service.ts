@@ -41,8 +41,8 @@ export class UserService {
     return user;
   }
 
-  async getByIdIncludeIdentityForGuard(id: number): Promise<UserIncludeIdentity> {
-    const user = await this.userRepository.getByIdIncludeIdentityForGuard(id);
+  async getByIdIncludeIdentity(id: number): Promise<UserIncludeIdentity> {
+    const user = await this.userRepository.getByIdIncludeIdentity(id);
 
     if (!user || !user.userIdentity) {
       throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);

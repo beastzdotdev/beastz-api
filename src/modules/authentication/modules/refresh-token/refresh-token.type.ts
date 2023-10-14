@@ -5,5 +5,4 @@ export type CreateRefreshTokenParams = {
   userId: number;
   token: string;
   platform: PlatformForJwt;
-  secretKeyEncrypted: string;
 } & RefreshTokenClaims;

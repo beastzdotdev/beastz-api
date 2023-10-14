@@ -34,3 +34,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
   logger.verbose(`GorillaVault api listening on --- ${apiUrl}`);
   cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
 });
+
+// Cool libraries for future
+// https://nosir.github.io/cleave.js/
+// https://sarcadass.github.io/granim.js/examples.html

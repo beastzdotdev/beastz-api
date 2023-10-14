@@ -8,32 +8,31 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-
 import { Response } from 'express';
-import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
+
+import { random } from '../../common/random';
+import { constants } from '../../common/constants';
+import { encryption } from '../../common/encryption';
 import { UserService } from '../user/user.service';
 import { JwtService } from './modules/jwt/jwt.service';
+import { EnvService } from '../@global/env/env.service';
+import { InjectEnv } from '../@global/env/env.decorator';
+import { CookieService } from '../@global/cookie/cookie.service';
+import { PlatformWrapper } from '../../model/platform.wrapper';
+import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
+import { ResetPasswordService } from './modules/reset-password/reset-password.service';
 import { AccountVerificationService } from './modules/account-verification/account-verification.service';
 import { RecoverPasswordService } from './modules/recover-password/recover-password.service';
 import { RefreshTokenService } from './modules/refresh-token/refresh-token.service';
 import { UserIdentityService } from '../user-identity/user-identity.service';
-import { EnvService } from '../@global/env/env.service';
-import { InjectEnv } from '../@global/env/env.decorator';
-import { encryption } from '../../common/encryption';
-import { AuthRefreshResponseDto } from './dto/auth-refreh-response.dto';
 import { TokenExpiredException } from '../../exceptions/token-expired-forbidden.exception';
 import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-expired.exception';
-import { CookieService } from '../@global/cookie/cookie.service';
-import { PlatformWrapper } from '../../model/platform.wrapper';
+import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { RecoverPasswordAttemptCountService } from './modules/recover-password-attempt-count/recover-password-attempt-count.service';
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
 import { RefreshParams, SignInParams, SignUpWithTokenParams } from './authentication.types';
-import { constants } from '../../common/constants';
-import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
-import { ResetPasswordService } from './modules/reset-password/reset-password.service';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
 import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto } from './dto';
-import { random } from '../../common/random';
 
 @Injectable()
 export class AuthenticationService {
@@ -68,53 +67,18 @@ export class AuthenticationService {
       profileImagePath: null,
     });
 
-    const { accessToken, refreshToken, refreshTokenPayload, refreshKeyEncrypted } = await this.genAccessAndRefreshToken(
-      {
-        userId: user.id,
-        email: params.email,
-      },
-    );
+    await this.userIdentityService.create({
+      userId: user.id,
+      password: hashedPassword,
+    });
 
-    await Promise.all([
-      this.userIdentityService.create({ password: hashedPassword, userId: user.id }),
-      this.refreshTokenService.addRefreshTokenByUserId({
-        ...refreshTokenPayload,
-        secretKeyEncrypted: refreshKeyEncrypted,
-        token: refreshToken,
-      }),
-    ]);
-
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
-
-    const finalAccessToken = isEncryptionSessionActive
-      ? await encryption.aes256gcm.encrypt(accessToken, key)
-      : accessToken;
-
-    const finalRefreshToken = isEncryptionSessionActive
-      ? await encryption.aes256gcm.encrypt(refreshToken, key)
-      : refreshToken;
-
-    if (platform.isWeb()) {
-      this.cookieService.createCookie(res, {
-        accessToken: finalAccessToken,
-        refreshToken: finalRefreshToken,
-      });
-
-      return res.json(<Partial<AuthenticationPayloadResponseDto>>{
-        isAccountVerified: false,
-      });
-    }
-
-    if (platform.isMobile()) {
-      return res.json(<AuthenticationPayloadResponseDto>{
-        accessToken: finalAccessToken,
-        refreshToken: finalRefreshToken,
-        isAccountVerified: false,
-      });
-    }
-
-    return res.json({ msg: 'Something went wrong' }).status(500);
+    return this.genTokensAndSendResponse({
+      res,
+      platform,
+      isAccountVerified: false,
+      email: user.email,
+      userId: user.id,
+    });
   }
 
   async signInWithToken(res: Response, params: SignInParams, platform: PlatformWrapper): Promise<Response> {
@@ -127,50 +91,13 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }
 
-    const { accessToken, refreshToken, refreshTokenPayload, refreshKeyEncrypted } = await this.genAccessAndRefreshToken(
-      {
-        userId: user.id,
-        email: params.email,
-      },
-    );
-
-    await this.refreshTokenService.addRefreshTokenByUserId({
-      ...refreshTokenPayload,
-      secretKeyEncrypted: refreshKeyEncrypted,
-      token: refreshToken,
+    return this.genTokensAndSendResponse({
+      res,
+      platform,
+      email: user.email,
+      userId: user.id,
+      isAccountVerified: user.userIdentity.isAccountVerified,
     });
-
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
-
-    const finalAccessToken = isEncryptionSessionActive
-      ? await encryption.aes256gcm.encrypt(accessToken, key)
-      : accessToken;
-
-    const finalRefreshToken = isEncryptionSessionActive
-      ? await encryption.aes256gcm.encrypt(refreshToken, key)
-      : refreshToken;
-
-    if (platform.isWeb()) {
-      this.cookieService.createCookie(res, {
-        accessToken: finalAccessToken,
-        refreshToken: finalRefreshToken,
-      });
-
-      return res.json(<Partial<AuthenticationPayloadResponseDto>>{
-        isAccountVerified: user.userIdentity.isAccountVerified,
-      });
-    }
-
-    if (platform.isMobile()) {
-      return res.json(<AuthenticationPayloadResponseDto>{
-        accessToken: finalAccessToken,
-        refreshToken: finalRefreshToken,
-        isAccountVerified: user.userIdentity.isAccountVerified,
-      });
-    }
-
-    return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
   async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {
@@ -185,51 +112,26 @@ export class AuthenticationService {
       : oldRefreshTokenString;
 
     if (!finalOldRefreshTokenString) {
-      throw new UnauthorizedException('Incalid token found');
+      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
     }
 
     const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(finalOldRefreshTokenString);
     const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti);
 
     // validate user existence from token
-    const user = await this.userService.getById(refreshTokenPayload.userId);
+    const user = await this.userService.getByIdIncludeIdentity(refreshTokenPayload.userId);
+    this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-    // get refresh token secret and decrypt it
-    const refreshTokenSecretDecrypted = await encryption.aes256gcm.decrypt(
-      refreshTokenFromDB.secretKeyEncrypted,
-      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-    );
-
-    // should not happen
-    if (!refreshTokenSecretDecrypted) {
-      throw new InternalServerErrorException('Something went wrong');
-    }
-
-    // validate fully
-    try {
-      await this.jwtUtilService.validateRefreshToken(finalOldRefreshTokenString, {
-        ...refreshTokenFromDB,
-        exp: parseInt(refreshTokenFromDB.exp),
-        iat: parseInt(refreshTokenFromDB.iat),
-        secret: refreshTokenSecretDecrypted,
-      });
-    } catch (error) {
-      // catch general token expired error, update is used if refresh token is correct and expired
-      if (error instanceof TokenExpiredException) {
-        await this.refreshTokenService.updateIsUsedById(refreshTokenFromDB.id);
-        throw new RefreshTokenExpiredException();
-      }
-
-      throw error;
-    }
+    // validate signature only (very important)
+    await this.jwtUtilService.validateRefreshTokenSignatureOnly(finalOldRefreshTokenString);
 
     // detect refresh token reuse
-    if (refreshTokenFromDB.isUsed) {
-      await this.refreshTokenService.updateIsUsedForAllByUserId(user.id);
+    if (!refreshTokenFromDB) {
+      await this.refreshTokenService.deleteAllByUserId(user.id);
 
       const userIdentity = await this.userIdentityService.getByUserId(user.id);
 
-      // send email here (delete comment after)
+      // send email here (delete comment after) update lock and please reset password (password reset optional)
 
       if (userIdentity.strictMode) {
         await this.userIdentityService.updateIsLockedById(userIdentity.id, true);
@@ -238,37 +140,37 @@ export class AuthenticationService {
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
     }
 
-    const { accessToken } = await this.genAccessToken({
-      userId: user.id,
+    // validate fully
+    try {
+      await this.jwtUtilService.validateRefreshToken(finalOldRefreshTokenString, {
+        ...refreshTokenFromDB,
+        exp: parseInt(refreshTokenFromDB.exp),
+        iat: parseInt(refreshTokenFromDB.iat),
+      });
+    } catch (error) {
+      // catch general token expired error, update is used if refresh token is correct and expired
+      if (error instanceof TokenExpiredException) {
+        await this.refreshTokenService.deleteById(refreshTokenFromDB.id);
+        throw new RefreshTokenExpiredException();
+      }
+
+      throw error;
+    }
+
+    return this.genTokensAndSendResponse({
+      res,
+      platform,
       email: user.email,
+      userId: user.id,
+      isAccountVerified: user.userIdentity.isAccountVerified,
     });
-
-    const finalAccessToken = isEncryptionSessionActive
-      ? await encryption.aes256gcm.encrypt(accessToken, key)
-      : accessToken;
-
-    if (platform.isWeb()) {
-      this.cookieService.createCookie(res, {
-        accessToken: finalAccessToken,
-      });
-
-      return res.json({ msg: 'success' });
-    }
-
-    if (platform.isMobile()) {
-      return res.json(<AuthRefreshResponseDto>{
-        accessToken: finalAccessToken,
-      });
-    }
-
-    return res.json({ msg: 'Something went wrong' }).status(500);
   }
 
   async resetPasswordSend(body: ResetPasswordBodyDto, userId: number): Promise<void> {
     const { newPassword, oldPassword } = body;
 
     // we should not let user know that user not exists than user will use this info for password
-    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+    const user = await this.userService.getByIdIncludeIdentity(userId);
     const passwordMatches = await bcrypt.compare(oldPassword, user.userIdentity.password);
 
     if (!passwordMatches) {
@@ -454,7 +356,7 @@ export class AuthenticationService {
     const { token } = body;
     const { jti, userId } = this.jwtUtilService.getResetPasswordTokenPayload(token);
 
-    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+    const user = await this.userService.getByIdIncludeIdentity(userId);
 
     // reuse detection
     const resetPasswordByJti = await this.resetPasswordService.getByJTI(jti);
@@ -518,7 +420,7 @@ export class AuthenticationService {
     const { token } = body;
     const { jti, userId } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
 
-    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+    const user = await this.userService.getByIdIncludeIdentity(userId);
 
     // reuse detection
     const recoverPasswordByJti = await this.recoverPasswordService.getByJTI(jti);
@@ -585,7 +487,7 @@ export class AuthenticationService {
     const { token } = body;
     const { jti, userId } = this.jwtUtilService.getAccountVerifyTokenPayload(token);
 
-    const user = await this.userService.getByIdIncludeIdentityForGuard(userId);
+    const user = await this.userService.getByIdIncludeIdentity(userId);
 
     // reuse detection
     const accountVerifyByJti = await this.accountVerificationService.getByJTI(jti);
@@ -645,58 +547,48 @@ export class AuthenticationService {
     // show success page and button for redirecting to front end
   }
 
-  private async genAccessAndRefreshToken(params: { userId: number; email: string }) {
-    const { accessToken } = await this.genAccessToken({
-      userId: params.userId,
-      email: params.email,
-    });
-    const { refreshKeyEncrypted, refreshToken, refreshTokenPayload } = await this.genRefreshToken({
-      userId: params.userId,
-      email: params.email,
-    });
+  private async genTokensAndSendResponse(params: {
+    res: Response;
+    userId: number;
+    email: string;
+    platform: PlatformWrapper;
+    isAccountVerified: boolean;
+  }): Promise<Response> {
+    const { platform, res, isAccountVerified, email, userId } = params;
 
-    return {
-      accessToken,
-      refreshToken,
-      refreshTokenPayload,
-      refreshKeyEncrypted,
-    };
-  }
-
-  private async genRefreshToken(params: { userId: number; email: string }) {
-    const refreshTokenSecret = random.generateRandomASCII(32);
-    const refreshKeyEncrypted = await encryption.aes256gcm.encrypt(
-      refreshTokenSecret,
-      this.envService.get('REFRESH_TOKEN_ENCRYPTION_SECRET'),
-    );
-
-    if (!refreshKeyEncrypted) {
-      throw new InternalServerErrorException('Something went wrong');
-    }
-
-    const refreshToken = this.jwtUtilService.genRefreshToken({
-      userId: params.userId,
-      email: params.email,
-      refreshKeySecret: refreshTokenSecret,
-    });
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtUtilService.genRefreshToken({ userId, email }),
+      this.jwtUtilService.genAccessToken({ userId, email }),
+    ]);
 
     const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
 
-    return {
-      refreshToken,
-      refreshTokenPayload,
-      refreshKeyEncrypted,
-    };
-  }
+    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
 
-  private async genAccessToken(params: { userId: number; email: string }) {
-    const accessToken = this.jwtUtilService.genAccessToken({
-      userId: params.userId,
-      email: params.email,
-    });
+    const [finalAccessToken, finalRefreshToken] = await Promise.all([
+      isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(accessToken, key) : accessToken,
+      isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(refreshToken, key) : refreshToken,
+      this.refreshTokenService.addRefreshTokenByUserId({ ...refreshTokenPayload, token: refreshToken }),
+    ]);
 
-    return {
-      accessToken,
-    };
+    if (platform.isWeb()) {
+      this.cookieService.createCookie(res, {
+        accessToken: finalAccessToken,
+        refreshToken: finalRefreshToken,
+      });
+
+      return res.json(<Partial<AuthenticationPayloadResponseDto>>{ isAccountVerified });
+    }
+
+    if (platform.isMobile()) {
+      return res.json(<AuthenticationPayloadResponseDto>{
+        accessToken: finalAccessToken,
+        refreshToken: finalRefreshToken,
+        isAccountVerified,
+      });
+    }
+
+    return res.json({ msg: 'Something went wrong' }).status(500);
   }
 }

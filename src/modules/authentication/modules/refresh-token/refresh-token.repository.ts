@@ -15,7 +15,6 @@ export class RefreshTokenRepository {
         sub: params.sub,
         iss: params.iss,
         platform: params.platform,
-        secretKeyEncrypted: params.secretKeyEncrypted,
         jti: params.jti,
         exp: params.exp.toString(),
         iat: params.iat.toString(),
@@ -29,18 +28,8 @@ export class RefreshTokenRepository {
     });
   }
 
-  async updateIsUsedById(id: number) {
-    return this.prismaService.refreshToken.update({
-      where: { id },
-      data: { isUsed: true },
-    });
-  }
-
-  async updateIsUsedForAllByUserId(userId: number) {
-    return this.prismaService.refreshToken.updateMany({
-      where: { userId, isUsed: false },
-      data: { isUsed: true },
-    });
+  async deleteById(id: number): Promise<void> {
+    await this.prismaService.refreshToken.deleteMany({ where: { id } });
   }
 
   async deleteAllByUserId(userId: number): Promise<void> {

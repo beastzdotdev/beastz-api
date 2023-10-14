@@ -7,9 +7,9 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { SafeCallResult, ExceptionType, GeneralEnumType } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 
-export async function prismaSafeCall<T>(call: () => T): Promise<SafeCallResult<T>> {
+export async function prismaSafeCall<T>(callback: () => T): Promise<SafeCallResult<T>> {
   try {
-    const t = await call();
+    const t = await callback();
 
     return { success: true, data: t, error: null };
   } catch (e) {
@@ -29,6 +29,17 @@ export async function prismaSafeCall<T>(call: () => T): Promise<SafeCallResult<T
 
     return { success: false, data: null, error: errorCode };
   }
+}
+
+export async function promisify<T>(callback: () => T): Promise<T> {
+  return new Promise((resolve, reject) => {
+    try {
+      const resp = callback();
+      return resolve(resp);
+    } catch (error) {
+      return reject(error);
+    }
+  });
 }
 
 export function cyanLog<T>(val: T): void {

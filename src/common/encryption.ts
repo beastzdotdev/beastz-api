@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { promisify } from './helper';
 
 export const encryption = Object.freeze({
   aes256gcm: {
@@ -35,14 +36,7 @@ export const encryption = Object.freeze({
     },
 
     async encrypt(text: string, masterkey: string): Promise<string> {
-      return new Promise((resolve, reject) => {
-        try {
-          const encrypted = this.encryptSync(text, masterkey);
-          return resolve(encrypted);
-        } catch (error) {
-          return reject(error);
-        }
-      });
+      return promisify(() => this.encryptSync(text, masterkey));
     },
 
     decryptSync(encryptedText: string, masterkey: string) {
@@ -76,14 +70,7 @@ export const encryption = Object.freeze({
     },
 
     async decrypt(text: string, masterkey: string): Promise<string | null> {
-      return new Promise((resolve, reject) => {
-        try {
-          const decrypted = this.decryptSync(text, masterkey);
-          return resolve(decrypted);
-        } catch (error) {
-          return reject(error);
-        }
-      });
+      return promisify(() => this.decryptSync(text, masterkey));
     },
   },
 });

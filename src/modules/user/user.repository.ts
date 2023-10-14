@@ -58,7 +58,7 @@ export class UserRepository {
     });
   }
 
-  async getByIdIncludeIdentityForGuard(id: number) {
+  async getByIdIncludeIdentity(id: number) {
     return this.prismaService.user.findFirst({
       where: { id },
       select: {
