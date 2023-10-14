@@ -3,15 +3,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { constants } from './constants';
 
 export const random = Object.freeze({
-  generateRandomASCII(len: number): string {
-    return this.genRanStringFromCharset(len, constants.ASCII);
-  },
-
-  generateRandomHEX(len: number): string {
-    return this.genRanStringFromCharset(len, constants.HEX);
-  },
-
-  genRanStringFromCharset(length: number, charset: string): string {
+  genRandStringFromCharset(length: number, charset: string): string {
     const charsetLength = charset.length;
     const randomBytes = crypto.randomBytes(length);
 
@@ -23,6 +15,14 @@ export const random = Object.freeze({
     }
 
     return randomString;
+  },
+
+  generateRandomASCII(len: number): string {
+    return this.genRandStringFromCharset(len, constants.ASCII);
+  },
+
+  generateRandomHEX(len: number): string {
+    return this.genRandStringFromCharset(len, constants.HEX);
   },
 
   generateRandomString(length: number): string {
@@ -46,5 +46,9 @@ export const random = Object.freeze({
     }
 
     return crypto.randomInt(Math.ceil(min), Math.floor(max) + 1);
+  },
+
+  generateRandomIntStr(min: number, max: number): string {
+    return this.generateRandomInt(min, max).toString();
   },
 });

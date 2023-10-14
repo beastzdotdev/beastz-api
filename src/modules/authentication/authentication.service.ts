@@ -246,7 +246,13 @@ export class AuthenticationService {
     const { id: userId } = user;
     const jti = uuid();
     const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, jti });
-    const newPasswordText = random.generateRandomInt(100000, 999999).toString();
+
+    // 4 lowercase, 1 int, 1 symbol
+    const newPasswordText =
+      random.genRandStringFromCharset(4, constants.LETTERS_LOWERCASE) +
+      random.generateRandomIntStr(0, 9) +
+      random.genRandStringFromCharset(1, constants.SYMBOLS);
+
     const newPasswordHashed = await bcrypt.hash(newPasswordText, 10);
 
     let recoverPassword = await this.recoverPasswordService.getByUserId(user.id);
@@ -557,8 +563,8 @@ export class AuthenticationService {
     const { platform, res, isAccountVerified, email, userId } = params;
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtUtilService.genRefreshToken({ userId, email }),
       this.jwtUtilService.genAccessToken({ userId, email }),
+      this.jwtUtilService.genRefreshToken({ userId, email }),
     ]);
 
     const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);

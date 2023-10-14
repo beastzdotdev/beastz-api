@@ -24,6 +24,10 @@ export const constants = Object.freeze({
 
   ONE_DAY_IN_SEC: 24 * 3600,
 
-  ASCII: '!"#$%&()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz0123456789{}~',
-  HEX: 'abcdefghijklmnopqrstuvwxyz0123456789',
+  SYMBOLS: '!#$%&*?@',
+  LETTERS_LOWERCASE: 'abcdefghijklmnopqrstuvwxyz',
+  LETTERS_UPPERCASE: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  LETTERS_BOTH: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  HEX: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+  ASCII: '!#$%&*?@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
 });

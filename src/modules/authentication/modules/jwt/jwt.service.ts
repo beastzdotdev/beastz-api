@@ -293,6 +293,7 @@ export class JwtService {
       !payload.platform ||
       !payload.userId ||
       !payload.exp ||
+      !payload.jti ||
       !payload.sub ||
       !payload.iss ||
       !payload.iat ||

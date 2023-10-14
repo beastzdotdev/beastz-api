@@ -32,7 +32,7 @@ import {
 } from './dto';
 
 @UseGuards(AuthPlatformHeaderGuard)
-@Controller('authentication')
+@Controller('auth')
 export class AuthenticationController {
   constructor(private readonly authenticationService: AuthenticationService) {}
 
