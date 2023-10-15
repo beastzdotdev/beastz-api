@@ -13,6 +13,7 @@ import { AuthenticationModule } from './authentication/authentication.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { LegalDocumentModule } from './legal-document/legal-document.module';
 import { AdminModule } from './admin/admin.module';
+import { MailModule } from './@global/mail/mail.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AdminModule } from './admin/admin.module';
     PrismaModule,
     CookieModule,
     JwtModule,
+    MailModule,
     AccountVerificationModule,
     UserModule,
     AuthenticationModule,

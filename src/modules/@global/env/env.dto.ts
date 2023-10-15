@@ -36,6 +36,19 @@ export class EnvironmentVariables {
   @IsString()
   MAIL_API_KEY: string;
 
+  @IsUrl()
+  @IsNotEmpty()
+  @IsString()
+  MAIL_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAIL_USERNAME: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAIL_FROM: string;
+
   @IsNotEmpty()
   @IsString()
   DATABASE_URL: string;
