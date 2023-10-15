@@ -16,7 +16,7 @@ export class CookieService {
     let cookieOptions: CookieOptions | undefined;
 
     if (this.envService.isProd()) {
-      cookieOptions = { domain: this.envService.get('FRONTEND_DOMAIN') };
+      cookieOptions = { domain: this.envService.get('FRONTEND_URL') };
     }
 
     res.clearCookie(constants.COOKIE_ACCESS_NAME, cookieOptions);
@@ -32,7 +32,7 @@ export class CookieService {
     };
 
     if (this.envService.isProd()) {
-      cookieOptions.domain = this.envService.get('FRONTEND_DOMAIN');
+      cookieOptions.domain = this.envService.get('FRONTEND_URL');
     }
 
     const accessDate = moment().add(this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'), 'seconds').toDate();

@@ -26,7 +26,12 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   @IsUrl()
-  FRONTEND_DOMAIN: string;
+  FRONTEND_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsUrl()
+  BACKEND_URL: string;
 
   @IsNotEmpty()
   @IsString()

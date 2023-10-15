@@ -90,7 +90,10 @@ export class AuthenticationController {
 
   @HttpCode(HttpStatus.OK)
   @Post('reset-password/send')
-  async resetPasswordSend(@Body() body: ResetPasswordBodyDto, @AuthPayload() authPayload: AuthPayloadType) {
+  async resetPasswordSend(
+    @Body() body: ResetPasswordBodyDto,
+    @AuthPayload() authPayload: AuthPayloadType,
+  ): Promise<void> {
     await this.authenticationService.resetPasswordSend(body, authPayload.user.id);
   }
 
@@ -106,28 +109,31 @@ export class AuthenticationController {
   @NoPlatformHeader()
   @HttpCode(HttpStatus.OK)
   @Post('account-verify/send')
-  async sendAccountVerificationCode(@Body() body: AccountVerifySendCodeDto) {
+  async sendAccountVerificationCode(@Body() body: AccountVerifySendCodeDto): Promise<void> {
     await this.authenticationService.accountVerifySend(body.email);
   }
 
   @NoAuth()
   @NoPlatformHeader()
   @Get('reset-password/confirm')
-  async resetPasswordConfirm(@Query() body: AuthConfirmQueryDto) {
+  async resetPasswordConfirm(@Query() body: AuthConfirmQueryDto): Promise<string> {
     await this.authenticationService.resetPasswordConfirm(body);
+    return 'ok';
   }
 
   @NoAuth()
   @NoPlatformHeader()
   @Get('recover-password/confirm')
-  async recoverPassword(@Query() body: AuthConfirmQueryDto): Promise<void> {
+  async recoverPassword(@Query() body: AuthConfirmQueryDto): Promise<string> {
     await this.authenticationService.recoverPasswordConfirm(body);
+    return 'ok';
   }
 
   @NoAuth()
   @NoPlatformHeader()
   @Get('account-verify/confirm')
-  async accountVerificationConfirmCode(@Query() body: AuthConfirmQueryDto) {
+  async accountVerificationConfirmCode(@Query() body: AuthConfirmQueryDto): Promise<string> {
     await this.authenticationService.accountVerificationConfirm(body);
+    return 'ok';
   }
 }

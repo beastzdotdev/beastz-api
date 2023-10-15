@@ -11,6 +11,7 @@ import { AccountVerificationAttemptCountModule } from './modules/account-verific
 import { RecoverPasswordAttemptCountModule } from './modules/recover-password-attempt-count/recover-password-attempt-count.module';
 import { ResetPasswordAttemptCountModule } from './modules/reset-password-attempt-count/reset-password-attempt-count.module';
 import { ResetPasswordModule } from './modules/reset-password/reset-password.module';
+import { AuthenticationMailService } from './mail/authenctication-mail.service';
 
 @Module({
   imports: [
@@ -26,6 +27,6 @@ import { ResetPasswordModule } from './modules/reset-password/reset-password.mod
     UserIdentityModule,
   ],
   controllers: [AuthenticationController],
-  providers: [AuthenticationService],
+  providers: [AuthenticationService, AuthenticationMailService],
 })
 export class AuthenticationModule {}

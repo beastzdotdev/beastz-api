@@ -17,7 +17,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpre
 
   app.enableCors({
     credentials: true,
-    origin: [envService.get('FRONTEND_DOMAIN')],
+    origin: [envService.get('FRONTEND_URL')],
   });
 
   app.enableShutdownHooks();

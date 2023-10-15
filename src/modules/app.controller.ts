@@ -28,7 +28,7 @@ export class AppController {
   }
 
   @NoAuth()
-  @Get('test')
+  @Get('test/mail')
   test(@Query() query: SendMailQueryDto) {
     return this.mailService.send({
       subject: query.subject,

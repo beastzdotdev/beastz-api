@@ -7,6 +7,21 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { SafeCallResult, ExceptionType, GeneralEnumType } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 
+export const helper = Object.freeze({
+  url: {
+    create<T = Record<string, string>>(url: string, params?: T) {
+      const urlInstance = new URL(url);
+
+      if (params && Object.keys(params).length) {
+        const queryParams = new URLSearchParams(params);
+        urlInstance.search = queryParams.toString();
+      }
+
+      return urlInstance.toString();
+    },
+  },
+});
+
 export async function prismaSafeCall<T>(callback: () => T): Promise<SafeCallResult<T>> {
   try {
     const t = await callback();

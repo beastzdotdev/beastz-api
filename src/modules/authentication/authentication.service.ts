@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import moment from 'moment';
 import { v4 as uuid } from 'uuid';
+import { Response } from 'express';
 import {
   ForbiddenException,
   Injectable,
@@ -8,8 +9,8 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from 'express';
 
+import { helper } from '../../common/helper';
 import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { encryption } from '../../common/encryption';
@@ -33,6 +34,7 @@ import { AccountVerificationAttemptCountService } from './modules/account-verifi
 import { RefreshParams, SignInParams, SignUpWithTokenParams } from './authentication.types';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
 import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto } from './dto';
+import { AuthenticationMailService } from './mail/authenctication-mail.service';
 
 @Injectable()
 export class AuthenticationService {
@@ -51,6 +53,7 @@ export class AuthenticationService {
     private readonly accVerifyAttemptCountService: AccountVerificationAttemptCountService,
     private readonly resetPasswordService: ResetPasswordService,
     private readonly resetPasswordAttemptCountService: ResetPasswordAttemptCountService,
+    private readonly authenticationMailService: AuthenticationMailService,
   ) {}
 
   async signUpWithToken(res: Response, params: SignUpWithTokenParams, platform: PlatformWrapper): Promise<Response> {
@@ -131,10 +134,14 @@ export class AuthenticationService {
 
       const userIdentity = await this.userIdentityService.getByUserId(user.id);
 
-      // send email here (delete comment after) update lock and please reset password (password reset optional)
-
+      // send email for resue detection
       if (userIdentity.strictMode) {
-        await this.userIdentityService.updateIsLockedById(userIdentity.id, true);
+        await Promise.all([
+          this.userIdentityService.updateIsLockedById(userIdentity.id, true),
+          this.authenticationMailService.sendReuse(user.email, true),
+        ]);
+      } else {
+        this.authenticationMailService.sendReuse(user.email, false);
       }
 
       throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
@@ -236,7 +243,14 @@ export class AuthenticationService {
       });
     }
 
-    // send token url on email
+    // send backend url on email for backend to confirm
+    const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/reset-password/confirm`;
+    const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
+
+    this.authenticationMailService.sendPasswordReset(
+      user.email,
+      helper.url.create<AuthConfirmQueryDto>(backendUrl, params),
+    );
   }
 
   async recoverPasswordSend(email: string): Promise<void> {
@@ -305,7 +319,15 @@ export class AuthenticationService {
       });
     }
 
-    // send token url on email
+    // send backend url on email for backend to confirm
+    const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/recover-password/confirm`;
+    const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
+
+    this.authenticationMailService.sendPasswordRecover(
+      user.email,
+      helper.url.create<AuthConfirmQueryDto>(backendUrl, params),
+      newPasswordText,
+    );
   }
 
   async accountVerifySend(email: string): Promise<void> {
@@ -355,7 +377,14 @@ export class AuthenticationService {
       });
     }
 
-    // send token url on email
+    // send backend url on email for backend to confirm
+    const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/account-verify/confirm`;
+    const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
+
+    this.authenticationMailService.sendAccountVerify(
+      user.email,
+      helper.url.create<AuthConfirmQueryDto>(backendUrl, params),
+    );
   }
 
   async resetPasswordConfirm(body: AuthConfirmQueryDto): Promise<void> {
@@ -385,10 +414,14 @@ export class AuthenticationService {
 
       // when now is more than x (x is date of auth creation date)
       if (tommorowFromCreation.diff(now, 'seconds') < 0) {
-        // send email here (delete comment after)
-
+        // send email for resue detection
         if (user.userIdentity.strictMode) {
-          await this.userIdentityService.updateIsLockedById(user.userIdentity.id, true);
+          await Promise.all([
+            this.userIdentityService.updateIsLockedById(user.userIdentity.id, true),
+            this.authenticationMailService.sendReuse(user.email, true),
+          ]);
+        } else {
+          this.authenticationMailService.sendReuse(user.email, false);
         }
 
         throw new ForbiddenException(ExceptionMessageCode.RESET_PASSWORD_TOKEN_REUSE);
@@ -452,10 +485,14 @@ export class AuthenticationService {
 
       // when now is more than x (x is date of auth creation date)
       if (tommorowFromCreation.diff(now, 'seconds') < 0) {
-        // send email here (delete comment after)
-
+        // send email for resue detection
         if (user.userIdentity.strictMode) {
-          await this.userIdentityService.updateIsLockedById(user.userIdentity.id, true);
+          await Promise.all([
+            this.userIdentityService.updateIsLockedById(user.userIdentity.id, true),
+            this.authenticationMailService.sendReuse(user.email, true),
+          ]);
+        } else {
+          this.authenticationMailService.sendReuse(user.email, false);
         }
 
         throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_TOKEN_REUSE);
@@ -516,10 +553,14 @@ export class AuthenticationService {
 
       // when now is more than x (x is date of auth creation date)
       if (tommorowFromCreation.diff(now, 'seconds') < 0) {
-        // send email here (delete comment after)
-
+        // send email for resue detection
         if (user.userIdentity.strictMode) {
-          await this.userIdentityService.updateIsLockedById(user.userIdentity.id, true);
+          await Promise.all([
+            this.userIdentityService.updateIsLockedById(user.userIdentity.id, true),
+            this.authenticationMailService.sendReuse(user.email, true),
+          ]);
+        } else {
+          this.authenticationMailService.sendReuse(user.email, false);
         }
 
         throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_TOKEN_REUSE);

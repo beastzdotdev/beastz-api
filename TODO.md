@@ -12,23 +12,14 @@ TODO Implement https://www.dicebear.com/ for profile image path
 
 
 TODO do everything in authentication as transaction
-TODO Increase refresh token expiry date (look in oauth docs for strict guidlines)
+TODO add global logger to see all kinds of logs
+TODO Implemetnt free logger monitoring service and use winston maybe ??
 
 TODO visual addition to all authentication get requests for success and failure (even for dto errors)
-TODO add global logger to see all kinds of logs
-TODO Implemetn free logger monitoring service and use winston maybe ??
+TODO add beautifull ui for email (I think mailgun has templates research on their admin)
+
 TODO Enable x-forwarded-for (proxy_set_header X-Forwarded-For $remote_addr;)
-
-TODO Implement email service mailgun
-  [ ask toko for downgrading to basic plan, default will force you to pay ]
-  send email for reseting password (message: we have detected credential reuse) - method refreshToken
-  send password,link to user on mail - method recoverPasswordSendVerificationCode and error msg on reuse detection
-  send password,link to user on mail - method sendAccountVerificationCode and error msg on reuse detection
-  check everywhere use globl search for email or mail
-
 TODO Make method where you Blacklist all refresh Token and send event on socket to force log out and delete all token on frontend
-
-
 TODO Index necessary fields in prisma
 TODO Finally when finished just backup this git in drive somewhere delete this todo and update email dont use main
 TODO Used Docker for Postgres and Redis
