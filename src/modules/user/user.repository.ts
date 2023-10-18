@@ -54,6 +54,8 @@ export class UserRepository {
         birthDate: true,
         isOnline: true,
         profileImagePath: true,
+        firstName: true,
+        lastName: true,
       },
     });
   }

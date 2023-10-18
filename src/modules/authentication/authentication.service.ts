@@ -31,9 +31,9 @@ import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-exp
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { RecoverPasswordAttemptCountService } from './modules/recover-password-attempt-count/recover-password-attempt-count.service';
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
-import { RefreshParams, SignInParams, SignUpWithTokenParams } from './authentication.types';
+import { RefreshParams, SignInParams } from './authentication.types';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
-import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto } from './dto';
+import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignUpBodyDto } from './dto';
 import { AuthenticationMailService } from './mail/authenctication-mail.service';
 
 @Injectable()
@@ -56,7 +56,7 @@ export class AuthenticationService {
     private readonly authenticationMailService: AuthenticationMailService,
   ) {}
 
-  async signUpWithToken(res: Response, params: SignUpWithTokenParams, platform: PlatformWrapper): Promise<Response> {
+  async signUpWithToken(res: Response, params: SignUpBodyDto, platform: PlatformWrapper): Promise<Response> {
     if (await this.userService.existsByEmail(params.email)) {
       throw new UnauthorizedException(ExceptionMessageCode.USER_EMAIL_EXISTS);
     }
@@ -67,7 +67,6 @@ export class AuthenticationService {
     const user = await this.userService.create({
       ...otherParams,
       isOnline: false,
-      profileImagePath: null,
     });
 
     await this.userIdentityService.create({

@@ -48,6 +48,8 @@ model User {
   userName  String   @map("user_name") @db.VarChar(255)
   birthDate DateTime @map("birth_date") @db.Timestamptz()
   gender    Gender
+  firstName String   @map("first_name") @db.VarChar(255)
+  lastName  String   @map("lat_name") @db.VarChar(255)
 
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
   socketId         String   @map("socket_id") @db.VarChar(32)
