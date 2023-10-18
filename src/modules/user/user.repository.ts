@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
 import { PrismaService } from '../@global/prisma/prisma.service';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserRepository {
@@ -38,8 +39,10 @@ export class UserRepository {
     return count > 0;
   }
 
-  async createUser(params: CreateUserParams): Promise<User> {
-    return this.prismaService.user.create({ data: params });
+  async createUser(params: CreateUserParams, tx?: PrismaTx): Promise<User> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.user.create({ data: params });
   }
 
   async getById(id: number): Promise<UserWithRelations | null> {
@@ -60,8 +63,10 @@ export class UserRepository {
     });
   }
 
-  async getByIdIncludeIdentity(id: number) {
-    return this.prismaService.user.findFirst({
+  async getByIdIncludeIdentity(id: number, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
+
+    return db.user.findFirst({
       where: { id },
       select: {
         id: true,
@@ -89,13 +94,6 @@ export class UserRepository {
 
     return result?.id ?? null;
   }
-
-  // async updatePasswordById(id: number, newHashedPassword: string) {
-  //   return this.prismaService.user.update({
-  //     where: { id },
-  //     data: { passwordHash: newHashedPassword },
-  //   });
-  // }
 
   async existsById(id: number): Promise<boolean> {
     const count = await this.prismaService.user.count({ where: { id } });

@@ -2,13 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { RefreshToken } from '@prisma/client';
 import { CreateRefreshTokenParams } from './refresh-token.type';
 import { PrismaService } from '../../../@global/prisma/prisma.service';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class RefreshTokenRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async createEntity(params: CreateRefreshTokenParams): Promise<RefreshToken> {
-    return this.prismaService.refreshToken.create({
+  async createEntity(params: CreateRefreshTokenParams, tx?: PrismaTx): Promise<RefreshToken> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.refreshToken.create({
       data: {
         userId: params.userId,
         token: params.token,
@@ -22,17 +25,18 @@ export class RefreshTokenRepository {
     });
   }
 
-  async getByJTI(jti: string): Promise<RefreshToken | null> {
-    return this.prismaService.refreshToken.findFirst({
-      where: { jti },
-    });
+  async getByJTI(jti: string, tx?: PrismaTx): Promise<RefreshToken | null> {
+    const db = tx ? tx : this.prismaService;
+    return db.refreshToken.findFirst({ where: { jti } });
   }
 
-  async deleteById(id: number): Promise<void> {
-    await this.prismaService.refreshToken.deleteMany({ where: { id } });
+  async deleteById(id: number, tx?: PrismaTx): Promise<void> {
+    const db = tx ? tx : this.prismaService;
+    await db.refreshToken.deleteMany({ where: { id } });
   }
 
-  async deleteAllByUserId(userId: number): Promise<void> {
-    await this.prismaService.refreshToken.deleteMany({ where: { userId } });
+  async deleteAllByUserId(userId: number, tx?: PrismaTx): Promise<void> {
+    const db = tx ? tx : this.prismaService;
+    await db.refreshToken.deleteMany({ where: { userId } });
   }
 }

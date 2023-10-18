@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -35,13 +36,21 @@ import { RefreshParams, SignInParams } from './authentication.types';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
 import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignUpBodyDto } from './dto';
 import { AuthenticationMailService } from './mail/authenctication-mail.service';
+import { PrismaService } from '../@global/prisma/prisma.service';
+import { PrismaTx } from '../@global/prisma/prisma.type';
+import { transaction } from '../../common/transaction';
+
+// return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {});
 
 @Injectable()
 export class AuthenticationService {
+  private readonly logger = new Logger(AuthenticationService.name);
+
   constructor(
     @InjectEnv()
     private readonly envService: EnvService,
 
+    private readonly prismaService: PrismaService,
     private readonly cookieService: CookieService,
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
@@ -57,202 +66,240 @@ export class AuthenticationService {
   ) {}
 
   async signUpWithToken(res: Response, params: SignUpBodyDto, platform: PlatformWrapper): Promise<Response> {
-    if (await this.userService.existsByEmail(params.email)) {
-      throw new UnauthorizedException(ExceptionMessageCode.USER_EMAIL_EXISTS);
-    }
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      if (await this.userService.existsByEmail(params.email)) {
+        throw new UnauthorizedException(ExceptionMessageCode.USER_EMAIL_EXISTS);
+      }
 
-    const { password, ...otherParams } = params;
-    const hashedPassword = await bcrypt.hash(password, 10);
+      const { password, ...otherParams } = params;
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await this.userService.create({
-      ...otherParams,
-      isOnline: false,
-    });
+      const user = await this.userService.create(
+        {
+          ...otherParams,
+          isOnline: false,
+        },
+        tx,
+      );
 
-    await this.userIdentityService.create({
-      userId: user.id,
-      password: hashedPassword,
-    });
+      await this.userIdentityService.create(
+        {
+          userId: user.id,
+          password: hashedPassword,
+        },
+        tx,
+      );
 
-    return this.genTokensAndSendResponse({
-      res,
-      platform,
-      isAccountVerified: false,
-      email: user.email,
-      userId: user.id,
+      return this.genTokensAndSendResponse({
+        tx,
+        res,
+        platform,
+        isAccountVerified: false,
+        email: user.email,
+        userId: user.id,
+      });
     });
   }
 
   async signInWithToken(res: Response, params: SignInParams, platform: PlatformWrapper): Promise<Response> {
-    const user = await this.userService.getByEmailIncludeIdentity(params.email);
-    this.userService.validateUser(user, { showNotVerifiedErr: true });
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const user = await this.userService.getByEmailIncludeIdentity(params.email);
+      this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-    const passwordMatches = await bcrypt.compare(params.password, user.userIdentity.password);
+      const passwordMatches = await bcrypt.compare(params.password, user.userIdentity.password);
 
-    if (!passwordMatches) {
-      throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
-    }
+      if (!passwordMatches) {
+        throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+      }
 
-    return this.genTokensAndSendResponse({
-      res,
-      platform,
-      email: user.email,
-      userId: user.id,
-      isAccountVerified: user.userIdentity.isAccountVerified,
+      return this.genTokensAndSendResponse({
+        tx,
+        res,
+        platform,
+        email: user.email,
+        userId: user.id,
+        isAccountVerified: user.userIdentity.isAccountVerified,
+      });
     });
   }
 
   async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {
-    const { oldRefreshTokenString } = params;
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const { oldRefreshTokenString } = params;
 
-    // Decrypt is session is enabled
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+      // Decrypt is session is enabled
+      const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+      const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
 
-    const finalOldRefreshTokenString = isEncryptionSessionActive
-      ? await encryption.aes256gcm.decrypt(oldRefreshTokenString, key)
-      : oldRefreshTokenString;
+      const finalOldRefreshTokenString = isEncryptionSessionActive
+        ? await encryption.aes256gcm.decrypt(oldRefreshTokenString, key)
+        : oldRefreshTokenString;
 
-    if (!finalOldRefreshTokenString) {
-      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-    }
-
-    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(finalOldRefreshTokenString);
-    const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti);
-
-    // validate user existence from token
-    const user = await this.userService.getByIdIncludeIdentity(refreshTokenPayload.userId);
-    this.userService.validateUser(user, { showNotVerifiedErr: true });
-
-    // validate signature only (very important)
-    await this.jwtUtilService.validateRefreshTokenSignatureOnly(finalOldRefreshTokenString);
-
-    // detect refresh token reuse
-    if (!refreshTokenFromDB) {
-      await this.refreshTokenService.deleteAllByUserId(user.id);
-
-      const userIdentity = await this.userIdentityService.getByUserId(user.id);
-
-      // send email for resue detection
-      if (userIdentity.strictMode) {
-        await Promise.all([
-          this.userIdentityService.updateIsLockedById(userIdentity.id, true),
-          this.authenticationMailService.sendReuse(user.email, true),
-        ]);
-      } else {
-        this.authenticationMailService.sendReuse(user.email, false);
+      if (!finalOldRefreshTokenString) {
+        throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
       }
 
-      throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
-    }
+      const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(finalOldRefreshTokenString);
+      const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti, tx);
 
-    // validate fully
-    try {
-      await this.jwtUtilService.validateRefreshToken(finalOldRefreshTokenString, {
-        ...refreshTokenFromDB,
-        exp: parseInt(refreshTokenFromDB.exp),
-        iat: parseInt(refreshTokenFromDB.iat),
+      // validate user existence from token
+      const user = await this.userService.getByIdIncludeIdentity(refreshTokenPayload.userId, tx);
+      this.userService.validateUser(user, { showNotVerifiedErr: true });
+
+      // validate signature only (very important)
+      await this.jwtUtilService.validateRefreshTokenSignatureOnly(finalOldRefreshTokenString);
+
+      // detect refresh token reuse
+      if (!refreshTokenFromDB) {
+        await this.refreshTokenService.deleteAllByUserId(user.id, tx);
+
+        const userIdentity = await this.userIdentityService.getByUserId(user.id, tx);
+
+        // send email for resue detection
+        if (userIdentity.strictMode) {
+          await Promise.all([
+            this.userIdentityService.updateIsLockedById(userIdentity.id, true, tx),
+            this.authenticationMailService.sendReuse(user.email, true),
+          ]);
+        } else {
+          this.authenticationMailService.sendReuse(user.email, false);
+        }
+
+        throw new UnauthorizedException(ExceptionMessageCode.REFRESH_TOKEN_REUSE);
+      }
+
+      // validate fully
+      try {
+        await this.jwtUtilService.validateRefreshToken(finalOldRefreshTokenString, {
+          ...refreshTokenFromDB,
+          exp: parseInt(refreshTokenFromDB.exp),
+          iat: parseInt(refreshTokenFromDB.iat),
+        });
+      } catch (error) {
+        // catch general token expired error, update is used if refresh token is correct and expired
+        if (error instanceof TokenExpiredException) {
+          await this.refreshTokenService.deleteById(refreshTokenFromDB.id, tx);
+          throw new RefreshTokenExpiredException();
+        }
+
+        throw error;
+      }
+
+      return this.genTokensAndSendResponse({
+        tx,
+        res,
+        platform,
+        email: user.email,
+        userId: user.id,
+        isAccountVerified: user.userIdentity.isAccountVerified,
       });
-    } catch (error) {
-      // catch general token expired error, update is used if refresh token is correct and expired
-      if (error instanceof TokenExpiredException) {
-        await this.refreshTokenService.deleteById(refreshTokenFromDB.id);
-        throw new RefreshTokenExpiredException();
-      }
-
-      throw error;
-    }
-
-    return this.genTokensAndSendResponse({
-      res,
-      platform,
-      email: user.email,
-      userId: user.id,
-      isAccountVerified: user.userIdentity.isAccountVerified,
     });
   }
 
   async resetPasswordSend(body: ResetPasswordBodyDto, userId: number): Promise<void> {
-    const { newPassword, oldPassword } = body;
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const { newPassword, oldPassword } = body;
 
-    // we should not let user know that user not exists than user will use this info for password
-    const user = await this.userService.getByIdIncludeIdentity(userId);
-    const passwordMatches = await bcrypt.compare(oldPassword, user.userIdentity.password);
+      // we should not let user know that user not exists than user will use this info for password
+      const user = await this.userService.getByIdIncludeIdentity(userId, tx);
+      const passwordMatches = await bcrypt.compare(oldPassword, user.userIdentity.password);
 
-    if (!passwordMatches) {
-      throw new UnauthorizedException(ExceptionMessageCode.PASSWORD_INVALID);
-    }
-
-    if (oldPassword === newPassword) {
-      throw new UnauthorizedException(ExceptionMessageCode.NEW_PASSWORD_SAME);
-    }
-
-    this.userService.validateUser(user, { showNotVerifiedErr: true });
-
-    const { email } = user;
-    const jti = uuid();
-    const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
-    const newPasswordHashed = await bcrypt.hash(newPassword, 10);
-
-    let resetPassword = await this.resetPasswordService.getByUserId(user.id);
-
-    if (resetPassword) {
-      resetPassword = await this.resetPasswordService.updateById(resetPassword.id, {
-        securityToken,
-        newPassword: newPasswordHashed,
-        jti,
-      });
-    } else {
-      resetPassword = await this.resetPasswordService.create({
-        userId,
-        securityToken,
-        newPassword: newPasswordHashed,
-        jti,
-      });
-    }
-
-    let resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.getByResetPasswordId(resetPassword.id);
-
-    if (!resetPasswordAttemptCount) {
-      resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.create({
-        resetPasswordId: resetPassword.id,
-      });
-    } else {
-      const { count, countIncreaseLastUpdateDate } = resetPasswordAttemptCount;
-      const today = moment();
-
-      if (count < 5) {
-        await this.resetPasswordAttemptCountService.updateById(resetPasswordAttemptCount.id, {
-          count: count + 1,
-          countIncreaseLastUpdateDate: today.toDate(),
-        });
-
-        return;
+      if (!passwordMatches) {
+        throw new UnauthorizedException(ExceptionMessageCode.PASSWORD_INVALID);
       }
 
-      // if attempt is max and one day is not gone by at least throw error
-      // count >= 5 and less then one day passed
-      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
-        throw new ForbiddenException('Please wait for another day to recover password');
+      if (oldPassword === newPassword) {
+        throw new UnauthorizedException(ExceptionMessageCode.NEW_PASSWORD_SAME);
       }
 
-      await this.resetPasswordAttemptCountService.updateById(resetPasswordAttemptCount.id, {
-        count: 0,
-        countIncreaseLastUpdateDate: today.toDate(),
-      });
-    }
+      this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-    // send backend url on email for backend to confirm
-    const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/reset-password/confirm`;
-    const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
+      const { email } = user;
+      const jti = uuid();
+      const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
+      const newPasswordHashed = await bcrypt.hash(newPassword, 10);
 
-    this.authenticationMailService.sendPasswordReset(
-      user.email,
-      helper.url.create<AuthConfirmQueryDto>(backendUrl, params),
-    );
+      let resetPassword = await this.resetPasswordService.getByUserId(user.id, tx);
+
+      if (resetPassword) {
+        resetPassword = await this.resetPasswordService.updateById(
+          resetPassword.id,
+          {
+            securityToken,
+            newPassword: newPasswordHashed,
+            jti,
+          },
+          tx,
+        );
+      } else {
+        resetPassword = await this.resetPasswordService.create(
+          {
+            userId,
+            securityToken,
+            newPassword: newPasswordHashed,
+            jti,
+          },
+          tx,
+        );
+      }
+
+      let resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.getByResetPasswordId(
+        resetPassword.id,
+        { includeDeleted: false },
+        tx,
+      );
+
+      if (!resetPasswordAttemptCount) {
+        resetPasswordAttemptCount = await this.resetPasswordAttemptCountService.create(
+          { resetPasswordId: resetPassword.id },
+          tx,
+        );
+      } else {
+        const { count, countIncreaseLastUpdateDate } = resetPasswordAttemptCount;
+        const today = moment();
+
+        if (count < 5) {
+          await this.resetPasswordAttemptCountService.updateById(
+            resetPasswordAttemptCount.id,
+            {
+              count: count + 1,
+              countIncreaseLastUpdateDate: today.toDate(),
+            },
+            tx,
+          );
+
+          return;
+        }
+
+        // if attempt is max and one day is not gone by at least throw error
+        // count >= 5 and less then one day passed
+        if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
+          throw new ForbiddenException('Please wait for another day to recover password');
+        }
+
+        await this.resetPasswordAttemptCountService.updateById(
+          resetPasswordAttemptCount.id,
+          {
+            count: 0,
+            countIncreaseLastUpdateDate: today.toDate(),
+          },
+          tx,
+        );
+      }
+
+      // send backend url on email for backend to confirm
+      const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/reset-password/confirm`;
+      const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
+
+      this.authenticationMailService.sendPasswordReset(
+        user.email,
+        helper.url.create<AuthConfirmQueryDto>(backendUrl, params),
+      );
+    });
   }
 
   async recoverPasswordSend(email: string): Promise<void> {
+    //TODO resume here
     const user = await this.userService.getByEmailIncludeIdentity(email);
     this.userService.validateUser(user, { showNotVerifiedErr: true });
 
@@ -599,8 +646,9 @@ export class AuthenticationService {
     email: string;
     platform: PlatformWrapper;
     isAccountVerified: boolean;
+    tx?: PrismaTx;
   }): Promise<Response> {
-    const { platform, res, isAccountVerified, email, userId } = params;
+    const { platform, res, isAccountVerified, email, userId, tx } = params;
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtUtilService.genAccessToken({ userId, email }),
@@ -612,10 +660,10 @@ export class AuthenticationService {
     const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
     const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
 
-    const [finalAccessToken, finalRefreshToken] = await Promise.all([
+    const [finalAccessToken, finalRefreshToken, x] = await Promise.all([
       isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(accessToken, key) : accessToken,
       isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(refreshToken, key) : refreshToken,
-      this.refreshTokenService.addRefreshTokenByUserId({ ...refreshTokenPayload, token: refreshToken }),
+      this.refreshTokenService.addRefreshTokenByUserId({ ...refreshTokenPayload, token: refreshToken }, tx),
     ]);
 
     if (platform.isWeb()) {

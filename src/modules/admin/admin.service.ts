@@ -27,7 +27,7 @@ export class AdminService {
       ]);
 
       // last
-      tx.user.deleteMany({ where: { id: userId } });
+      await tx.user.deleteMany({ where: { id: userId } });
     });
   }
 

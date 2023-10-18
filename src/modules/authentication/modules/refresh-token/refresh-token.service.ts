@@ -2,24 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { RefreshToken } from '@prisma/client';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { CreateRefreshTokenParams } from './refresh-token.type';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class RefreshTokenService {
   constructor(private readonly refreshTokenRepository: RefreshTokenRepository) {}
 
-  async getByJTI(id: string): Promise<RefreshToken | null> {
-    return this.refreshTokenRepository.getByJTI(id);
+  async getByJTI(id: string, tx?: PrismaTx): Promise<RefreshToken | null> {
+    return this.refreshTokenRepository.getByJTI(id, tx);
   }
 
-  async deleteAllByUserId(userId: number): Promise<void> {
-    return this.refreshTokenRepository.deleteAllByUserId(userId);
+  async deleteAllByUserId(userId: number, tx?: PrismaTx): Promise<void> {
+    return this.refreshTokenRepository.deleteAllByUserId(userId, tx);
   }
 
-  async addRefreshTokenByUserId(params: CreateRefreshTokenParams) {
-    await this.refreshTokenRepository.createEntity(params);
+  async addRefreshTokenByUserId(params: CreateRefreshTokenParams, tx?: PrismaTx): Promise<RefreshToken> {
+    return this.refreshTokenRepository.createEntity(params, tx);
   }
 
-  async deleteById(id: number): Promise<void> {
-    await this.refreshTokenRepository.deleteById(id);
+  async deleteById(id: number, tx?: PrismaTx): Promise<void> {
+    await this.refreshTokenRepository.deleteById(id, tx);
   }
 }

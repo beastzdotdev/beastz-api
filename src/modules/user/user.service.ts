@@ -6,6 +6,7 @@ import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../exceptions/user-locked.exception';
 import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.types';
 import { random } from '../../common/random';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserService {
@@ -25,10 +26,10 @@ export class UserService {
     return this.userRepository.existsByEmail(email);
   }
 
-  async create(params: Omit<CreateUserParams, 'socketId'>): Promise<UserWithRelations> {
+  async create(params: Omit<CreateUserParams, 'socketId'>, tx?: PrismaTx): Promise<UserWithRelations> {
     const socketId = random.generateRandomHEX(32);
 
-    return this.userRepository.createUser({ ...params, socketId });
+    return this.userRepository.createUser({ ...params, socketId }, tx);
   }
 
   async getById(id: number): Promise<UserWithRelations> {
@@ -41,8 +42,8 @@ export class UserService {
     return user;
   }
 
-  async getByIdIncludeIdentity(id: number): Promise<UserIncludeIdentity> {
-    const user = await this.userRepository.getByIdIncludeIdentity(id);
+  async getByIdIncludeIdentity(id: number, tx?: PrismaTx): Promise<UserIncludeIdentity> {
+    const user = await this.userRepository.getByIdIncludeIdentity(id, tx);
 
     if (!user || !user.userIdentity) {
       throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);

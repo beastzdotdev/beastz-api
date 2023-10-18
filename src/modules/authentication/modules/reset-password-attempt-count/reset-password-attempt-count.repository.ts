@@ -3,15 +3,17 @@ import { Injectable } from '@nestjs/common';
 import { ResetPasswordAttemptCount } from '@prisma/client';
 import { PrismaService } from '../../../@global/prisma/prisma.service';
 import { ResetPasswordAttemptCountCreate, ResetPasswordAttemptCountUpdate } from './reset-password-attempt-count.type';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class ResetPasswordAttemptCountRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(params: ResetPasswordAttemptCountCreate): Promise<ResetPasswordAttemptCount> {
+  async create(params: ResetPasswordAttemptCountCreate, tx?: PrismaTx): Promise<ResetPasswordAttemptCount> {
+    const db = tx ? tx : this.prismaService;
     const { resetPasswordId } = params;
 
-    return this.prismaService.resetPasswordAttemptCount.create({
+    return db.resetPasswordAttemptCount.create({
       data: {
         resetPasswordId,
       },
@@ -21,8 +23,10 @@ export class ResetPasswordAttemptCountRepository {
   async getByResetPasswordId(
     resetPasswordId: number,
     flags?: { includeDeleted?: boolean },
+    tx?: PrismaTx,
   ): Promise<ResetPasswordAttemptCount | null> {
-    return this.prismaService.resetPasswordAttemptCount.findUnique({
+    const db = tx ? tx : this.prismaService;
+    return db.resetPasswordAttemptCount.findUnique({
       where: {
         resetPasswordId,
         ...(flags && flags.includeDeleted ? {} : { deletedAt: null }),
@@ -30,10 +34,15 @@ export class ResetPasswordAttemptCountRepository {
     });
   }
 
-  async updateById(id: number, params: ResetPasswordAttemptCountUpdate): Promise<ResetPasswordAttemptCount | null> {
+  async updateById(
+    id: number,
+    params: ResetPasswordAttemptCountUpdate,
+    tx?: PrismaTx,
+  ): Promise<ResetPasswordAttemptCount | null> {
+    const db = tx ? tx : this.prismaService;
     const { count, countIncreaseLastUpdateDate } = params;
 
-    return this.prismaService.resetPasswordAttemptCount.update({
+    return db.resetPasswordAttemptCount.update({
       where: {
         id,
       },
@@ -44,8 +53,9 @@ export class ResetPasswordAttemptCountRepository {
     });
   }
 
-  async softDelete(id: number) {
-    return this.prismaService.resetPasswordAttemptCount.update({
+  async softDelete(id: number, tx?: PrismaTx): Promise<ResetPasswordAttemptCount> {
+    const db = tx ? tx : this.prismaService;
+    return db.resetPasswordAttemptCount.update({
       where: { id },
       data: { deletedAt: moment().toDate() },
     });

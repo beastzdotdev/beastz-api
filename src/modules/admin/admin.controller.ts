@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Param, ParseBoolPipe, ParseIntPipe, Put } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
 
+//TODO admin roles
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
@@ -14,6 +16,7 @@ export class AdminController {
     };
   }
 
+  @NoEmailVerifyValidate()
   @Delete('user/:id')
   async deleteUserInfo(@Param('id', ParseIntPipe) id: number) {
     const affected = await this.adminService.deleteUserInfo(id);

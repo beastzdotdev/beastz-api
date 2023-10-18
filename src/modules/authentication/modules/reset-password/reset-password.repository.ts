@@ -3,15 +3,17 @@ import { Injectable } from '@nestjs/common';
 import { ResetPassword } from '@prisma/client';
 import { PrismaService } from '../../../@global/prisma/prisma.service';
 import { CreateResetPasswordParams, UpdateResetPasswordParams } from './reset-password.type';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class ResetPasswordRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(params: CreateResetPasswordParams): Promise<ResetPassword> {
+  async create(params: CreateResetPasswordParams, tx?: PrismaTx): Promise<ResetPassword> {
+    const db = tx ? tx : this.prismaService;
     const { securityToken, userId, newPassword, jti } = params;
 
-    return this.prismaService.resetPassword.create({
+    return db.resetPassword.create({
       data: {
         securityToken,
         userId,
@@ -21,8 +23,9 @@ export class ResetPasswordRepository {
     });
   }
 
-  async getById(id: number): Promise<ResetPassword | null> {
-    return this.prismaService.resetPassword.findFirst({
+  async getById(id: number, tx?: PrismaTx): Promise<ResetPassword | null> {
+    const db = tx ? tx : this.prismaService;
+    return db.resetPassword.findFirst({
       where: {
         id,
         deletedAt: null,
@@ -30,16 +33,18 @@ export class ResetPasswordRepository {
     });
   }
 
-  async getByJTI(jti: string): Promise<ResetPassword | null> {
-    return this.prismaService.resetPassword.findFirst({
+  async getByJTI(jti: string, tx?: PrismaTx): Promise<ResetPassword | null> {
+    const db = tx ? tx : this.prismaService;
+    return db.resetPassword.findFirst({
       where: {
         jti,
       },
     });
   }
 
-  async getByUserId(userId: number): Promise<ResetPassword | null> {
-    return this.prismaService.resetPassword.findFirst({
+  async getByUserId(userId: number, tx?: PrismaTx): Promise<ResetPassword | null> {
+    const db = tx ? tx : this.prismaService;
+    return db.resetPassword.findFirst({
       where: {
         userId,
         deletedAt: null,
@@ -47,8 +52,9 @@ export class ResetPasswordRepository {
     });
   }
 
-  async updateById(id: number, params: UpdateResetPasswordParams): Promise<ResetPassword | null> {
-    const entity = await this.prismaService.resetPassword.findUnique({
+  async updateById(id: number, params: UpdateResetPasswordParams, tx?: PrismaTx): Promise<ResetPassword | null> {
+    const db = tx ? tx : this.prismaService;
+    const entity = await db.resetPassword.findUnique({
       where: {
         id,
         deletedAt: null,
@@ -59,14 +65,15 @@ export class ResetPasswordRepository {
       return null;
     }
 
-    return this.prismaService.resetPassword.update({
+    return db.resetPassword.update({
       where: { id },
       data: { ...entity, ...params },
     });
   }
 
-  async softDelete(id: number) {
-    return this.prismaService.resetPassword.update({
+  async softDelete(id: number, tx?: PrismaTx): Promise<ResetPassword> {
+    const db = tx ? tx : this.prismaService;
+    return db.resetPassword.update({
       where: { id },
       data: { deletedAt: moment().toDate() },
     });
