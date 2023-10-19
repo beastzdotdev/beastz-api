@@ -77,7 +77,7 @@ export class AuthenticationService {
       const user = await this.userService.create(
         {
           ...otherParams,
-          isOnline: false,
+          uuid: uuid(),
         },
         tx,
       );

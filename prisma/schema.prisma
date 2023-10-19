@@ -42,17 +42,17 @@ enum LegalDocumentType {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  isOnline  Boolean  @default(false) @map("is_online")
+  id   Int    @id @default(autoincrement())
+  uuid String @map("uuid") @db.Uuid
+
   email     String   @unique @db.VarChar(255)
   userName  String   @map("user_name") @db.VarChar(255)
   birthDate DateTime @map("birth_date") @db.Timestamptz()
   gender    Gender
   firstName String   @map("first_name") @db.VarChar(255)
-  lastName  String   @map("lat_name") @db.VarChar(255)
+  lastName  String   @map("last_name") @db.VarChar(255)
 
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  socketId         String   @map("socket_id") @db.VarChar(32)
   profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
 
   userIdentity         UserIdentity?
@@ -63,6 +63,7 @@ model User {
   resetPasswords       ResetPassword[]
 
   @@index([email])
+  @@index([uuid], type: BTree)
   @@map("users")
 }
 
