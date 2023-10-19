@@ -3,15 +3,17 @@ import { Injectable } from '@nestjs/common';
 import { AccountVerificationAttemptCount } from '@prisma/client';
 import { PrismaService } from '../../../@global/prisma/prisma.service';
 import { AccVerifyAttemptCountCreate, AccVerifyAttemptCountUpdate } from './account-verification-attempt-count.type';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class AccountVerificationAttemptCountRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(params: AccVerifyAttemptCountCreate): Promise<AccountVerificationAttemptCount> {
+  async create(params: AccVerifyAttemptCountCreate, tx?: PrismaTx): Promise<AccountVerificationAttemptCount> {
+    const db = tx ? tx : this.prismaService;
     const { accountVerificationId } = params;
 
-    return this.prismaService.accountVerificationAttemptCount.create({
+    return db.accountVerificationAttemptCount.create({
       data: {
         accountVerificationId,
       },
@@ -20,8 +22,11 @@ export class AccountVerificationAttemptCountRepository {
   async getByAccVerifyId(
     accountVerificationId: number,
     flags?: { includeDeleted?: boolean },
+    tx?: PrismaTx,
   ): Promise<AccountVerificationAttemptCount | null> {
-    return this.prismaService.accountVerificationAttemptCount.findUnique({
+    const db = tx ? tx : this.prismaService;
+
+    return db.accountVerificationAttemptCount.findUnique({
       where: {
         accountVerificationId,
         ...(flags && flags.includeDeleted ? {} : { deletedAt: null }),
@@ -29,10 +34,15 @@ export class AccountVerificationAttemptCountRepository {
     });
   }
 
-  async updateById(id: number, params: AccVerifyAttemptCountUpdate): Promise<AccountVerificationAttemptCount | null> {
+  async updateById(
+    id: number,
+    params: AccVerifyAttemptCountUpdate,
+    tx?: PrismaTx,
+  ): Promise<AccountVerificationAttemptCount | null> {
+    const db = tx ? tx : this.prismaService;
     const { count, countIncreaseLastUpdateDate } = params;
 
-    return this.prismaService.accountVerificationAttemptCount.update({
+    return db.accountVerificationAttemptCount.update({
       where: {
         id,
       },
@@ -43,8 +53,10 @@ export class AccountVerificationAttemptCountRepository {
     });
   }
 
-  async softDelete(id: number) {
-    return this.prismaService.accountVerificationAttemptCount.update({
+  async softDelete(id: number, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
+
+    return db.accountVerificationAttemptCount.update({
       where: { id },
       data: { deletedAt: moment().toDate() },
     });

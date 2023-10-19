@@ -23,8 +23,9 @@ export class UserIdentityRepository {
     return db.userIdentity.create({ data: params });
   }
 
-  async updatePasswordById(id: number, newHashedPassword: string) {
-    return this.prismaService.userIdentity.update({
+  async updatePasswordById(id: number, newHashedPassword: string, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
+    return db.userIdentity.update({
       where: { id },
       data: { password: newHashedPassword },
     });
@@ -39,8 +40,10 @@ export class UserIdentityRepository {
     });
   }
 
-  async updateIsAccVerified(userId: number, isAccountVerified: boolean) {
-    return this.prismaService.userIdentity.update({
+  async updateIsAccVerified(userId: number, isAccountVerified: boolean, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
+
+    return db.userIdentity.update({
       where: { userId },
       data: { isAccountVerified },
     });

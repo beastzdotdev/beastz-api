@@ -12,8 +12,10 @@ export class UserRepository {
     return this.prismaService.user.findUnique({ where: { email } });
   }
 
-  async getByEmailIncludeIdentity(email: string) {
-    return this.prismaService.user.findUnique({
+  async getByEmailIncludeIdentity(email: string, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
+
+    return db.user.findUnique({
       where: { email },
       select: {
         id: true,

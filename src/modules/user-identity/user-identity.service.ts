@@ -32,15 +32,15 @@ export class UserIdentityService {
     return this.userIdentityRepository.create(params, tx);
   }
 
-  async updatePasswordById(id: number, newHashedPassword: string) {
-    return this.userIdentityRepository.updatePasswordById(id, newHashedPassword);
+  async updatePasswordById(id: number, newHashedPassword: string, tx?: PrismaTx) {
+    return this.userIdentityRepository.updatePasswordById(id, newHashedPassword, tx);
   }
 
   async updateIsLockedById(id: number, value: boolean, tx?: PrismaTx) {
     return this.userIdentityRepository.updateIsLockedById(id, value, tx);
   }
 
-  async updateIsAccVerified(userId: number, isVerified: boolean) {
-    return this.userIdentityRepository.updateIsAccVerified(userId, isVerified);
+  async updateIsAccVerified(userId: number, isVerified: boolean, tx?: PrismaTx) {
+    return this.userIdentityRepository.updateIsAccVerified(userId, isVerified, tx);
   }
 }

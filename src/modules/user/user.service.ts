@@ -11,8 +11,8 @@ import { PrismaTx } from '../@global/prisma/prisma.type';
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
-  async getByEmailIncludeIdentity(email: string): Promise<UserIncludeIdentity> {
-    const user = await this.userRepository.getByEmailIncludeIdentity(email);
+  async getByEmailIncludeIdentity(email: string, tx?: PrismaTx): Promise<UserIncludeIdentity> {
+    const user = await this.userRepository.getByEmailIncludeIdentity(email, tx);
 
     if (!user || !user.userIdentity) {
       throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);

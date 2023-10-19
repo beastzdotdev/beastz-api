@@ -3,13 +3,16 @@ import { Injectable } from '@nestjs/common';
 import { AccountVerification } from '@prisma/client';
 import { CreateAccountVerificationParams, UpdateAccountVerificationParams } from './account-verification.type';
 import { PrismaService } from '../../../@global/prisma/prisma.service';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class AccountVerificationRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getByUserId(userId: number): Promise<AccountVerification | null> {
-    return this.prismaService.accountVerification.findFirst({
+  async getByUserId(userId: number, tx?: PrismaTx): Promise<AccountVerification | null> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.accountVerification.findFirst({
       where: {
         userId,
         deletedAt: null,
@@ -17,18 +20,21 @@ export class AccountVerificationRepository {
     });
   }
 
-  async getByJTI(jti: string): Promise<AccountVerification | null> {
-    return this.prismaService.accountVerification.findFirst({
+  async getByJTI(jti: string, tx?: PrismaTx): Promise<AccountVerification | null> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.accountVerification.findFirst({
       where: {
         jti,
       },
     });
   }
 
-  async create(params: CreateAccountVerificationParams) {
+  async create(params: CreateAccountVerificationParams, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
     const { securityToken, userId, jti } = params;
 
-    return this.prismaService.accountVerification.create({
+    return db.accountVerification.create({
       data: {
         securityToken,
         userId,
@@ -37,8 +43,10 @@ export class AccountVerificationRepository {
     });
   }
 
-  async updateById(id: number, params: UpdateAccountVerificationParams) {
-    const entity = await this.prismaService.accountVerification.findUnique({
+  async updateById(id: number, params: UpdateAccountVerificationParams, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
+
+    const entity = await db.accountVerification.findUnique({
       where: {
         id,
         deletedAt: null,
@@ -49,14 +57,16 @@ export class AccountVerificationRepository {
       return null;
     }
 
-    return this.prismaService.accountVerification.update({
+    return db.accountVerification.update({
       where: { id },
       data: { ...entity, ...params },
     });
   }
 
-  async softDelete(id: number) {
-    return this.prismaService.accountVerification.update({
+  async softDelete(id: number, tx?: PrismaTx) {
+    const db = tx ? tx : this.prismaService;
+
+    return db.accountVerification.update({
       where: { id },
       data: { deletedAt: moment().toDate() },
     });
