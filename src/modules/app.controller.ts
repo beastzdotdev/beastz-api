@@ -24,8 +24,6 @@ export class AppController {
   @NoAuth()
   @Get('health')
   healthCheck() {
-    throw new BadRequestException('hi');
-    throw new Error('hi');
     return 'ok';
   }
 
