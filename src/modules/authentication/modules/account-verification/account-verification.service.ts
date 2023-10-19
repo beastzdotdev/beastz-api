@@ -3,21 +3,22 @@ import { AccountVerification } from '@prisma/client';
 import { AccountVerificationRepository } from './account-verification.repository';
 import { CreateAccountVerificationParams, UpdateAccountVerificationParams } from './account-verification.type';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class AccountVerificationService {
   constructor(private readonly accountVerificationRepository: AccountVerificationRepository) {}
 
-  async getByUserId(userId: number) {
-    return this.accountVerificationRepository.getByUserId(userId);
+  async getByUserId(userId: number, tx?: PrismaTx) {
+    return this.accountVerificationRepository.getByUserId(userId, tx);
   }
 
-  async getByJTI(jti: string): Promise<AccountVerification | null> {
-    return this.accountVerificationRepository.getByJTI(jti);
+  async getByJTI(jti: string, tx?: PrismaTx): Promise<AccountVerification | null> {
+    return this.accountVerificationRepository.getByJTI(jti, tx);
   }
 
-  async create(params: CreateAccountVerificationParams) {
-    const accountVerification = await this.accountVerificationRepository.create(params);
+  async create(params: CreateAccountVerificationParams, tx?: PrismaTx) {
+    const accountVerification = await this.accountVerificationRepository.create(params, tx);
 
     if (!accountVerification) {
       throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
@@ -26,8 +27,8 @@ export class AccountVerificationService {
     return accountVerification;
   }
 
-  async updateById(id: number, params: UpdateAccountVerificationParams) {
-    const accountVerification = await this.accountVerificationRepository.updateById(id, params);
+  async updateById(id: number, params: UpdateAccountVerificationParams, tx?: PrismaTx) {
+    const accountVerification = await this.accountVerificationRepository.updateById(id, params, tx);
 
     if (!accountVerification) {
       throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
@@ -36,7 +37,7 @@ export class AccountVerificationService {
     return accountVerification;
   }
 
-  async softDelete(id: number) {
-    return this.accountVerificationRepository.softDelete(id);
+  async softDelete(id: number, tx?: PrismaTx) {
+    return this.accountVerificationRepository.softDelete(id, tx);
   }
 }

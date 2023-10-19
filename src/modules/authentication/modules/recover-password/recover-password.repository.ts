@@ -3,15 +3,18 @@ import { Injectable } from '@nestjs/common';
 import { RecoverPassword } from '@prisma/client';
 import { CreateRecoverPasswordParams, UpdateRecoverPasswordParams } from './recover-password.type';
 import { PrismaService } from '../../../@global/prisma/prisma.service';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class RecoverPasswordRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(params: CreateRecoverPasswordParams): Promise<RecoverPassword> {
+  async create(params: CreateRecoverPasswordParams, tx?: PrismaTx): Promise<RecoverPassword> {
+    const db = tx ? tx : this.prismaService;
+
     const { securityToken, userId, newPassword, jti } = params;
 
-    return this.prismaService.recoverPassword.create({
+    return db.recoverPassword.create({
       data: {
         securityToken,
         userId,
@@ -21,8 +24,10 @@ export class RecoverPasswordRepository {
     });
   }
 
-  async getById(id: number): Promise<RecoverPassword | null> {
-    return this.prismaService.recoverPassword.findFirst({
+  async getById(id: number, tx?: PrismaTx): Promise<RecoverPassword | null> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.recoverPassword.findFirst({
       where: {
         id,
         deletedAt: null,
@@ -30,25 +35,28 @@ export class RecoverPasswordRepository {
     });
   }
 
-  async getByJTI(jti: string): Promise<RecoverPassword | null> {
-    return this.prismaService.recoverPassword.findFirst({
+  async getByJTI(jti: string, tx?: PrismaTx): Promise<RecoverPassword | null> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.recoverPassword.findFirst({
       where: {
         jti,
       },
     });
   }
 
-  async getByUserId(userId: number): Promise<RecoverPassword | null> {
-    return this.prismaService.recoverPassword.findFirst({
-      where: {
-        userId,
-        deletedAt: null,
-      },
+  async getByUserId(userId: number, tx?: PrismaTx): Promise<RecoverPassword | null> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.recoverPassword.findFirst({
+      where: { userId, deletedAt: null },
     });
   }
 
-  async updateById(id: number, params: UpdateRecoverPasswordParams): Promise<RecoverPassword | null> {
-    const entity = await this.prismaService.recoverPassword.findUnique({
+  async updateById(id: number, params: UpdateRecoverPasswordParams, tx?: PrismaTx): Promise<RecoverPassword | null> {
+    const db = tx ? tx : this.prismaService;
+
+    const entity = await db.recoverPassword.findUnique({
       where: {
         id,
         deletedAt: null,
@@ -59,14 +67,16 @@ export class RecoverPasswordRepository {
       return null;
     }
 
-    return this.prismaService.recoverPassword.update({
+    return db.recoverPassword.update({
       where: { id },
       data: { ...entity, ...params },
     });
   }
 
-  async softDelete(id: number) {
-    return this.prismaService.recoverPassword.update({
+  async softDelete(id: number, tx?: PrismaTx): Promise<RecoverPassword> {
+    const db = tx ? tx : this.prismaService;
+
+    return db.recoverPassword.update({
       where: { id },
       data: { deletedAt: moment().toDate() },
     });

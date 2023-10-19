@@ -3,17 +3,18 @@ import { ResetPassword } from '@prisma/client';
 import { ResetPasswordRepository } from './reset-password.repository';
 import { CreateResetPasswordParams, UpdateResetPasswordParams } from './reset-password.type';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class ResetPasswordService {
   constructor(private readonly resetPasswordRepository: ResetPasswordRepository) {}
 
-  async create(params: CreateResetPasswordParams): Promise<ResetPassword> {
-    return this.resetPasswordRepository.create(params);
+  async create(params: CreateResetPasswordParams, tx?: PrismaTx): Promise<ResetPassword> {
+    return this.resetPasswordRepository.create(params, tx);
   }
 
-  async getById(id: number): Promise<ResetPassword> {
-    const resetPassword = await this.resetPasswordRepository.getById(id);
+  async getById(id: number, tx?: PrismaTx): Promise<ResetPassword> {
+    const resetPassword = await this.resetPasswordRepository.getById(id, tx);
 
     if (!resetPassword) {
       throw new NotFoundException(ExceptionMessageCode.RESET_PASSWORD_REQUEST_NOT_FOUND);
@@ -22,16 +23,16 @@ export class ResetPasswordService {
     return resetPassword;
   }
 
-  async getByJTI(jti: string): Promise<ResetPassword | null> {
-    return this.resetPasswordRepository.getByJTI(jti);
+  async getByJTI(jti: string, tx?: PrismaTx): Promise<ResetPassword | null> {
+    return this.resetPasswordRepository.getByJTI(jti, tx);
   }
 
-  async getByUserId(userId: number): Promise<ResetPassword | null> {
-    return this.resetPasswordRepository.getByUserId(userId);
+  async getByUserId(userId: number, tx?: PrismaTx): Promise<ResetPassword | null> {
+    return this.resetPasswordRepository.getByUserId(userId, tx);
   }
 
-  async updateById(id: number, params: UpdateResetPasswordParams): Promise<ResetPassword> {
-    const resetPassword = await this.resetPasswordRepository.updateById(id, params);
+  async updateById(id: number, params: UpdateResetPasswordParams, tx?: PrismaTx): Promise<ResetPassword> {
+    const resetPassword = await this.resetPasswordRepository.updateById(id, params, tx);
 
     if (!resetPassword) {
       throw new NotFoundException(ExceptionMessageCode.RESET_PASSWORD_REQUEST_NOT_FOUND);
@@ -40,7 +41,7 @@ export class ResetPasswordService {
     return resetPassword;
   }
 
-  async softDelete(id: number) {
-    return this.resetPasswordRepository.softDelete(id);
+  async softDelete(id: number, tx?: PrismaTx) {
+    return this.resetPasswordRepository.softDelete(id, tx);
   }
 }
