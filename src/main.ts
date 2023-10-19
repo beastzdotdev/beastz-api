@@ -11,7 +11,7 @@ import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 
-NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
+NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true }).then(async app => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
   const logger = new Logger('Main logger');
 

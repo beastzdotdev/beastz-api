@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { NoAuth } from '../decorator/no-auth.decorator';
 import { MailService } from './@global/mail/mail.service';
@@ -24,6 +24,8 @@ export class AppController {
   @NoAuth()
   @Get('health')
   healthCheck() {
+    throw new BadRequestException('hi');
+    throw new Error('hi');
     return 'ok';
   }
 

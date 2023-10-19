@@ -1,4 +1,4 @@
-import { APP_PIPE, APP_GUARD } from '@nestjs/core';
+import { APP_PIPE, APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { EnvModule } from './@global/env/env.module';
 import { PrismaModule } from './@global/prisma/prisma.module';
@@ -14,6 +14,7 @@ import { FeedbackModule } from './feedback/feedback.module';
 import { LegalDocumentModule } from './legal-document/legal-document.module';
 import { AdminModule } from './admin/admin.module';
 import { MailModule } from './@global/mail/mail.module';
+import { AllExceptionsFilter } from '../filters/all-exception.filter';
 
 @Module({
   imports: [
@@ -42,6 +43,10 @@ import { MailModule } from './@global/mail/mail.module';
     {
       provide: APP_GUARD,
       useClass: VerifiedEmailGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
   ],
 })
