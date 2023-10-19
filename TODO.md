@@ -8,7 +8,6 @@ TODO PKCE add in both backend and frontend
 
 
 
-TODO do everything in authentication as transaction
 TODO add global logger to see all kinds of logs
 
 TODO visual addition to all authentication get requests for success and failure (even for dto errors)
