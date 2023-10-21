@@ -26,12 +26,16 @@ export class CookieService {
   public createCookie(res: Response, params: { accessToken?: string; refreshToken?: string }): void {
     const { accessToken, refreshToken } = params;
 
-    const cookieOptions: CookieOptions = {
-      httpOnly: true,
-      sameSite: true,
-    };
+    const cookieOptions: CookieOptions = {};
+
+    if (this.envService.isDev()) {
+      cookieOptions.sameSite = 'none';
+      cookieOptions.secure = true;
+    }
 
     if (this.envService.isProd()) {
+      cookieOptions.httpOnly = true;
+      cookieOptions.sameSite = true;
       cookieOptions.domain = this.envService.get('FRONTEND_URL');
     }
 
