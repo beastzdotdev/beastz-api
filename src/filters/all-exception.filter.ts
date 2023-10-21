@@ -23,11 +23,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const path = httpAdapter.getRequestUrl(ctx.getRequest());
     const isDev = this.envService.isDev();
-    const error = exception as ImportantExceptionBody;
 
     let errorBody: AllExceptionBody;
 
     if (exception instanceof HttpException) {
+      const error = exception.getResponse() as ImportantExceptionBody;
+
       const code =
         exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
           ? ExceptionMessageCode.INTERNAL_ERROR
