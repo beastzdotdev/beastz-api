@@ -46,7 +46,7 @@ export class AuthGuard implements CanActivate {
     let accessToken: string | undefined;
 
     if (platform.isWeb()) {
-      accessToken = request.cookies[constants.COOKIE_ACCESS_NAME];
+      accessToken = request.signedCookies[constants.COOKIE_ACCESS_NAME];
     }
 
     if (platform.isMobile()) {

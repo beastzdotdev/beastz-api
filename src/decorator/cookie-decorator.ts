@@ -12,7 +12,7 @@ export const CookieStrict = createParamDecorator((params: CookieStrictParams, ct
   const { cookieName, cls, message } = params;
 
   const request = ctx.switchToHttp().getRequest<Request>();
-  const cookie = request.cookies?.[cookieName];
+  const cookie = request.signedCookies?.[cookieName];
 
   const finalMessage = message ?? `Cookie named ${cookieName} not found`;
   const finalClass = cls ?? BadRequestException;
@@ -26,6 +26,6 @@ export const CookieStrict = createParamDecorator((params: CookieStrictParams, ct
 
 export const Cookie = createParamDecorator((cookieName: string, ctx: ExecutionContext) => {
   const request = ctx.switchToHttp().getRequest<Request>();
-  const cookie = request.cookies?.[cookieName];
+  const cookie = request.signedCookies?.[cookieName];
   return cookie;
 });

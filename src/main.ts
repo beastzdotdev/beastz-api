@@ -24,7 +24,7 @@ NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true }).then
   app.set('trust proxy', true);
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ limit: '50mb', extended: true }));
-  app.use(cookieParser());
+  app.use(cookieParser(envService.get('COOKIE_SECRET')));
   app.use(helmet());
 
   await app.listen(envService.get('PORT'));

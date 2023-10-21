@@ -26,7 +26,9 @@ export class CookieService {
   public createCookie(res: Response, params: { accessToken?: string; refreshToken?: string }): void {
     const { accessToken, refreshToken } = params;
 
-    const cookieOptions: CookieOptions = {};
+    const cookieOptions: CookieOptions = {
+      signed: true,
+    };
 
     if (this.envService.isDev()) {
       cookieOptions.sameSite = 'none';
@@ -36,6 +38,7 @@ export class CookieService {
     if (this.envService.isProd()) {
       cookieOptions.httpOnly = true;
       cookieOptions.sameSite = true;
+      cookieOptions.secure = true;
       cookieOptions.domain = this.envService.get('FRONTEND_URL');
     }
 

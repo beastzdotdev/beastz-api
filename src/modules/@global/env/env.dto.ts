@@ -35,6 +35,10 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
+  COOKIE_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
   MAIL_DOMAIN: string;
 
   @IsNotEmpty()

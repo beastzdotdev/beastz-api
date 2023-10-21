@@ -28,8 +28,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let errorBody: AllExceptionBody;
 
     if (exception instanceof HttpException) {
+      const code =
+        exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
+          ? ExceptionMessageCode.INTERNAL_ERROR
+          : error?.messageCode ?? ExceptionMessageCode.HTTP_EXCEPTION;
+
       errorBody = {
-        code: error?.messageCode ?? ExceptionMessageCode.HTTP_EXCEPTION,
+        code,
         status: exception.getStatus(),
         ...(isDev && { exception, path }),
       };
