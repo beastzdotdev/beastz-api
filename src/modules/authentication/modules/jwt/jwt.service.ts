@@ -52,13 +52,7 @@ export class JwtService {
         issuer: constants.JWT_ISSUER,
         subject: sub,
       },
-      err => {
-        if (err instanceof jwt.TokenExpiredError) {
-          throw new ForbiddenException(ExceptionMessageCode.EXPIRED_TOKEN);
-        }
-
-        this.jwtVerifyError(err);
-      },
+      this.jwtVerifyError,
     );
   }
 

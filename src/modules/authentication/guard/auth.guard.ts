@@ -21,6 +21,8 @@ import { UserLockedException } from '../../../exceptions/user-locked.exception';
 import { InjectEnv } from '../../@global/env/env.decorator';
 import { EnvService } from '../../@global/env/env.service';
 import { encryption } from '../../../common/encryption';
+import { AccessTokenExpiredException } from '../../../exceptions/access-token-expired.exception';
+import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -80,11 +82,20 @@ export class AuthGuard implements CanActivate {
       throw new UserLockedException();
     }
 
-    await this.jwtUtilService.validateAccessToken(finalAccessToken, {
-      platform: platform.getPlatform(),
-      sub: user.email,
-      userId: user.id,
-    });
+    try {
+      await this.jwtUtilService.validateAccessToken(finalAccessToken, {
+        platform: platform.getPlatform(),
+        sub: user.email,
+        userId: user.id,
+      });
+    } catch (error) {
+      // catch general token expired error, update is used if access token is correct and expired
+      if (error instanceof TokenExpiredException) {
+        throw new AccessTokenExpiredException();
+      }
+
+      throw error;
+    }
 
     request.user = user;
     request.platform = platform;
