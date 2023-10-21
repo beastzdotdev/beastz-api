@@ -29,7 +29,7 @@ export class AuthPlatformHeaderGuard implements CanActivate {
     }
 
     if (!enumValueIncludes(PlatformForJwt, platform)) {
-      throw new ForbiddenException(`Incorrect header "${constants.PLATFORM_HEADER_NAME}"`);
+      throw new ForbiddenException(`Missing header/value "${constants.PLATFORM_HEADER_NAME}"`);
     }
 
     request.platform = new PlatformWrapper(platform);

@@ -96,25 +96,27 @@ export class AuthGuard implements CanActivate {
     const authorizationHeader =
       <string>request.headers[constants.AUTH_HEADER_NAME.toLowerCase()] ||
       <string>request.headers[constants.AUTH_HEADER_NAME];
-    const platform = request.headers?.[constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
+    const platformValue = request.headers?.[constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
 
-    if (!platform) {
+    if (!platformValue) {
       throw new BadRequestException(`Header missing "${constants.PLATFORM_HEADER_NAME}"`);
     }
 
-    if (!enumValueIncludes(PlatformForJwt, platform)) {
-      throw new BadRequestException(`Incorrect header "${constants.PLATFORM_HEADER_NAME}"`);
+    if (!enumValueIncludes(PlatformForJwt, platformValue)) {
+      throw new BadRequestException(`Missing header/value "${constants.PLATFORM_HEADER_NAME}"`);
     }
 
-    if (!authorizationHeader) {
+    const platform = new PlatformWrapper(platformValue);
+
+    if (platform.isMobile() && !authorizationHeader) {
       throw new UnauthorizedException(
-        `Incorrect header "${constants.AUTH_HEADER_NAME}" or "${constants.AUTH_HEADER_NAME.toLowerCase()}"`,
+        `Missing header/value "${constants.AUTH_HEADER_NAME}" or "${constants.AUTH_HEADER_NAME.toLowerCase()}"`,
       );
     }
 
     return {
       authorizationHeader,
-      platform: new PlatformWrapper(platform),
+      platform: new PlatformWrapper(platformValue),
     };
   }
 }

@@ -42,15 +42,14 @@ export class CookieService {
       cookieOptions.domain = this.envService.get('FRONTEND_URL');
     }
 
-    const accessDate = moment().add(this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'), 'seconds').toDate();
-    const refreshDate = moment().add(this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'), 'seconds').toDate();
+    const expires = moment().add(10, 'year').toDate();
 
     if (accessToken) {
-      res.cookie(constants.COOKIE_ACCESS_NAME, accessToken, { expires: accessDate, ...cookieOptions });
+      res.cookie(constants.COOKIE_ACCESS_NAME, accessToken, { expires, ...cookieOptions });
     }
 
     if (refreshToken) {
-      res.cookie(constants.COOKIE_REFRESH_NAME, refreshToken, { expires: refreshDate, ...cookieOptions });
+      res.cookie(constants.COOKIE_REFRESH_NAME, refreshToken, { expires, ...cookieOptions });
     }
   }
 }
