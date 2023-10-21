@@ -1,12 +1,17 @@
-import moment from 'moment';
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { AllExceptionBody, ImportantExceptionBody } from '../model/exception.type';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
+import { EnvService } from '../modules/@global/env/env.service';
+import { InjectEnv } from '../modules/@global/env/env.decorator';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
+  constructor(
+    @InjectEnv()
+    private readonly envService: EnvService,
+    private readonly httpAdapterHost: HttpAdapterHost,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     console.log(exception);
@@ -16,33 +21,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
 
     const ctx = host.switchToHttp();
-    const httpStatus = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const path = httpAdapter.getRequestUrl(ctx.getRequest());
+    const isDev = this.envService.isDev();
+    const error = exception as ImportantExceptionBody;
 
     let errorBody: AllExceptionBody;
 
     if (exception instanceof HttpException) {
-      const error = exception as unknown as ImportantExceptionBody;
-      const errorResponse = exception.getResponse() as unknown as ImportantExceptionBody;
-
       errorBody = {
-        message: error.message,
-        messageCode: error?.messageCode ?? ExceptionMessageCode.HTTP_EXCEPTION,
-        error: errorResponse.error ?? 'Internal error',
-        statusCode: httpStatus,
-        path: httpAdapter.getRequestUrl(ctx.getRequest()),
-        timestamp: moment().toISOString(),
+        code: error?.messageCode ?? ExceptionMessageCode.HTTP_EXCEPTION,
+        status: exception.getStatus(),
+        ...(isDev && { exception, path }),
       };
     } else {
       errorBody = {
-        message: 'Something went wrong',
-        messageCode: ExceptionMessageCode.INTERNAL_ERROR,
-        error: 'Internal error',
-        statusCode: httpStatus,
-        path: httpAdapter.getRequestUrl(ctx.getRequest()),
-        timestamp: moment().toISOString(),
+        code: ExceptionMessageCode.INTERNAL_ERROR,
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        ...(isDev && { exception, path }),
       };
     }
 
-    httpAdapter.reply(ctx.getResponse(), errorBody, httpStatus);
+    httpAdapter.reply(ctx.getResponse(), errorBody, errorBody.status);
   }
 }

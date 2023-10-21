@@ -5,8 +5,11 @@ export type ImportantExceptionBody = HttpExceptionBody & {
   messageCode?: ExceptionMessageCode;
 };
 
-export type AllExceptionBody = ImportantExceptionBody & {
-  statusCode: number;
-  timestamp: string;
-  path: string;
+export type AllExceptionBody = {
+  code: ExceptionMessageCode;
+  status: number;
+
+  // only on dev enviroment
+  exception?: unknown;
+  path?: string;
 };

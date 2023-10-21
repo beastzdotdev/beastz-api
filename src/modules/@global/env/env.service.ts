@@ -18,4 +18,8 @@ export class EnvService {
   isProd(): boolean {
     return this.get('DEBUG') === EnvironmentType.PROD;
   }
+
+  isDev(): boolean {
+    return this.get('DEBUG') === EnvironmentType.DEV;
+  }
 }

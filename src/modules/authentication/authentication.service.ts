@@ -307,7 +307,8 @@ export class AuthenticationService {
 
       // 4 lowercase, 1 int, 1 symbol
       const newPasswordText =
-        random.genRandStringFromCharset(4, constants.LETTERS_LOWERCASE) +
+        random.genRandStringFromCharset(10, constants.LETTERS_LOWERCASE) +
+        random.generateRandomIntStr(0, 9) +
         random.generateRandomIntStr(0, 9) +
         random.genRandStringFromCharset(1, constants.SYMBOLS);
 
@@ -530,7 +531,7 @@ export class AuthenticationService {
       });
 
       await Promise.all([
-        this.userIdentityService.updatePasswordById(userId, resetPassword.newPassword, tx),
+        this.userIdentityService.updatePasswordById(user.userIdentity.id, resetPassword.newPassword, tx),
         this.resetPasswordService.softDelete(resetPassword.id, tx),
         this.resetPasswordAttemptCountService.softDelete(resetPassword.id, tx),
       ]);
@@ -541,6 +542,9 @@ export class AuthenticationService {
 
   async recoverPasswordConfirm(body: AuthConfirmQueryDto): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      console.log('='.repeat(20));
+      console.log(body);
+
       const { token } = body;
       const { jti, userId } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
 
@@ -602,7 +606,7 @@ export class AuthenticationService {
       });
 
       await Promise.all([
-        this.userIdentityService.updatePasswordById(userId, recoverPassword.newPassword, tx),
+        this.userIdentityService.updatePasswordById(user.userIdentity.id, recoverPassword.newPassword, tx),
         this.recoverPasswordService.softDelete(recoverPassword.id, tx),
         this.recoverPasswordAttemptCountService.softDelete(recoverPassword.id, tx),
       ]);
@@ -703,7 +707,7 @@ export class AuthenticationService {
     const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
     const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
 
-    const [finalAccessToken, finalRefreshToken, x] = await Promise.all([
+    const [finalAccessToken, finalRefreshToken] = await Promise.all([
       isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(accessToken, key) : accessToken,
       isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(refreshToken, key) : refreshToken,
       this.refreshTokenService.addRefreshTokenByUserId({ ...refreshTokenPayload, token: refreshToken }, tx),

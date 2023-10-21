@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { NoAuth } from '../decorator/no-auth.decorator';
 import { MailService } from './@global/mail/mail.service';

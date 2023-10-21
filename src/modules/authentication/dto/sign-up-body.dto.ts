@@ -1,7 +1,6 @@
-import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength } from '@nestjs/class-validator';
 import { Gender } from '@prisma/client';
+import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength } from '@nestjs/class-validator';
 import { Type } from 'class-transformer';
-import { IsOptional } from 'class-validator';
 import { IsEmailCustom } from '../../../decorator/class-validator.decorator';
 import { StrongPassword } from '../../../decorator/strong-password.decorator';
 
