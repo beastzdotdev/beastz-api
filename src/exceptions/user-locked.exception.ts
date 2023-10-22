@@ -3,7 +3,7 @@ import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum'
 import { ImportantExceptionBody } from '../model/exception.type';
 
 /**
- * @description This error can be removed by only admin
+ * @description This error can be removed by client
  */
 export class UserLockedException extends HttpException {
   constructor() {

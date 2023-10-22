@@ -616,6 +616,7 @@ export class AuthenticationService {
 
       await Promise.all([
         this.userIdentityService.updateIsAccVerified(userId, true, tx),
+        this.userIdentityService.updateIsLockedById(userId, false, tx),
         this.accountVerificationService.softDelete(accountVerify.id, tx),
         this.accVerifyAttemptCountService.softDelete(accountVerify.id, tx),
       ]);
