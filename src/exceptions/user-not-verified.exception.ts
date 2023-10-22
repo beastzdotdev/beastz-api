@@ -5,9 +5,9 @@ import { ImportantExceptionBody } from '../model/exception.type';
 export class UserNotVerifiedException extends HttpException {
   constructor() {
     const body: ImportantExceptionBody = {
-      message: 'User not verified, please confirm account',
+      description: 'User not verified, please confirm account',
       statusCode: HttpStatus.FORBIDDEN,
-      messageCode: ExceptionMessageCode.USER_NOT_VERIFIED,
+      message: ExceptionMessageCode.USER_NOT_VERIFIED,
     };
 
     super(body, body.statusCode);

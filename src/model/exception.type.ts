@@ -2,14 +2,15 @@ import { HttpExceptionBody } from '@nestjs/common';
 import { ExceptionMessageCode } from './enum/exception-message-code.enum';
 
 export type ImportantExceptionBody = HttpExceptionBody & {
-  messageCode?: ExceptionMessageCode;
+  description?: string;
 };
 
 export type AllExceptionBody = {
-  code: ExceptionMessageCode;
-  status: number;
+  message: ExceptionMessageCode;
+  statusCode: number;
 
   // only on dev enviroment
   exception?: unknown;
   path?: string;
+  description?: string;
 };

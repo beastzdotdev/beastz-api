@@ -39,8 +39,4 @@ export class SignUpBodyDto {
   @IsString()
   @StrongPassword()
   password: string;
-
-  @IsNotEmpty()
-  @IsString()
-  profileImagePath: string;
 }

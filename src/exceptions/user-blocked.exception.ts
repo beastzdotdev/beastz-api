@@ -8,9 +8,9 @@ import { ImportantExceptionBody } from '../model/exception.type';
 export class UserBlockedException extends HttpException {
   constructor() {
     const body: ImportantExceptionBody = {
-      message: 'User blocked, please contact support to unblock',
+      description: 'User blocked, please contact support to unblock',
       statusCode: HttpStatus.FORBIDDEN,
-      messageCode: ExceptionMessageCode.USER_LOCKED,
+      message: ExceptionMessageCode.USER_LOCKED,
     };
 
     super(body, body.statusCode);

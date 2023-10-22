@@ -5,9 +5,9 @@ import { ImportantExceptionBody } from '../model/exception.type';
 export class RefreshTokenExpiredException extends HttpException {
   constructor() {
     const body: ImportantExceptionBody = {
-      message: 'Refresh token expired',
+      description: 'Refresh token expired',
       statusCode: HttpStatus.UNAUTHORIZED,
-      messageCode: ExceptionMessageCode.REFRESH_EXPIRED_TOKEN,
+      message: ExceptionMessageCode.REFRESH_EXPIRED_TOKEN,
     };
 
     super(body, body.statusCode);

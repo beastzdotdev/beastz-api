@@ -27,6 +27,11 @@ export class AppController {
     return 'ok';
   }
 
+  @Get('secure/health')
+  checkHealthForAuth() {
+    return 'ok';
+  }
+
   @NoAuth()
   @Get('test/mail')
   test(@Query() query: SendMailQueryDto) {

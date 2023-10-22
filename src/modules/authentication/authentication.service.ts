@@ -75,6 +75,7 @@ export class AuthenticationService {
       const user = await this.userService.create(
         {
           ...otherParams,
+          profileImagePath: 'default path on object storage of linode', //TODO after storage add from linode
           uuid: uuid(),
         },
         tx,
@@ -101,7 +102,10 @@ export class AuthenticationService {
 
   async signInWithToken(res: Response, params: SignInParams, platform: PlatformWrapper): Promise<Response> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
-      const user = await this.userService.getByEmailIncludeIdentity(params.email);
+      const user = await this.userService.getByEmailIncludeIdentity(params.email).catch(e => {
+        throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
+      });
+
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
       const passwordMatches = await bcrypt.compare(params.password, user.userIdentity.password);

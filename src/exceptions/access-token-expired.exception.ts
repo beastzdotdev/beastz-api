@@ -5,9 +5,9 @@ import { ImportantExceptionBody } from '../model/exception.type';
 export class AccessTokenExpiredException extends HttpException {
   constructor() {
     const body: ImportantExceptionBody = {
-      message: 'Access token expired',
+      description: 'Access token expired',
       statusCode: HttpStatus.UNAUTHORIZED,
-      messageCode: ExceptionMessageCode.ACCESS_EXPIRED_TOKEN,
+      message: ExceptionMessageCode.ACCESS_EXPIRED_TOKEN,
     };
 
     super(body, body.statusCode);

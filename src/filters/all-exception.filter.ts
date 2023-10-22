@@ -4,6 +4,7 @@ import { AllExceptionBody, ImportantExceptionBody } from '../model/exception.typ
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { EnvService } from '../modules/@global/env/env.service';
 import { InjectEnv } from '../modules/@global/env/env.decorator';
+import { enumValueIncludes } from '../common/helper';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -29,24 +30,50 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const error = exception.getResponse() as ImportantExceptionBody;
 
-      const code =
-        exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR
-          ? ExceptionMessageCode.INTERNAL_ERROR
-          : error?.messageCode ?? ExceptionMessageCode.HTTP_EXCEPTION;
-
       errorBody = {
-        code,
-        status: exception.getStatus(),
-        ...(isDev && { exception, path }),
+        message: this.getMessageAsExceptionMessageCode(error),
+        statusCode: error.statusCode,
+
+        // only on dev
+        ...(isDev && {
+          exception,
+          path,
+          description: error.description,
+        }),
       };
     } else {
       errorBody = {
-        code: ExceptionMessageCode.INTERNAL_ERROR,
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        ...(isDev && { exception, path }),
+        message: ExceptionMessageCode.INTERNAL_ERROR,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+
+        // only on dev
+        ...(isDev && {
+          exception,
+          path,
+          description: 'error',
+        }),
       };
     }
 
-    httpAdapter.reply(ctx.getResponse(), errorBody, errorBody.status);
+    httpAdapter.reply(ctx.getResponse(), errorBody, errorBody.statusCode);
+  }
+
+  private getMessageAsExceptionMessageCode(error: ImportantExceptionBody): ExceptionMessageCode {
+    let message = ExceptionMessageCode.HTTP_EXCEPTION;
+
+    if (error.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+      message = ExceptionMessageCode.INTERNAL_ERROR;
+    }
+
+    if (
+      enumValueIncludes(
+        ExceptionMessageCode,
+        error?.message.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString(),
+      )
+    ) {
+      message = error?.message as ExceptionMessageCode;
+    }
+
+    return message;
   }
 }
