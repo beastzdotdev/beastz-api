@@ -113,7 +113,7 @@ model AccountVerification {
   @@map("account_verifications")
 }
 
-/// This database will be for checking for too many requests if count is 5 and 
+/// This database will be for checking for too many requests if count is {x} and 
 /// {some_amount} of time is not passed yet by checking created_at other insert will be blocked
 /// after successfull verification all column will be deleted
 model AccountVerificationAttemptCount {

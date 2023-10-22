@@ -24,6 +24,8 @@ export const constants = Object.freeze({
 
   ONE_DAY_IN_SEC: 24 * 3600,
 
+  MAX_ATTEMPT_COUNT: 20,
+
   SYMBOLS: '!#$%&*?@',
   LETTERS_LOWERCASE: 'abcdefghijklmnopqrstuvwxyz',
   LETTERS_UPPERCASE: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',

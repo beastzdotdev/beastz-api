@@ -18,7 +18,6 @@ NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true }).then
   app.enableCors({
     credentials: true,
     origin: [envService.get('FRONTEND_URL')],
-    // origin: [envService.get('FRONTEND_URL'), 'http://localhost:5173', 'http://127.0.0.1', 'http://localhost'],
   });
 
   app.enableShutdownHooks();

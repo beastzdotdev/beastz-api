@@ -89,6 +89,8 @@ export class AuthenticationService {
         tx,
       );
 
+      await this.pureAccountVerifySend(user.email, tx);
+
       return this.genTokensAndSendResponse({
         tx,
         res,
@@ -260,7 +262,7 @@ export class AuthenticationService {
         const { count, countIncreaseLastUpdateDate } = resetPasswordAttemptCount;
         const today = moment();
 
-        if (count < 5) {
+        if (count < constants.MAX_ATTEMPT_COUNT) {
           await this.resetPasswordAttemptCountService.updateById(
             resetPasswordAttemptCount.id,
             {
@@ -274,7 +276,7 @@ export class AuthenticationService {
         }
 
         // if attempt is max and one day is not gone by at least throw error
-        // count >= 5 and less then one day passed
+        // count >= {x} and less then one day passed
         if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
           throw new ForbiddenException('Please wait for another day to recover password');
         }
@@ -357,7 +359,7 @@ export class AuthenticationService {
         const { count, countIncreaseLastUpdateDate } = recoverPasswordAttemptCount;
         const today = moment();
 
-        if (count < 5) {
+        if (count < constants.MAX_ATTEMPT_COUNT) {
           await this.recoverPasswordAttemptCountService.updateById(
             recoverPasswordAttemptCount.id,
             {
@@ -371,7 +373,7 @@ export class AuthenticationService {
         }
 
         // if attempt is max and one day is not gone by at least throw error
-        // count >= 5 and less then one day passed
+        // count >= {x} and less then one day passed
         if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
           throw new ForbiddenException('Please wait for another day to recover password');
         }
@@ -400,73 +402,7 @@ export class AuthenticationService {
 
   async accountVerifySend(email: string): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
-      const user = await this.userService.getByEmailIncludeIdentity(email, tx);
-      this.userService.validateUser(user, { showIsVerifiedErr: true });
-
-      const { id: userId } = user;
-      const jti = uuid();
-      const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
-
-      let accountVerify = await this.accountVerificationService.getByUserId(userId, tx);
-
-      if (accountVerify) {
-        accountVerify = await this.accountVerificationService.updateById(accountVerify.id, { securityToken, jti }, tx);
-      } else {
-        accountVerify = await this.accountVerificationService.create({ userId, securityToken, jti }, tx);
-      }
-
-      let accVerifyAttemptCount = await this.accVerifyAttemptCountService.getByAccVerifyId(
-        accountVerify.id,
-        { includeDeleted: false },
-        tx,
-      );
-
-      if (!accVerifyAttemptCount) {
-        accVerifyAttemptCount = await this.accVerifyAttemptCountService.create(
-          { accountVerificationId: accountVerify.id },
-          tx,
-        );
-      } else {
-        const { count, countIncreaseLastUpdateDate } = accVerifyAttemptCount;
-        const today = moment();
-
-        if (count < 5) {
-          await this.accVerifyAttemptCountService.updateById(
-            accVerifyAttemptCount.id,
-            {
-              count: count + 1,
-              countIncreaseLastUpdateDate: today.toDate(),
-            },
-            tx,
-          );
-
-          return;
-        }
-
-        // if attempt is max and one day is not gone by at least throw error
-        // count >= 5 and less then one day passed
-        if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
-          throw new ForbiddenException('Please wait for another day to recover password');
-        }
-
-        await this.accVerifyAttemptCountService.updateById(
-          accVerifyAttemptCount.id,
-          {
-            count: 0,
-            countIncreaseLastUpdateDate: today.toDate(),
-          },
-          tx,
-        );
-      }
-
-      // send backend url on email for backend to confirm
-      const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/account-verify/confirm`;
-      const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
-
-      this.authenticationMailService.sendAccountVerify(
-        user.email,
-        helper.url.create<AuthConfirmQueryDto>(backendUrl, params),
-      );
+      await this.pureAccountVerifySend(email, tx);
     });
   }
 
@@ -546,9 +482,6 @@ export class AuthenticationService {
 
   async recoverPasswordConfirm(body: AuthConfirmQueryDto): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
-      console.log('='.repeat(20));
-      console.log(body);
-
       const { token } = body;
       const { jti, userId } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
 
@@ -689,6 +622,80 @@ export class AuthenticationService {
 
       // show success page and button for redirecting to front end
     });
+  }
+
+  private async pureAccountVerifySend(email: string, outsideTransaction: PrismaTx) {
+    const user = await this.userService.getByEmailIncludeIdentity(email, outsideTransaction);
+    this.userService.validateUser(user, { showIsVerifiedErr: true });
+
+    const { id: userId } = user;
+    const jti = uuid();
+    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
+
+    let accountVerify = await this.accountVerificationService.getByUserId(userId, outsideTransaction);
+
+    if (accountVerify) {
+      accountVerify = await this.accountVerificationService.updateById(
+        accountVerify.id,
+        { securityToken, jti },
+        outsideTransaction,
+      );
+    } else {
+      accountVerify = await this.accountVerificationService.create({ userId, securityToken, jti }, outsideTransaction);
+    }
+
+    let accVerifyAttemptCount = await this.accVerifyAttemptCountService.getByAccVerifyId(
+      accountVerify.id,
+      { includeDeleted: false },
+      outsideTransaction,
+    );
+
+    if (!accVerifyAttemptCount) {
+      accVerifyAttemptCount = await this.accVerifyAttemptCountService.create(
+        { accountVerificationId: accountVerify.id },
+        outsideTransaction,
+      );
+    } else {
+      const { count, countIncreaseLastUpdateDate } = accVerifyAttemptCount;
+      const today = moment();
+
+      if (count < constants.MAX_ATTEMPT_COUNT) {
+        await this.accVerifyAttemptCountService.updateById(
+          accVerifyAttemptCount.id,
+          {
+            count: count + 1,
+            countIncreaseLastUpdateDate: today.toDate(),
+          },
+          outsideTransaction,
+        );
+
+        return;
+      }
+
+      // if attempt is max and one day is not gone by at least throw error
+      // count >= {x} and less then one day passed
+      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
+        throw new ForbiddenException('Please wait for another day to recover password');
+      }
+
+      await this.accVerifyAttemptCountService.updateById(
+        accVerifyAttemptCount.id,
+        {
+          count: 0,
+          countIncreaseLastUpdateDate: today.toDate(),
+        },
+        outsideTransaction,
+      );
+    }
+
+    // send backend url on email for backend to confirm
+    const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/account-verify/confirm`;
+    const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
+
+    this.authenticationMailService.sendAccountVerify(
+      user.email,
+      helper.url.create<AuthConfirmQueryDto>(backendUrl, params),
+    );
   }
 
   private async genTokensAndSendResponse(params: {
