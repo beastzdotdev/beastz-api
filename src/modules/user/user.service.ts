@@ -82,18 +82,6 @@ export class UserService {
     return user;
   }
 
-  // async updateOnlineStatus(id: number, status: boolean) {
-  //   return this.userRepository.updateOnlineStatus(id, status);
-  // }
-
-  // async getUserSocketIdByIds(ids: number[]): Promise<string[]> {
-  //   return this.userRepository.getSocketIdByIds(ids);
-  // }
-
-  // async getSocketIdById(id: number): Promise<string> {
-  //   return (await this.userRepository.getSocketIdById(id)) as string;
-  // }
-
   validateUser(user: UserIncludeIdentity, flags?: ValidateUserForAccVerifyFlags) {
     if (!user) {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);

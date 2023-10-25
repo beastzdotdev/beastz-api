@@ -68,7 +68,7 @@ export class AuthGuard implements CanActivate {
       : accessToken;
 
     if (!finalAccessToken) {
-      throw new UnauthorizedException('Incalid token found');
+      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
     }
 
     const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(finalAccessToken);

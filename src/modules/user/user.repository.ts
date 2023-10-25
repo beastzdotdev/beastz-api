@@ -118,29 +118,4 @@ export class UserRepository {
       },
     });
   }
-
-  // async updateOnlineStatus(id: number, status: boolean) {
-  //   return this.prismaService.user.updateMany({
-  //     where: { id },
-  //     data: { isOnline: status },
-  //   });
-  // }
-
-  // async getSocketIdByIds(ids: number[]): Promise<string[]> {
-  //   const result = await this.prismaService.user.findMany({
-  //     where: { id: { in: ids } },
-  //     select: { socketId: true },
-  //   });
-
-  //   return result.map(e => e.socketId);
-  // }
-
-  // async getSocketIdById(id: number): Promise<string | null> {
-  //   const result = await this.prismaService.user.findUnique({
-  //     where: { id },
-  //     select: { socketId: true },
-  //   });
-
-  //   return result?.socketId ?? null;
-  // }
 }

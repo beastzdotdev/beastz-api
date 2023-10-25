@@ -278,7 +278,7 @@ export class AuthenticationService {
         // if attempt is max and one day is not gone by at least throw error
         // count >= {x} and less then one day passed
         if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
-          throw new ForbiddenException('Please wait for another day to recover password');
+          throw new ForbiddenException(ExceptionMessageCode.WAIT_FOR_ANOTHER_DAY);
         }
 
         await this.resetPasswordAttemptCountService.updateById(
@@ -375,7 +375,7 @@ export class AuthenticationService {
         // if attempt is max and one day is not gone by at least throw error
         // count >= {x} and less then one day passed
         if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
-          throw new ForbiddenException('Please wait for another day to recover password');
+          throw new ForbiddenException(ExceptionMessageCode.WAIT_FOR_ANOTHER_DAY);
         }
 
         await this.recoverPasswordAttemptCountService.updateById(
@@ -676,7 +676,7 @@ export class AuthenticationService {
       // if attempt is max and one day is not gone by at least throw error
       // count >= {x} and less then one day passed
       if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
-        throw new ForbiddenException('Please wait for another day to recover password');
+        throw new ForbiddenException(ExceptionMessageCode.WAIT_FOR_ANOTHER_DAY);
       }
 
       await this.accVerifyAttemptCountService.updateById(

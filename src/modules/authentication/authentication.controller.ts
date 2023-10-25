@@ -30,6 +30,7 @@ import {
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
+import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 
 @UseGuards(AuthPlatformHeaderGuard)
 @Controller('auth')
@@ -71,7 +72,7 @@ export class AuthenticationController {
     refreshToken?: string,
   ): Promise<Response> {
     if (!refreshToken) {
-      throw new UnauthorizedException('Missing token');
+      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
     }
 
     return this.authenticationService.refreshToken(res, { oldRefreshTokenString: refreshToken }, platform);
