@@ -117,24 +117,21 @@ export class AuthenticationController {
   @NoAuth()
   @NoPlatformHeader()
   @Get('reset-password/confirm')
-  async resetPasswordConfirm(@Query() body: AuthConfirmQueryDto): Promise<string> {
-    await this.authenticationService.resetPasswordConfirm(body);
-    return 'ok';
+  async resetPasswordConfirm(@Query() body: AuthConfirmQueryDto, @Res() res: Response): Promise<void> {
+    return this.authenticationService.resetPasswordConfirm(body, res);
   }
 
   @NoAuth()
   @NoPlatformHeader()
   @Get('recover-password/confirm')
-  async recoverPassword(@Query() body: AuthConfirmQueryDto): Promise<string> {
-    await this.authenticationService.recoverPasswordConfirm(body);
-    return 'ok';
+  async recoverPassword(@Query() body: AuthConfirmQueryDto, @Res() res: Response): Promise<void> {
+    return this.authenticationService.recoverPasswordConfirm(body, res);
   }
 
   @NoAuth()
   @NoPlatformHeader()
   @Get('account-verify/confirm')
-  async accountVerificationConfirmCode(@Query() body: AuthConfirmQueryDto): Promise<string> {
-    await this.authenticationService.accountVerificationConfirm(body);
-    return 'ok';
+  async accountVerificationConfirmCode(@Query() body: AuthConfirmQueryDto, @Res() res: Response): Promise<void> {
+    return this.authenticationService.accountVerificationConfirm(body, res);
   }
 }

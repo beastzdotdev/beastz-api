@@ -45,11 +45,18 @@ export class RecoverPasswordRepository {
     });
   }
 
-  async getByUserId(userId: number, tx?: PrismaTx): Promise<RecoverPassword | null> {
+  async getByUserId(
+    userId: number,
+    tx?: PrismaTx,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<RecoverPassword | null> {
     const db = tx ? tx : this.prismaService;
 
     return db.recoverPassword.findFirst({
-      where: { userId, deletedAt: null },
+      where: {
+        userId,
+        ...(!flags?.includeDeleted && { deletedAt: null }),
+      },
     });
   }
 

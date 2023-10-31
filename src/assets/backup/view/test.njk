@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <style>
+      svg {
+        width:30px;
+        height:30px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Hello from nunjucks</h1>
+    <hr>
+    <br>
+
+    <h3>{{jsonObject | json | log}}</h3>
+    <hr>
+    <br>
+
+    {% import "components/repeater.njk" as r %}
+    
+    {% for i in range(10) %}
+        {{r.repeaterComponent("Wasup my man")}}
+    {% endfor %}
+  </body>
+</html>

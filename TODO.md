@@ -5,6 +5,8 @@ TODO PKCE add in both backend and frontend
  https://developer.okta.com/blog/2019/08/22/okta-authjs-pkce
  https://auth0.com/blog/oauth2-implicit-grant-and-spa/
 
+CSRF protection
+
 
 - 1 day
 TODO visual addition to all authentication get requests for success and failure (even for dto errors)

@@ -9,8 +9,8 @@ import { PrismaTx } from '../../../@global/prisma/prisma.type';
 export class AccountVerificationService {
   constructor(private readonly accountVerificationRepository: AccountVerificationRepository) {}
 
-  async getByUserId(userId: number, tx?: PrismaTx) {
-    return this.accountVerificationRepository.getByUserId(userId, tx);
+  async getByUserId(userId: number, tx?: PrismaTx, flags?: { includeDeleted?: boolean }) {
+    return this.accountVerificationRepository.getByUserId(userId, tx, flags);
   }
 
   async getByJTI(jti: string, tx?: PrismaTx): Promise<AccountVerification | null> {

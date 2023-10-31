@@ -25,3 +25,12 @@ export type DataPage<T> = {
   data: T[];
   total: number;
 };
+
+// For view rendering in nunjucks
+export type BaseViewJsonParams = {
+  pageTabTitle: string;
+};
+export type AuthResponseViewJsonParams = BaseViewJsonParams & {
+  frontEndUrl: string;
+  text: string;
+};

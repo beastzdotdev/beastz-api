@@ -14,16 +14,19 @@ export class AdminService {
       const recoverPasswordIds = recoverPasswords.map(e => e.id);
 
       await Promise.all([
-        tx.accountVerification.deleteMany({ where: { userId } }),
-        tx.recoverPassword.deleteMany({ where: { userId } }),
         tx.refreshToken.deleteMany({ where: { userId } }),
         tx.userIdentity.deleteMany({ where: { userId } }),
         tx.feedback.deleteMany({ where: { userId } }),
       ]);
 
       await Promise.all([
-        tx.accountVerificationAttemptCount.deleteMany({ where: { id: { in: accountVerifyIds } } }),
         tx.recoverPasswordAttemptCount.deleteMany({ where: { id: { in: recoverPasswordIds } } }),
+        tx.accountVerificationAttemptCount.deleteMany({ where: { id: { in: accountVerifyIds } } }),
+      ]);
+
+      await Promise.all([
+        tx.recoverPassword.deleteMany({ where: { userId } }),
+        tx.accountVerification.deleteMany({ where: { userId } }),
       ]);
 
       // last

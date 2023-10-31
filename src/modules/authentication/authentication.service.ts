@@ -32,13 +32,14 @@ import { RefreshTokenExpiredException } from '../../exceptions/refresh-token-exp
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { RecoverPasswordAttemptCountService } from './modules/recover-password-attempt-count/recover-password-attempt-count.service';
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
-import { RefreshParams, SignInParams } from './authentication.types';
+import { GenTokensAndSendResponseParams, RefreshParams, SignInParams } from './authentication.types';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
 import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignUpBodyDto } from './dto';
 import { AuthenticationMailService } from './mail/authenctication-mail.service';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { transaction } from '../../common/transaction';
+import { AuthResponseViewJsonParams } from '../../model/types';
 
 @Injectable()
 export class AuthenticationService {
@@ -406,7 +407,7 @@ export class AuthenticationService {
     });
   }
 
-  async resetPasswordConfirm(body: AuthConfirmQueryDto): Promise<void> {
+  async resetPasswordConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
       const { jti, userId } = this.jwtUtilService.getResetPasswordTokenPayload(token);
@@ -452,7 +453,16 @@ export class AuthenticationService {
         }
       }
 
-      const resetPassword = await this.resetPasswordService.getByUserId(userId, tx);
+      const resetPassword = await this.resetPasswordService.getByUserId(userId, tx, { includeDeleted: true });
+
+      if (resetPassword?.deletedAt) {
+        // show success page and button for redirecting to front end
+        return res.render('view/auth-response', <AuthResponseViewJsonParams>{
+          text: 'Reset password already requested',
+          frontEndUrl: constants.frontendPath.resetPassword(this.envService.get('FRONTEND_URL')),
+          pageTabTitle: 'Reset password confirm',
+        });
+      }
 
       if (!resetPassword) {
         throw new NotFoundException(ExceptionMessageCode.RESET_PASSWORD_REQUEST_NOT_FOUND);
@@ -477,10 +487,15 @@ export class AuthenticationService {
       ]);
 
       // show success page and button for redirecting to front end
+      res.render('view/auth-response', <AuthResponseViewJsonParams>{
+        text: 'Reset password was successsfull',
+        frontEndUrl: constants.frontendPath.resetPassword(this.envService.get('FRONTEND_URL')),
+        pageTabTitle: 'Reset password confirm',
+      });
     });
   }
 
-  async recoverPasswordConfirm(body: AuthConfirmQueryDto): Promise<void> {
+  async recoverPasswordConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
       const { jti, userId } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
@@ -524,7 +539,16 @@ export class AuthenticationService {
         }
       }
 
-      const recoverPassword = await this.recoverPasswordService.getByUserId(userId, tx);
+      const recoverPassword = await this.recoverPasswordService.getByUserId(userId, tx, { includeDeleted: true });
+
+      if (recoverPassword?.deletedAt) {
+        // show success page and button for redirecting to front end
+        return res.render('view/auth-response', <AuthResponseViewJsonParams>{
+          text: 'Recover password already requested',
+          frontEndUrl: constants.frontendPath.recoverPassword(this.envService.get('FRONTEND_URL')),
+          pageTabTitle: 'Recover password confirm',
+        });
+      }
 
       if (!recoverPassword) {
         throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
@@ -549,10 +573,15 @@ export class AuthenticationService {
       ]);
 
       // show success page and button for redirecting to front end
+      return res.render('view/auth-response', <AuthResponseViewJsonParams>{
+        text: 'Recover password was successsfull',
+        frontEndUrl: constants.frontendPath.recoverPassword(this.envService.get('FRONTEND_URL')),
+        pageTabTitle: 'Recover password confirm',
+      });
     });
   }
 
-  async accountVerificationConfirm(body: AuthConfirmQueryDto): Promise<void> {
+  async accountVerificationConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
       const { jti, userId } = this.jwtUtilService.getAccountVerifyTokenPayload(token);
@@ -596,10 +625,19 @@ export class AuthenticationService {
         }
       }
 
-      const accountVerify = await this.accountVerificationService.getByUserId(userId, tx);
+      const accountVerify = await this.accountVerificationService.getByUserId(userId, tx, { includeDeleted: true });
+
+      if (accountVerify?.deletedAt) {
+        // show already verified page
+        return res.render('view/auth-response', <AuthResponseViewJsonParams>{
+          text: 'Account verify already requested',
+          frontEndUrl: constants.frontendPath.accountVerify(this.envService.get('FRONTEND_URL')),
+          pageTabTitle: 'Account verify confirm',
+        });
+      }
 
       if (!accountVerify) {
-        throw new NotFoundException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
+        throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_REQUEST_NOT_FOUND);
       }
 
       if (token !== accountVerify.securityToken) {
@@ -616,12 +654,17 @@ export class AuthenticationService {
 
       await Promise.all([
         this.userIdentityService.updateIsAccVerified(userId, true, tx),
-        this.userIdentityService.updateIsLockedById(userId, false, tx),
+        this.userIdentityService.updateIsLockedById(user.userIdentity.id, false, tx),
         this.accountVerificationService.softDelete(accountVerify.id, tx),
         this.accVerifyAttemptCountService.softDelete(accountVerify.id, tx),
       ]);
 
       // show success page and button for redirecting to front end
+      res.render('view/auth-response', <AuthResponseViewJsonParams>{
+        text: 'Account verify was successsfull',
+        frontEndUrl: constants.frontendPath.accountVerify(this.envService.get('FRONTEND_URL')),
+        pageTabTitle: 'Account verify confirm',
+      });
     });
   }
 
@@ -669,24 +712,23 @@ export class AuthenticationService {
           },
           outsideTransaction,
         );
-
-        return;
       }
-
       // if attempt is max and one day is not gone by at least throw error
       // count >= {x} and less then one day passed
-      if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
+      else if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
         throw new ForbiddenException(ExceptionMessageCode.WAIT_FOR_ANOTHER_DAY);
       }
-
-      await this.accVerifyAttemptCountService.updateById(
-        accVerifyAttemptCount.id,
-        {
-          count: 0,
-          countIncreaseLastUpdateDate: today.toDate(),
-        },
-        outsideTransaction,
-      );
+      // reset count
+      else {
+        await this.accVerifyAttemptCountService.updateById(
+          accVerifyAttemptCount.id,
+          {
+            count: 0,
+            countIncreaseLastUpdateDate: today.toDate(),
+          },
+          outsideTransaction,
+        );
+      }
     }
 
     // send backend url on email for backend to confirm
@@ -699,14 +741,7 @@ export class AuthenticationService {
     );
   }
 
-  private async genTokensAndSendResponse(params: {
-    res: Response;
-    userId: number;
-    email: string;
-    platform: PlatformWrapper;
-    isAccountVerified: boolean;
-    tx?: PrismaTx;
-  }): Promise<Response> {
+  private async genTokensAndSendResponse(params: GenTokensAndSendResponseParams): Promise<Response> {
     const { platform, res, isAccountVerified, email, userId, tx } = params;
 
     const [accessToken, refreshToken] = await Promise.all([

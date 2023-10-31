@@ -42,12 +42,16 @@ export class ResetPasswordRepository {
     });
   }
 
-  async getByUserId(userId: number, tx?: PrismaTx): Promise<ResetPassword | null> {
+  async getByUserId(
+    userId: number,
+    tx?: PrismaTx,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<ResetPassword | null> {
     const db = tx ? tx : this.prismaService;
     return db.resetPassword.findFirst({
       where: {
         userId,
-        deletedAt: null,
+        ...(!flags?.includeDeleted && { deletedAt: null }),
       },
     });
   }

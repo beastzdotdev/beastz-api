@@ -32,4 +32,10 @@ export const constants = Object.freeze({
   LETTERS_BOTH: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
   HEX: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
   ASCII: '!#$%&*?@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+
+  frontendPath: {
+    resetPassword: (base: string) => base,
+    accountVerify: (base: string) => base,
+    recoverPassword: (base: string) => `${base}/auth/sign-in`,
+  },
 });

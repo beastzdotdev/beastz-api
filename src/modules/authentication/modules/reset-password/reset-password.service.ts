@@ -27,8 +27,12 @@ export class ResetPasswordService {
     return this.resetPasswordRepository.getByJTI(jti, tx);
   }
 
-  async getByUserId(userId: number, tx?: PrismaTx): Promise<ResetPassword | null> {
-    return this.resetPasswordRepository.getByUserId(userId, tx);
+  async getByUserId(
+    userId: number,
+    tx?: PrismaTx,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<ResetPassword | null> {
+    return this.resetPasswordRepository.getByUserId(userId, tx, flags);
   }
 
   async updateById(id: number, params: UpdateResetPasswordParams, tx?: PrismaTx): Promise<ResetPassword> {

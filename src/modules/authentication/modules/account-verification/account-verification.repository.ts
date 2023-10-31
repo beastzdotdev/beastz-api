@@ -9,13 +9,17 @@ import { PrismaTx } from '../../../@global/prisma/prisma.type';
 export class AccountVerificationRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getByUserId(userId: number, tx?: PrismaTx): Promise<AccountVerification | null> {
+  async getByUserId(
+    userId: number,
+    tx?: PrismaTx,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<AccountVerification | null> {
     const db = tx ? tx : this.prismaService;
 
     return db.accountVerification.findFirst({
       where: {
         userId,
-        deletedAt: null,
+        ...(!flags?.includeDeleted && { deletedAt: null }),
       },
     });
   }

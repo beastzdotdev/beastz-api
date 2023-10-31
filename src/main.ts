@@ -1,5 +1,7 @@
+import path from 'path';
 import figlet from 'figlet';
 import helmet from 'helmet';
+import nunjucks from 'nunjucks';
 import cookieParser from 'cookie-parser';
 
 import { json, urlencoded } from 'express';
@@ -10,10 +12,23 @@ import { AppModule } from './modules/app.module';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
+import { setupNunjucksFilters } from './common/nunjucks';
 
 NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true }).then(async app => {
+  const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
   const logger = new Logger('Main logger');
+
+  const nunjuckMainRenderer = nunjucks.configure(assetsPath, {
+    express: app,
+    autoescape: true,
+    watch: true,
+    throwOnUndefined: false,
+    trimBlocks: false,
+    lstripBlocks: false,
+  });
+
+  setupNunjucksFilters(nunjuckMainRenderer);
 
   app.enableCors({
     credentials: true,
@@ -26,6 +41,8 @@ NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true }).then
   app.use(urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser(envService.get('COOKIE_SECRET')));
   app.use(helmet());
+  app.setViewEngine('njk');
+  app.setBaseViewsDir(assetsPath);
 
   await app.listen(envService.get('PORT'));
 

@@ -27,8 +27,12 @@ export class RecoverPasswordService {
     return this.recoverPasswordRepository.getByJTI(jti, tx);
   }
 
-  async getByUserId(userId: number, tx?: PrismaTx): Promise<RecoverPassword | null> {
-    return this.recoverPasswordRepository.getByUserId(userId, tx);
+  async getByUserId(
+    userId: number,
+    tx?: PrismaTx,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<RecoverPassword | null> {
+    return this.recoverPasswordRepository.getByUserId(userId, tx, flags);
   }
 
   async updateById(id: number, params: UpdateRecoverPasswordParams, tx?: PrismaTx): Promise<RecoverPassword> {
