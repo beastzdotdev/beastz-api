@@ -30,7 +30,12 @@ export type DataPage<T> = {
 export type BaseViewJsonParams = {
   pageTabTitle: string;
 };
+
 export type AuthResponseViewJsonParams = BaseViewJsonParams & {
   frontEndUrl: string;
+  text: string;
+};
+
+export type AuthResponseErrorViewJsonParams = BaseViewJsonParams & {
   text: string;
 };

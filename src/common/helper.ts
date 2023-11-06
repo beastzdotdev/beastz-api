@@ -2,10 +2,12 @@ import { match } from 'ts-pattern';
 import { plainToInstance } from 'class-transformer';
 import { ClassConstructor } from 'class-transformer/types/interfaces';
 import { ValidationError } from 'class-validator';
-import { InternalServerErrorException } from '@nestjs/common';
+import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { SafeCallResult, ExceptionType, GeneralEnumType } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
+import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
+import { ImportantExceptionBody } from '../model/exception.type';
 
 export const helper = Object.freeze({
   url: {
@@ -144,4 +146,20 @@ export function enumValueIncludes<E extends GeneralEnumType<E>>(someEnum: E, val
 // Type guard function to check if 'userIdentity' is not null
 export function checkNonNull<T>(val: T): val is NonNullable<T> {
   return val !== null;
+}
+
+export function getMessageAsExceptionMessageCode(error: ImportantExceptionBody): ExceptionMessageCode {
+  let message = ExceptionMessageCode.HTTP_EXCEPTION;
+
+  if (error.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+    message = ExceptionMessageCode.INTERNAL_ERROR;
+  }
+
+  if (
+    enumValueIncludes(ExceptionMessageCode, error?.message.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString())
+  ) {
+    message = error?.message as ExceptionMessageCode;
+  }
+
+  return message;
 }

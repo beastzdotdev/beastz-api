@@ -8,6 +8,7 @@ import {
   Query,
   Res,
   UnauthorizedException,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -21,6 +22,8 @@ import { PlatformWrapper } from '../../model/platform.wrapper';
 import { NoPlatformHeader } from '../../decorator/no-platform-header.decorator';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
+import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
+import { AuthConfirmResponseFilter } from './filter/auth-confirm-response.filter';
 import {
   AccountVerifySendCodeDto,
   AuthConfirmQueryDto,
@@ -30,7 +33,6 @@ import {
   SignInBodyDto,
   SignUpBodyDto,
 } from './dto';
-import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 
 @UseGuards(AuthPlatformHeaderGuard)
 @Controller('auth')
@@ -116,6 +118,7 @@ export class AuthenticationController {
 
   @NoAuth()
   @NoPlatformHeader()
+  @UseFilters(AuthConfirmResponseFilter)
   @Get('reset-password/confirm')
   async resetPasswordConfirm(@Query() body: AuthConfirmQueryDto, @Res() res: Response): Promise<void> {
     return this.authenticationService.resetPasswordConfirm(body, res);
@@ -123,6 +126,7 @@ export class AuthenticationController {
 
   @NoAuth()
   @NoPlatformHeader()
+  @UseFilters(AuthConfirmResponseFilter)
   @Get('recover-password/confirm')
   async recoverPassword(@Query() body: AuthConfirmQueryDto, @Res() res: Response): Promise<void> {
     return this.authenticationService.recoverPasswordConfirm(body, res);
@@ -130,6 +134,7 @@ export class AuthenticationController {
 
   @NoAuth()
   @NoPlatformHeader()
+  @UseFilters(AuthConfirmResponseFilter)
   @Get('account-verify/confirm')
   async accountVerificationConfirmCode(@Query() body: AuthConfirmQueryDto, @Res() res: Response): Promise<void> {
     return this.authenticationService.accountVerificationConfirm(body, res);

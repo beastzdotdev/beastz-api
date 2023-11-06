@@ -272,24 +272,23 @@ export class AuthenticationService {
             },
             tx,
           );
-
-          return;
         }
-
         // if attempt is max and one day is not gone by at least throw error
         // count >= {x} and less then one day passed
-        if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
+        else if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
           throw new ForbiddenException(ExceptionMessageCode.WAIT_FOR_ANOTHER_DAY);
         }
-
-        await this.resetPasswordAttemptCountService.updateById(
-          resetPasswordAttemptCount.id,
-          {
-            count: 0,
-            countIncreaseLastUpdateDate: today.toDate(),
-          },
-          tx,
-        );
+        // set null
+        else {
+          await this.resetPasswordAttemptCountService.updateById(
+            resetPasswordAttemptCount.id,
+            {
+              count: 0,
+              countIncreaseLastUpdateDate: today.toDate(),
+            },
+            tx,
+          );
+        }
       }
 
       // send backend url on email for backend to confirm
@@ -369,24 +368,23 @@ export class AuthenticationService {
             },
             tx,
           );
-
-          return;
         }
-
         // if attempt is max and one day is not gone by at least throw error
         // count >= {x} and less then one day passed
-        if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
+        else if (today.diff(countIncreaseLastUpdateDate, 'seconds') <= constants.ONE_DAY_IN_SEC) {
           throw new ForbiddenException(ExceptionMessageCode.WAIT_FOR_ANOTHER_DAY);
         }
-
-        await this.recoverPasswordAttemptCountService.updateById(
-          recoverPasswordAttemptCount.id,
-          {
-            count: 0,
-            countIncreaseLastUpdateDate: today.toDate(),
-          },
-          tx,
-        );
+        // reset
+        else {
+          await this.recoverPasswordAttemptCountService.updateById(
+            recoverPasswordAttemptCount.id,
+            {
+              count: 0,
+              countIncreaseLastUpdateDate: today.toDate(),
+            },
+            tx,
+          );
+        }
       }
 
       // send backend url on email for backend to confirm
@@ -414,13 +412,13 @@ export class AuthenticationService {
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
-      // reuse detection
-      const resetPasswordByJti = await this.resetPasswordService.getByJTI(jti, tx);
+      // reuse detection (includes null)
+      const resetPassword = await this.resetPasswordService.getByJTI(jti, tx);
 
       // reuse will be if deleted token is used and more than 1 day is gone
-      if (resetPasswordByJti && resetPasswordByJti?.deletedAt) {
+      if (resetPassword && resetPassword?.deletedAt) {
         const attemptCount = await this.resetPasswordAttemptCountService.getByResetPasswordId(
-          resetPasswordByJti.id,
+          resetPassword.id,
           {
             includeDeleted: true,
           },
@@ -451,11 +449,7 @@ export class AuthenticationService {
 
           throw new ForbiddenException(ExceptionMessageCode.RESET_PASSWORD_TOKEN_REUSE);
         }
-      }
 
-      const resetPassword = await this.resetPasswordService.getByUserId(userId, tx, { includeDeleted: true });
-
-      if (resetPassword?.deletedAt) {
         // show success page and button for redirecting to front end
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Reset password already requested',
@@ -502,13 +496,13 @@ export class AuthenticationService {
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
-      // reuse detection
-      const recoverPasswordByJti = await this.recoverPasswordService.getByJTI(jti, tx);
+      // reuse detection (includes null)
+      const recoverPassword = await this.recoverPasswordService.getByJTI(jti, tx);
 
       // reuse will be if deleted token is used and more than 1 day is gone
-      if (recoverPasswordByJti && recoverPasswordByJti?.deletedAt) {
+      if (recoverPassword && recoverPassword?.deletedAt) {
         const attemptCount = await this.recoverPasswordAttemptCountService.getByRecoverPasswordId(
-          recoverPasswordByJti.id,
+          recoverPassword.id,
           { includeDeleted: true },
           tx,
         );
@@ -537,11 +531,7 @@ export class AuthenticationService {
 
           throw new ForbiddenException(ExceptionMessageCode.RECOVER_PASSWORD_TOKEN_REUSE);
         }
-      }
 
-      const recoverPassword = await this.recoverPasswordService.getByUserId(userId, tx, { includeDeleted: true });
-
-      if (recoverPassword?.deletedAt) {
         // show success page and button for redirecting to front end
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Recover password already requested',
@@ -588,13 +578,13 @@ export class AuthenticationService {
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
-      // reuse detection
-      const accountVerifyByJti = await this.accountVerificationService.getByJTI(jti, tx);
+      // reuse detection (includes null)
+      const accountVerify = await this.accountVerificationService.getByJTI(jti, tx);
 
       // reuse will be if deleted token is used and more than 1 day is gone
-      if (accountVerifyByJti && accountVerifyByJti?.deletedAt) {
+      if (accountVerify && accountVerify?.deletedAt) {
         const attemptCount = await this.accVerifyAttemptCountService.getByAccVerifyId(
-          accountVerifyByJti.id,
+          accountVerify.id,
           { includeDeleted: true },
           tx,
         );
@@ -623,11 +613,7 @@ export class AuthenticationService {
 
           throw new ForbiddenException(ExceptionMessageCode.ACCOUNT_VERIFICATION_TOKEN_REUSE);
         }
-      }
 
-      const accountVerify = await this.accountVerificationService.getByUserId(userId, tx, { includeDeleted: true });
-
-      if (accountVerify?.deletedAt) {
         // show already verified page
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Account verify already requested',

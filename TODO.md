@@ -6,11 +6,8 @@ TODO PKCE add in both backend and frontend
  https://auth0.com/blog/oauth2-implicit-grant-and-spa/
 
 CSRF protection
+Hash auth sending tokens
 
-
-- 1 day
-TODO visual addition to all authentication get requests for success and failure (even for dto errors)
-TODO add beautifull ui for email (I think mailgun has templates research on their admin)
 
 - 3 hour
 TODO Make method where you Blacklist all refresh Token and send event on socket to force log out and delete all token on frontend
@@ -35,3 +32,6 @@ TODO  Enable x-forwarded-for (proxy_set_header X-Forwarded-For $remote_addr)
       https://stackoverflow.com/questions/8107856/how-to-determine-a-users-ip-address-in-node
 TODO Implemetnt free logger monitoring service and use winston maybe, newrelic, prometheus, grafana, datadog ??
 TODO Basic throttle (after docker redis implemented use throttle for redis and after deployment)
+
+TODO add beautifull ui for email (I think mailgun has templates research on their admin)
+TODO visual improvement to all authentication get requests for success and failure (even for dto errors)

@@ -4,7 +4,7 @@ import { AllExceptionBody, ImportantExceptionBody } from '../model/exception.typ
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { EnvService } from '../modules/@global/env/env.service';
 import { InjectEnv } from '../modules/@global/env/env.decorator';
-import { enumValueIncludes } from '../common/helper';
+import { getMessageAsExceptionMessageCode } from '../common/helper';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -15,7 +15,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    console.log(exception);
+    if (
+      (exception instanceof HttpException && exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR) ||
+      !(exception instanceof HttpException)
+    ) {
+      console.log(exception);
+    }
 
     // In certain situations `httpAdapter` might not be available in the
     // constructor method, thus we should resolve it here.
@@ -31,14 +36,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const error = exception.getResponse() as ImportantExceptionBody;
 
       errorBody = {
-        message: this.getMessageAsExceptionMessageCode(error),
+        message: getMessageAsExceptionMessageCode(error),
         statusCode: error.statusCode,
 
         // only on dev
         ...(isDev && {
-          exception,
           path,
-          description: error.description,
+          description: error?.description ?? 'error',
+          exception,
         }),
       };
     } else {
@@ -48,32 +53,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         // only on dev
         ...(isDev && {
-          exception,
           path,
           description: 'error',
+          exception,
         }),
       };
     }
 
     httpAdapter.reply(ctx.getResponse(), errorBody, errorBody.statusCode);
-  }
-
-  private getMessageAsExceptionMessageCode(error: ImportantExceptionBody): ExceptionMessageCode {
-    let message = ExceptionMessageCode.HTTP_EXCEPTION;
-
-    if (error.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
-      message = ExceptionMessageCode.INTERNAL_ERROR;
-    }
-
-    if (
-      enumValueIncludes(
-        ExceptionMessageCode,
-        error?.message.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString(),
-      )
-    ) {
-      message = error?.message as ExceptionMessageCode;
-    }
-
-    return message;
   }
 }
