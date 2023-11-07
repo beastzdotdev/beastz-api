@@ -20,7 +20,9 @@ export const encryption = Object.freeze({
       // in assumption the masterkey is a cryptographic and NOT a password there is no need for
       // a large number of iterations. It may can replaced by HKDF
       // the value of 2145 is randomly chosen!
-      const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
+      //TODO!!!! return to old
+      // const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
+      const key = crypto.randomBytes(32);
 
       // AES 256 GCM Mode
       const cipher = crypto.createCipheriv(this.name, key, iv);
@@ -54,7 +56,9 @@ export const encryption = Object.freeze({
       const text = bData.subarray(96);
 
       // derive key using; 32 byte key length
-      const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
+      //TODO!!!! return to old
+      const key = crypto.randomBytes(32);
+      // const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
 
       // AES 256 GCM Mode
       const decipher = crypto.createDecipheriv(this.name, key, iv);

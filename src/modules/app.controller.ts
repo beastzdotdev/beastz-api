@@ -2,6 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { NoAuth } from '../decorator/no-auth.decorator';
 import { MailService } from './@global/mail/mail.service';
+import { encryption } from '../common/encryption';
 
 class SendMailQueryDto {
   @IsString()
@@ -34,11 +35,13 @@ export class AppController {
 
   @NoAuth()
   @Get('test/mail')
-  test(@Query() query: SendMailQueryDto) {
-    return this.mailService.send({
-      subject: query.subject,
-      to: [query.to],
-      text: query.text,
-    });
+  test() {
+    return encryption.aes256gcm.encrypt('hello world', 'test key');
+    // test(@Query() query: SendMailQueryDto) {
+    // return this.mailService.send({
+    //   subject: query.subject,
+    //   to: [query.to],
+    //   text: query.text,
+    // });
   }
 }
