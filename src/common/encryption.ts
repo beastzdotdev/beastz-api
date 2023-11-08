@@ -1,15 +1,12 @@
 import crypto from 'crypto';
 import { promisify } from './helper';
 
+// https://crypto.stackexchange.com/questions/101106/how-does-aes-gcm-encryption-work
 export const encryption = Object.freeze({
   aes256gcm: {
     name: 'aes-256-gcm' as const,
 
     encryptSync(text: string, masterkey: string): string {
-      if (typeof text !== 'string') {
-        throw new Error(`encryption error string was not found, found ${typeof text}`);
-      }
-
       // random initialization vector
       const iv = crypto.randomBytes(16);
 
@@ -20,9 +17,7 @@ export const encryption = Object.freeze({
       // in assumption the masterkey is a cryptographic and NOT a password there is no need for
       // a large number of iterations. It may can replaced by HKDF
       // the value of 2145 is randomly chosen!
-      //TODO!!!! return to old
-      // const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
-      const key = crypto.randomBytes(32);
+      const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
 
       // AES 256 GCM Mode
       const cipher = crypto.createCipheriv(this.name, key, iv);
@@ -37,15 +32,7 @@ export const encryption = Object.freeze({
       return Buffer.concat([salt, iv, tag, encrypted]).toString('base64');
     },
 
-    async encrypt(text: string, masterkey: string): Promise<string> {
-      return promisify(() => this.encryptSync(text, masterkey));
-    },
-
     decryptSync(encryptedText: string, masterkey: string) {
-      if (typeof encryptedText !== 'string') {
-        throw new Error(`decryption error string was not found, found ${typeof encryptedText}`);
-      }
-
       // base64 decoding
       const bData = Buffer.from(encryptedText, 'base64');
 
@@ -56,9 +43,7 @@ export const encryption = Object.freeze({
       const text = bData.subarray(96);
 
       // derive key using; 32 byte key length
-      //TODO!!!! return to old
-      const key = crypto.randomBytes(32);
-      // const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
+      const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
 
       // AES 256 GCM Mode
       const decipher = crypto.createDecipheriv(this.name, key, iv);
@@ -71,6 +56,10 @@ export const encryption = Object.freeze({
         console.log(error);
         return null;
       }
+    },
+
+    async encrypt(text: string, masterkey: string): Promise<string> {
+      return promisify(() => this.encryptSync(text, masterkey));
     },
 
     async decrypt(text: string, masterkey: string): Promise<string | null> {
