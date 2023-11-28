@@ -34,7 +34,15 @@ import { AllExceptionsFilter } from '../filters/all-exception.filter';
   providers: [
     {
       provide: APP_PIPE,
-      useValue: new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }),
+      useValue: new ValidationPipe({
+        // forbidNonWhitelisted: true,
+        transform: true,
+        // whitelist: false,
+        transformOptions: {
+          enableImplicitConversion: true,
+          // enableCircularCheck: true,
+        },
+      }),
     },
     {
       provide: APP_GUARD,

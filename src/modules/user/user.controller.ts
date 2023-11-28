@@ -3,7 +3,6 @@ import { plainToInstance } from 'class-transformer';
 import { UpdateUserBodyDto } from './dto/update-user-body.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
-import { ApiFile } from '../../decorator/api-file.decorator';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 
@@ -24,7 +23,8 @@ export class UserController {
   }
 
   @Patch('current')
-  @ApiFile('profileImage')
+  //TODO check this
+  // @ApiFile('profileImage')
   async getUserDetails(
     @Body() body: UpdateUserBodyDto,
     @AuthPayload() authPayload: AuthPayloadType,

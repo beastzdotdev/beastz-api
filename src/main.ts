@@ -14,7 +14,7 @@ import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
 
-NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true }).then(async app => {
+NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
   const logger = new Logger('Main logger');
@@ -47,8 +47,7 @@ NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true }).then
   await app.listen(envService.get('PORT'));
 
   // log misc stuff
-  const apiUrl: string = await app.getUrl();
-  logger.verbose(`GorillaVault api listening on --- ${apiUrl}`);
+  logger.verbose(`GorillaVault api listening on --- ${await app.getUrl()}`);
   cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
 });
 

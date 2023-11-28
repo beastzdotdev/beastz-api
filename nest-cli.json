@@ -4,6 +4,7 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "assets": ["**/*.html", "**/*.njk", "**/*.png", "**/*.jpg", "**/*.otf", "**/*.txt", "**/*.svg", "**/*.njk"],
-    "watchAssets": true
+    "watchAssets": true,
+    "manualRestart": true
   }
 }
