@@ -11,6 +11,7 @@ class TestUpload3 {
   name: string;
 
   @IsNotEmpty()
+  @IsMulterFile()
   file1: Express.Multer.File;
 
   @IsNotEmpty()
@@ -28,7 +29,7 @@ export class AppController {
     return 'ok';
   }
 
-  @Get('secure/health')
+  @Get('health/secure')
   checkHealthForAuth() {
     return 'ok';
   }

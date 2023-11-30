@@ -57,7 +57,7 @@ export const IsMulterFile = (
       propertyName: propertyName,
       constraints: [],
       options: {
-        message: `${propertyName} must be file`,
+        message: `${propertyName} must be multer file`,
         ...validationOptions,
       },
       validator: {
