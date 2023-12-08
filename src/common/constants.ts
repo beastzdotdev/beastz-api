@@ -1,3 +1,5 @@
+import { FileMimeType } from '@prisma/client';
+
 export const constants = Object.freeze({
   PLATFORM_HEADER_NAME: 'platform',
   AUTH_HEADER_NAME: 'Authorization',
@@ -37,5 +39,26 @@ export const constants = Object.freeze({
     resetPassword: (base: string) => base,
     accountVerify: (base: string) => base,
     recoverPassword: (base: string) => `${base}/auth/sign-in`,
+  },
+
+  singleFileMaxSize: 15 * 1024 * 1024, // ~15mb
+
+  fileTypeEnumToRawMime: <Record<FileMimeType, string>>{
+    [FileMimeType.TEXT_PLAIN]: 'text/plain', // Plain text files
+    [FileMimeType.TEXT_MARKDOWN]: 'text/markdown', // markdowns
+    [FileMimeType.APPLICATION_JSON]: 'application/json', // JSON data
+    [FileMimeType.APPLICATION_XML]: 'application/xml', // XML documents
+    [FileMimeType.APPLICATION_PDF]: 'application/pdf', // Portable Document Format (PDF) files
+    [FileMimeType.IMAGE_JPG]: 'image/jpeg', // JPEG images
+    [FileMimeType.IMAGE_PNG]: 'image/png', // PNG images
+    [FileMimeType.IMAGE_GIF]: 'image/gif', // GIF images
+    [FileMimeType.IMAGE_WEBP]: 'image/webp', // WebP images
+    [FileMimeType.IMAGE_BMP]: 'image/bmp', // BMP (Bitmap) is a standard Windows image
+    [FileMimeType.AUDIO_MPEG]: 'audio/mpeg', // MP3 audio files
+    [FileMimeType.AUDIO_WAV]: 'audio/wav', // WAV audio files
+    [FileMimeType.VIDEO_MP4]: 'video/mp4', // MP4 video files
+    [FileMimeType.VIDEO_MPEG]: 'video/mpeg', // MPEG video files
+    [FileMimeType.VIDEO_WEBM]: 'video/webm', // WebM video files
+    [FileMimeType.VIDEO_QUICKTIME]: 'video/quicktime', // QuickTime video files.
   },
 });

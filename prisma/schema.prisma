@@ -41,25 +41,8 @@ enum LegalDocumentType {
   @@map("legal_document_type")
 }
 
+/// This enum contains top mimetypes in everywhere
 enum FileMimeType {
-  //! Top mimetypes
-  // text/plain: Plain text files.
-  // text/markdown: markdowns
-  // application/json: JSON data.
-  // application/xml: XML documents.
-  // application/pdf: Portable Document Format (PDF) files.
-  // image/jpeg: JPEG images.
-  // image/png: PNG images.
-  // image/gif: GIF images.
-  // image/webp: WebP images.
-  // image/bmp: BMP (Bitmap) is a standard Windows image
-  // audio/mpeg: MP3 audio files.
-  // audio/wav: WAV audio files.
-  // video/mp4: MP4 video files.
-  // video/mpeg: MPEG video files.
-  // video/webm: WebM video files.
-  // video/quicktime: QuickTime video files.
-
   TEXT_PLAIN
   TEXT_MARKDOWN
 
@@ -285,4 +268,6 @@ model FileStructure {
   children FileStructure[] @relation("parentId")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("file_structure")
 }

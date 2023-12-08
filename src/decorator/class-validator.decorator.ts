@@ -47,6 +47,7 @@ export const IsMulterFile = (
   validateParams?: {
     maxSize?: number;
     fileType?: string;
+    fileTypes?: string[];
   },
   validationOptions?: ValidationOptions,
 ) => {
@@ -84,6 +85,10 @@ export const IsMulterFile = (
 
             if (validateParams?.fileType) {
               return !!multerFile.mimetype.match(validateParams.fileType);
+            }
+
+            if (validateParams?.fileTypes?.length) {
+              return validateParams.fileTypes.includes(multerFile.mimetype);
             }
 
             if (validateParams?.maxSize) {

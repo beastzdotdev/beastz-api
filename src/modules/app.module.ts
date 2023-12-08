@@ -15,6 +15,7 @@ import { LegalDocumentModule } from './legal-document/legal-document.module';
 import { AdminModule } from './admin/admin.module';
 import { MailModule } from './@global/mail/mail.module';
 import { AllExceptionsFilter } from '../filters/all-exception.filter';
+import { FileStructureModule } from './file-structure/file-structure.module';
 
 @Module({
   imports: [
@@ -29,11 +30,13 @@ import { AllExceptionsFilter } from '../filters/all-exception.filter';
     FeedbackModule,
     LegalDocumentModule,
     AdminModule,
+    FileStructureModule,
   ],
   controllers: [AppController],
   providers: [
     {
       provide: APP_PIPE,
+      //TODO return and test
       useValue: new ValidationPipe({
         // forbidNonWhitelisted: true,
         transform: true,
