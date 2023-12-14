@@ -9,7 +9,7 @@ export class RefreshTokenRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createEntity(params: CreateRefreshTokenParams, tx?: PrismaTx): Promise<RefreshToken> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.refreshToken.create({
       data: {
@@ -26,17 +26,17 @@ export class RefreshTokenRepository {
   }
 
   async getByJTI(jti: string, tx?: PrismaTx): Promise<RefreshToken | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     return db.refreshToken.findFirst({ where: { jti } });
   }
 
   async deleteById(id: number, tx?: PrismaTx): Promise<void> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     await db.refreshToken.deleteMany({ where: { id } });
   }
 
   async deleteAllByUserId(userId: number, tx?: PrismaTx): Promise<void> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     await db.refreshToken.deleteMany({ where: { userId } });
   }
 }

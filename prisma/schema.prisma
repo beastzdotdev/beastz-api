@@ -64,29 +64,43 @@ enum FileMimeType {
   VIDEO_WEBM
   VIDEO_QUICKTIME
 
+  OTHER
+
   @@map("file_mime_type")
 }
 
+enum EncryptionType {
+  TEXT
+  PIN
+
+  @@map("encryption_type")
+}
+
+enum EncryptionAlgorithm {
+  AES_256_GCM
+
+  @@map("encryption_algorithm")
+}
+
 model User {
-  id   Int    @id @default(autoincrement())
-  uuid String @map("uuid") @db.Uuid
+  id               Int       @id @default(autoincrement())
+  uuid             String    @map("uuid") @db.Uuid
+  email            String    @unique @db.VarChar(255)
+  userName         String    @unique @map("user_name") @db.VarChar(255)
+  birthDate        DateTime? @map("birth_date") @db.Timestamptz()
+  gender           Gender
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  profileImagePath String?   @map("profile_image_path") @db.VarChar(2047)
 
-  email     String   @unique @db.VarChar(255)
-  userName  String   @map("user_name") @db.VarChar(255)
-  birthDate DateTime @map("birth_date") @db.Timestamptz()
-  gender    Gender
-  firstName String   @map("first_name") @db.VarChar(255)
-  lastName  String   @map("last_name") @db.VarChar(255)
-
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
-
-  userIdentity         UserIdentity?
-  feedbacks            Feedback[]
-  refreshTokens        RefreshToken[]
-  recoverPasswords     RecoverPassword[]
-  accountVerifications AccountVerification[]
-  resetPasswords       ResetPassword[]
+  userIdentity            UserIdentity?
+  feedbacks               Feedback[]
+  refreshTokens           RefreshToken[]
+  recoverPasswords        RecoverPassword[]
+  accountVerifications    AccountVerification[]
+  resetPasswords          ResetPassword[]
+  fileStructure           FileStructure[]
+  fileStructureBookmark   FileStructureBookmark[]
+  fileStructureEncryption FileStructureEncryption[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -252,22 +266,76 @@ model Feedback {
 }
 
 model FileStructure {
-  id     Int     @id @default(autoincrement())
-  path   String
-  title  String  @db.VarChar(255)
-  isFile Boolean @map("is_file") // if false then is folder (boolean is fastest)
-  depth  Int // one of the most important prop, depth is on which level is folder/file from root level
+  id             Int           @id @default(autoincrement())
+  path           String
+  title          String        @db.VarChar(255)
+  color          String?       @db.VarChar(9) // only hex
+  depth          Int           @map("depth") // which level is folder/file from root level
+  userId         Int           @map("user_id")
+  sizeInBytes    BigInt?       @map("size_in_bytes")
+  mimeTypeRaw    String?       @map("mime_type_raw") // mimetype just as string
+  mimeType       FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
+  isFile         Boolean       @map("is_file") // if false then is folder (boolean is fastest)
+  isShortcut     Boolean       @map("is_shortcut")
+  isInBin        Boolean       @map("is_in_bin")
+  isEncrypted    Boolean       @map("is_encrypted") // for files basic, for folders zip must be created
+  isEditable     Boolean?      @map("is_editable") // self explanatory (not intended for folders)
+  isLocked       Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
+  lastModifiedAt DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz()
 
-  sizeInBytes BigInt?       @map("size_in_bytes") // for folders this will be added later/just in time
-  mimeTypeRaw String?       @map("mime_type_raw") // mimetype just as string
-  mimeType    FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
+  // recursive properties
+  rootParentId Int?            @map("root_parent_id")
+  parentId     Int?            @map("parent_id")
+  parent       FileStructure?  @relation("parentId", fields: [parentId], references: [id])
+  children     FileStructure[] @relation("parentId")
 
-  // for recursive file structure
-  parentId Int?            @map("parent_id")
-  parent   FileStructure?  @relation("parentId", fields: [parentId], references: [id])
-  children FileStructure[] @relation("parentId")
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  user                    User                     @relation(fields: [userId], references: [id])
+  fileStructureBookmark   FileStructureBookmark[]
+  fileStructureEncryption FileStructureEncryption?
 
   @@map("file_structure")
 }
+
+model FileStructureEncryption {
+  id              Int                 @id @default(autoincrement())
+  type            EncryptionType
+  algorithm       EncryptionAlgorithm
+  userId          Int                 @map("user_id")
+  fileStructureId Int                 @unique @map("file_structure_id")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+
+  @@map("file_structure_encryption")
+}
+
+model FileStructureBookmark {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  fileStructureId Int      @map("file_structure_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+
+  @@map("file_structure_bookmark")
+}
+
+//TODO for history
+// model FileStructureHistory {
+//   id              Int       @id @default(autoincrement())
+//   userId          Int       @map("user_id") // to see who owns file or folder
+//   fileStructureId Int       @map("file_structure_id")
+//   movedToBinAt    DateTime? @map("moved_to_bin_at") @db.Timestamptz()
+//   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+//   // dates can be added later !!! (for example create enum for like basic delete, move, create, update, lock, ...)
+
+//   user          User          @relation(fields: [userId], references: [id])
+//   fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+
+//   @@map("file_structure_history")
+// }

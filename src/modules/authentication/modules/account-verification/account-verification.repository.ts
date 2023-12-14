@@ -14,7 +14,7 @@ export class AccountVerificationRepository {
     tx?: PrismaTx,
     flags?: { includeDeleted?: boolean },
   ): Promise<AccountVerification | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.accountVerification.findFirst({
       where: {
@@ -25,7 +25,7 @@ export class AccountVerificationRepository {
   }
 
   async getByJTI(jti: string, tx?: PrismaTx): Promise<AccountVerification | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.accountVerification.findFirst({
       where: {
@@ -35,7 +35,7 @@ export class AccountVerificationRepository {
   }
 
   async create(params: CreateAccountVerificationParams, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     const { securityToken, userId, jti } = params;
 
     return db.accountVerification.create({
@@ -48,7 +48,7 @@ export class AccountVerificationRepository {
   }
 
   async updateById(id: number, params: UpdateAccountVerificationParams, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     const entity = await db.accountVerification.findUnique({
       where: {
@@ -68,7 +68,7 @@ export class AccountVerificationRepository {
   }
 
   async softDelete(id: number, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.accountVerification.update({
       where: { id },

@@ -14,17 +14,18 @@ export class UserIdentityRepository {
   }
 
   async getByUserId(userId: number, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     return db.userIdentity.findFirst({ where: { userId } });
   }
 
   async create(params: CreateUserIdentityParams, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     return db.userIdentity.create({ data: params });
   }
 
   async updatePasswordById(id: number, newHashedPassword: string, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
+
     return db.userIdentity.update({
       where: { id },
       data: { password: newHashedPassword },
@@ -32,7 +33,7 @@ export class UserIdentityRepository {
   }
 
   async updateIsLockedById(id: number, value: boolean, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.userIdentity.update({
       where: { id },
@@ -41,7 +42,7 @@ export class UserIdentityRepository {
   }
 
   async updateIsAccVerified(userId: number, isAccountVerified: boolean, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.userIdentity.update({
       where: { userId },

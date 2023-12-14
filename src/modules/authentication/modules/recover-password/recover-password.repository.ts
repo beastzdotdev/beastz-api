@@ -10,7 +10,7 @@ export class RecoverPasswordRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(params: CreateRecoverPasswordParams, tx?: PrismaTx): Promise<RecoverPassword> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     const { securityToken, userId, newPassword, jti } = params;
 
@@ -25,7 +25,7 @@ export class RecoverPasswordRepository {
   }
 
   async getById(id: number, tx?: PrismaTx): Promise<RecoverPassword | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.recoverPassword.findFirst({
       where: {
@@ -36,7 +36,7 @@ export class RecoverPasswordRepository {
   }
 
   async getByJTI(jti: string, tx?: PrismaTx): Promise<RecoverPassword | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.recoverPassword.findFirst({
       where: {
@@ -50,7 +50,7 @@ export class RecoverPasswordRepository {
     tx?: PrismaTx,
     flags?: { includeDeleted?: boolean },
   ): Promise<RecoverPassword | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.recoverPassword.findFirst({
       where: {
@@ -61,7 +61,7 @@ export class RecoverPasswordRepository {
   }
 
   async updateById(id: number, params: UpdateRecoverPasswordParams, tx?: PrismaTx): Promise<RecoverPassword | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     const entity = await db.recoverPassword.findUnique({
       where: {
@@ -81,7 +81,7 @@ export class RecoverPasswordRepository {
   }
 
   async softDelete(id: number, tx?: PrismaTx): Promise<RecoverPassword> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.recoverPassword.update({
       where: { id },

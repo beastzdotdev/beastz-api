@@ -13,7 +13,7 @@ export class UserRepository {
   }
 
   async getByEmailIncludeIdentity(email: string, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.user.findUnique({
       where: { email },
@@ -42,7 +42,7 @@ export class UserRepository {
   }
 
   async createUser(params: CreateUserParams, tx?: PrismaTx): Promise<User> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.user.create({ data: params });
   }
@@ -66,7 +66,7 @@ export class UserRepository {
   }
 
   async getByIdIncludeIdentity(id: number, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.user.findFirst({
       where: { id },

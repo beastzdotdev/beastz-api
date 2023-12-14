@@ -6,7 +6,8 @@ export const constants = Object.freeze({
   COOKIE_ACCESS_NAME: 'access_token',
   COOKIE_REFRESH_NAME: 'refresh_token',
 
-  MILLIS_IN_HOUR: 10000 * 3600,
+  ONE_DAY_IN_SEC: 24 * 3600,
+  MILLIS_IN_HOUR: 1000 * 3600,
 
   get MILLIS_IN_DAY() {
     return this.MILLIS_IN_HOUR * 24;
@@ -23,8 +24,6 @@ export const constants = Object.freeze({
 
   ONE_TIME_CODE_MIN: 100000,
   ONE_TIME_CODE_MAX: 999999,
-
-  ONE_DAY_IN_SEC: 24 * 3600,
 
   MAX_ATTEMPT_COUNT: 20,
 
