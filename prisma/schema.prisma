@@ -92,15 +92,19 @@ model User {
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   profileImagePath String?   @map("profile_image_path") @db.VarChar(2047)
 
-  userIdentity            UserIdentity?
-  feedbacks               Feedback[]
-  refreshTokens           RefreshToken[]
-  recoverPasswords        RecoverPassword[]
-  accountVerifications    AccountVerification[]
-  resetPasswords          ResetPassword[]
-  fileStructure           FileStructure[]
-  fileStructureBookmark   FileStructureBookmark[]
-  fileStructureEncryption FileStructureEncryption[]
+  userIdentity                    UserIdentity?
+  feedbacks                       Feedback[]
+  refreshTokens                   RefreshToken[]
+  recoverPasswords                RecoverPassword[]
+  accountVerifications            AccountVerification[]
+  resetPasswords                  ResetPassword[]
+  fileStructure                   FileStructure[]
+  fileStructureBookmark           FileStructureBookmark[]
+  fileStructureEncryption         FileStructureEncryption[]
+  toFileShared                    FileStructureShare[]              @relation(name: "toUser")
+  fromFileShared                  FileStructureShare[]              @relation(name: "fromUser")
+  fileStructureSharePulicLink     FileStructureSharePulicLink[]
+  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -266,24 +270,25 @@ model Feedback {
 }
 
 model FileStructure {
-  id             Int           @id @default(autoincrement())
-  path           String
-  title          String        @db.VarChar(255)
-  color          String?       @db.VarChar(9) // only hex
-  depth          Int           @map("depth") // which level is folder/file from root level
-  userId         Int           @map("user_id")
-  sizeInBytes    BigInt?       @map("size_in_bytes")
-  mimeTypeRaw    String?       @map("mime_type_raw") // mimetype just as string
-  mimeType       FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
-  isFile         Boolean       @map("is_file") // if false then is folder (boolean is fastest)
-  isShortcut     Boolean       @map("is_shortcut")
-  isInBin        Boolean       @map("is_in_bin")
-  isEncrypted    Boolean       @map("is_encrypted") // for files basic, for folders zip must be created
-  isEditable     Boolean?      @map("is_editable") // self explanatory (not intended for folders)
-  isLocked       Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
-  lastModifiedAt DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz()
-  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz()
+  id                Int           @id @default(autoincrement())
+  path              String        @db.Text
+  title             String        @db.VarChar(255)
+  color             String?       @db.VarChar(9) // only hex
+  depth             Int           @map("depth") // which level is folder/file from root level
+  userId            Int           @map("user_id")
+  sizeInBytes       BigInt?       @map("size_in_bytes")
+  fileExstensionRaw String?       @map("file_exstension_raw") // like .ts, .js, .heic, ...
+  mimeTypeRaw       String?       @map("mime_type_raw") // mimetype just as string
+  mimeType          FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
+  isFile            Boolean       @map("is_file") // if false then is folder (boolean is fastest)
+  isShortcut        Boolean       @map("is_shortcut")
+  isInBin           Boolean       @map("is_in_bin")
+  isEncrypted       Boolean       @map("is_encrypted") // for files basic, for folders zip must be created
+  isEditable        Boolean?      @map("is_editable") // self explanatory (not intended for folders)
+  isLocked          Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
+  lastModifiedAt    DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // recursive properties
   rootParentId Int?            @map("root_parent_id")
@@ -291,16 +296,18 @@ model FileStructure {
   parent       FileStructure?  @relation("parentId", fields: [parentId], references: [id])
   children     FileStructure[] @relation("parentId")
 
-  user                    User                     @relation(fields: [userId], references: [id])
-  fileStructureBookmark   FileStructureBookmark[]
-  fileStructureEncryption FileStructureEncryption?
+  user                        User                         @relation(fields: [userId], references: [id])
+  fileStructureBookmark       FileStructureBookmark[]
+  fileStructureShare          FileStructureShare[]
+  fileStructureEncryption     FileStructureEncryption?
+  FileStructureSharePulicLink FileStructureSharePulicLink?
 
   @@map("file_structure")
 }
 
 model FileStructureEncryption {
   id              Int                 @id @default(autoincrement())
-  type            EncryptionType
+  type            EncryptionType // this is intended for mobile
   algorithm       EncryptionAlgorithm
   userId          Int                 @map("user_id")
   fileStructureId Int                 @unique @map("file_structure_id")
@@ -324,18 +331,49 @@ model FileStructureBookmark {
   @@map("file_structure_bookmark")
 }
 
-//TODO for history
-// model FileStructureHistory {
-//   id              Int       @id @default(autoincrement())
-//   userId          Int       @map("user_id") // to see who owns file or folder
-//   fileStructureId Int       @map("file_structure_id")
-//   movedToBinAt    DateTime? @map("moved_to_bin_at") @db.Timestamptz()
-//   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+/// This table is regular sharing only within users of this platform
+model FileStructureShare {
+  id              Int      @id @default(autoincrement())
+  fromUserId      Int      @map("from_user_id") // who shares
+  sharedToUserId  Int      @map("to_user_id") // who receives
+  fileStructureId Int      @unique @map("file_structure_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-//   // dates can be added later !!! (for example create enum for like basic delete, move, create, update, lock, ...)
+  fromUser      User          @relation(fields: [fromUserId], references: [id], name: "fromUser")
+  toUser        User          @relation(fields: [sharedToUserId], references: [id], name: "toUser")
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
-//   user          User          @relation(fields: [userId], references: [id])
-//   fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+  @@map("file_structure_share")
+}
 
-//   @@map("file_structure_history")
-// }
+model FileStructureSharePulicLink {
+  id                      Int       @id @default(autoincrement())
+  userId                  Int       @map("user_id") // who owns
+  fileStructureId         Int       @unique @map("file_structure_id")
+  uniqueHash              String    @map("unique_hash")
+  isDownloadable          Boolean   @default(false) @map("is_downloadable")
+  isRestrictedToOnlyUsers Boolean   @default(false) @map("is_restricted_to_only_users") // if so use table
+  isPasswordProtected     Boolean   @default(false) @map("is_password_protected")
+  password                String?   @map("password")
+  customTitle             String?   @map("custom_title")
+  expiresAt               DateTime? @map("expires_at")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user                            User                              @relation(fields: [userId], references: [id])
+  fileStructure                   FileStructure                     @relation(fields: [fileStructureId], references: [id])
+  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
+
+  @@map("file_structure_share_public_link")
+}
+
+model FileStructureSharePulicLinkUser {
+  id                            Int      @id @default(autoincrement())
+  userId                        Int      @map("user_id") // for who is shared for only
+  fileStructureSharePulicLinkId Int      @map("file_structure_share_public_link_id")
+  createdAt                     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user                        User                        @relation(fields: [userId], references: [id])
+  fileStructureSharePulicLink FileStructureSharePulicLink @relation(fields: [fileStructureSharePulicLinkId], references: [id])
+
+  @@map("file_structure_share_public_link_user")
+}
