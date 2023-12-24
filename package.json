@@ -3,11 +3,18 @@
   "version": "0.0.1",
   "description": "This is gorilla vault secure storage solution backend service",
   "author": "Giorgi Kumelashvili",
-  "private": true,
+  "private": "false",
   "license": "MIT",
+  "engines": {
+    "npm": ">=10.0.0 <11.0.0",
+    "node": ">=20.0.0 <21.0.0"
+  },
   "scripts": {
     "use:nvm": "source ~/.nvm/nvm.sh && nvm use",
+    "install": "npm run use:nvm",
     "preinstall": "npm run use:nvm",
+    "preversion": "npm run use:nvm",
+    "prestart": "npm run use:nvm",
     "prebuild": "npm run use:nvm && rimraf dist",
     "prisma": "prisma",
     "modules:update:check": "npm run use:nvm && npx npm-check-updates",
