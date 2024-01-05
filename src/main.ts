@@ -47,7 +47,6 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   await app.listen(envService.get('PORT'));
 
   // log misc stuff
-  logger.verbose(`GorillaVault api listening on --- ${await app.getUrl()}`);
   cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
 });
 

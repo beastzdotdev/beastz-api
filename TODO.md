@@ -1,5 +1,7 @@
 File versioning
 
+TODO user settings will be saved in many to one where {user_id, settings_key: varchar, settings_value: BSON}
+
 
 
 TODO PKCE add in both backend and frontend
@@ -37,3 +39,5 @@ TODO Basic throttle (after docker redis implemented use throttle for redis and a
 
 TODO add beautifull ui for email (I think mailgun has templates research on their admin)
 TODO visual improvement to all authentication get requests for success and failure (even for dto errors)
+
+
