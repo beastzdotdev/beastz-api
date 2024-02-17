@@ -59,8 +59,8 @@ export class UserRepository {
         birthDate: true,
         uuid: true,
         profileImagePath: true,
-        firstName: true,
-        lastName: true,
+        // firstName: true,
+        // lastName: true,
       },
     });
   }
