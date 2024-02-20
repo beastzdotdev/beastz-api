@@ -14,6 +14,11 @@ import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
 
+//@ts-expect-error
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
 NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);

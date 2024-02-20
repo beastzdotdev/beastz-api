@@ -41,3 +41,13 @@ TODO add beautifull ui for email (I think mailgun has templates research on thei
 TODO visual improvement to all authentication get requests for success and failure (even for dto errors)
 
 
+
+
+TODO  later move bucket url to this backend url for security of access for example 
+      http://some-linode-bucket/some-example-folder -> http://localhost:4000/static-file/some-example-folder (+ cookies)
+
+      because every image or file request will have its own cookies and will be shown only to authorized users
+      will not be public basically
+
+      secure static assets
+      https://stackoverflow.com/questions/21335868/how-to-protect-static-folder-in-express-with-passport

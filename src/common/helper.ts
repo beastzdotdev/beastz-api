@@ -1,9 +1,12 @@
+import path from 'path';
+import fs, { PathOrFileDescriptor, WriteFileOptions } from 'fs';
 import { match } from 'ts-pattern';
 import { plainToInstance } from 'class-transformer';
 import { ClassConstructor } from 'class-transformer/types/interfaces';
 import { ValidationError } from 'class-validator';
 import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+
 import { SafeCallResult, ExceptionType, GeneralEnumType } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
@@ -162,4 +165,35 @@ export function getMessageAsExceptionMessageCode(error: ImportantExceptionBody):
   }
 
   return message;
+}
+
+export function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && 'code' in error;
+}
+
+//===================================================
+//  ______ _ _      _          _
+// |  ____(_) |    | |        | |
+// | |__   _| | ___| |__   ___| |_ __   ___ _ __ ___
+// |  __| | | |/ _ \ '_ \ / _ \ | '_ \ / _ \ '__/ __|
+// | |    | | |  __/ | | |  __/ | |_) |  __/ |  \__ \
+// |_|    |_|_|\___|_| |_|\___|_| .__/ \___|_|  |___/
+//                              | |
+//                              |_|
+//===================================================
+
+export async function checkIfDirectoryExists(somePath: string, flags?: { createIfNotExists?: boolean }): Promise<void> {
+  const dirPath = path.dirname(somePath);
+
+  try {
+    // The directory exists
+    await fs.promises.access(dirPath);
+  } catch (error: unknown) {
+    if (isErrnoException(error) && error.code === 'ENOENT' && flags?.createIfNotExists) {
+      await fs.promises.mkdir(dirPath, { recursive: true });
+      return;
+    }
+
+    throw error;
+  }
 }

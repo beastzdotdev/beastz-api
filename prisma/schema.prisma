@@ -289,6 +289,7 @@ model FileStructure {
   lastModifiedAt    DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz()
+  uuid              String        @map("uuid") @db.Uuid // can be used for various reason e.g. unique name for object storage
 
   // recursive properties
   rootParentId Int?            @map("root_parent_id")
@@ -302,6 +303,7 @@ model FileStructure {
   fileStructureEncryption     FileStructureEncryption?
   FileStructureSharePulicLink FileStructureSharePulicLink?
 
+  @@index([uuid], type: BTree)
   @@map("file_structure")
 }
 

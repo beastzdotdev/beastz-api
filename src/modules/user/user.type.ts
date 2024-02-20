@@ -23,6 +23,7 @@ export type UserIncludeIdentity = {
     isLocked: boolean;
   };
   id: number;
+  uuid: string;
   email: string;
   createdAt: Date;
 };

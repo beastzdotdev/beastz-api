@@ -20,6 +20,7 @@ export class UserRepository {
       select: {
         id: true,
         email: true,
+        uuid: true,
         createdAt: true,
         userIdentity: {
           select: {
@@ -74,6 +75,7 @@ export class UserRepository {
         id: true,
         email: true,
         createdAt: true,
+        uuid: true,
         userIdentity: {
           select: {
             id: true,

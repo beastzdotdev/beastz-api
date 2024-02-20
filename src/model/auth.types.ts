@@ -13,6 +13,7 @@ export type AuthPayloadType = {
     id: number;
     email: string;
     createdAt: Date;
+    uuid: string;
     userIdentity: {
       id: number;
       isAccountVerified: boolean;
