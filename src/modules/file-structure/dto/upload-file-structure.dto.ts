@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
 import { IsMulterFile } from '../../../decorator/class-validator.decorator';
 import { constants } from '../../../common/constants';
 import { fileStructureHelper } from '../file-structure.helper';
@@ -9,10 +9,14 @@ import { fileStructureHelper } from '../file-structure.helper';
 export class UploadFileStructureDto {
   @IsNotEmpty()
   @IsMulterFile({
-    maxSize: constants.singleFileMaxSize,
     fileTypes: Object.values(fileStructureHelper.fileTypeEnumToRawMime),
+    maxSize: constants.singleFileMaxSize,
   })
   file: Express.Multer.File;
+
+  @IsOptional()
+  @IsBoolean()
+  replaceExisting?: boolean;
 
   @IsOptional()
   @IsInt()

@@ -1,13 +1,16 @@
-import { isNotEmptyObject, isObject, registerDecorator } from 'class-validator';
+import sanitize from 'sanitize-html';
 import type { ValidationOptions, ValidationArguments } from 'class-validator';
+import { IsDefined, IsString, MaxLength, MinLength, registerDecorator } from 'class-validator';
+import { applyDecorators } from '@nestjs/common';
 import { constants } from '../common/constants';
+import { isMulterFile } from '../common/helper';
 
 export const IsExactBoolean = (validationOptions?: ValidationOptions) => {
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     registerDecorator({
       name: 'IsExactBoolean',
       target: object.constructor,
-      propertyName: propertyName,
+      propertyName: propertyName.toString(),
       options: validationOptions,
       validator: {
         validate(value: unknown) {
@@ -24,11 +27,11 @@ export const IsExactBoolean = (validationOptions?: ValidationOptions) => {
 };
 
 export const IsEmailCustom = (validationOptions?: ValidationOptions) => {
-  return function (object: object, propertyName: string) {
+  return function (object: object, propertyName: string | symbol) {
     registerDecorator({
       name: 'IsEmailCustom',
       target: object.constructor,
-      propertyName: propertyName,
+      propertyName: propertyName.toString(),
       constraints: [],
       options: {
         message: 'Email is invalid',
@@ -43,64 +46,98 @@ export const IsEmailCustom = (validationOptions?: ValidationOptions) => {
   };
 };
 
-export const IsMulterFile = (
-  validateParams?: {
-    maxSize?: number;
-    fileType?: string;
-    fileTypes?: string[];
-  },
-  validationOptions?: ValidationOptions,
-) => {
-  return function (object: object, propertyName: string) {
+const IsMulterFileInstance = (validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
     registerDecorator({
-      name: 'IsMulterFile',
+      name: IsMulterFileInstance.name,
       target: object.constructor,
-      propertyName: propertyName,
+      propertyName: propertyName.toString(),
       constraints: [],
       options: {
-        message: `${propertyName} must be multer file`,
+        message: `${propertyName.toString()} must be file`,
         ...validationOptions,
       },
       validator: {
-        validate(value: unknown) {
-          // first check if is object and is instance of multer
+        validate: (value: unknown) => isMulterFile(value),
+      },
+    });
+  };
+};
 
-          if (!isObject(value)) {
-            return false;
+const IsMulterFileTypes = (fileTypes: string[], validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
+    registerDecorator({
+      name: IsMulterFileTypes.name,
+      target: object.constructor,
+      propertyName: propertyName.toString(),
+      constraints: [],
+      options: {
+        message: args =>
+          `${propertyName.toString()} mimetype is not accepted ${(<Express.Multer.File>args.value).mimetype}`,
+        ...validationOptions,
+      },
+      validator: {
+        validate(value: Express.Multer.File) {
+          if (!fileTypes.length) {
+            throw new Error('You forgot to add file types');
           }
 
-          if (!isNotEmptyObject(value)) {
-            return false;
+          if (fileTypes.length === 1) {
+            return !!value.mimetype.match(fileTypes[0]);
           }
 
-          if (
-            'fieldname' in value &&
-            'originalname' in value &&
-            'encoding' in value &&
-            'mimetype' in value &&
-            'buffer' in value &&
-            'size' in value
-          ) {
-            const multerFile = value as Express.Multer.File;
-
-            if (validateParams?.fileType) {
-              return !!multerFile.mimetype.match(validateParams.fileType);
-            }
-
-            if (validateParams?.fileTypes?.length) {
-              return validateParams.fileTypes.includes(multerFile.mimetype);
-            }
-
-            if (validateParams?.maxSize) {
-              return multerFile.size < validateParams.maxSize;
-            }
-
-            return true;
-          } else {
-            return false;
-          }
+          return fileTypes.includes(value.mimetype);
         },
       },
     });
   };
 };
+
+const IsMulterFileMaxSize = (maxSize: number, validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
+    registerDecorator({
+      name: IsMulterFileMaxSize.name,
+      target: object.constructor,
+      propertyName: propertyName.toString(),
+      constraints: [],
+      options: {
+        message: args =>
+          `${propertyName.toString()} max size is ${maxSize} bytes, current size ${
+            (<Express.Multer.File>args.value).size
+          }`,
+        ...validationOptions,
+      },
+      validator: {
+        validate: (value: Express.Multer.File) => value.size < maxSize,
+      },
+    });
+  };
+};
+
+const IsMulterFileNameSafe = (validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
+    registerDecorator({
+      name: IsMulterFileNameSafe.name,
+      target: object.constructor,
+      propertyName: propertyName.toString(),
+      constraints: [],
+      options: {
+        message: args =>
+          `${propertyName.toString()} name is invalid, ${(<Express.Multer.File>args.value).originalname}`,
+        ...validationOptions,
+      },
+      validator: {
+        validate: (value: Express.Multer.File) => value.originalname === sanitize(value.originalname),
+      },
+    });
+  };
+};
+
+export function IsMulterFile(validateParams?: { maxSize?: number; fileTypes?: string[] }): PropertyDecorator {
+  return function (target: object, propertyKey: string | symbol): void {
+    IsMulterFileInstance()(target, propertyKey);
+    IsMulterFileNameSafe()(target, propertyKey);
+    if (validateParams?.fileTypes) IsMulterFileTypes(validateParams.fileTypes)(target, propertyKey);
+    if (validateParams?.maxSize) IsMulterFileMaxSize(validateParams.maxSize)(target, propertyKey);
+  };
+}

@@ -20,9 +20,62 @@ export class FileStructureRepository {
     });
   }
 
+  async getBy(params: {
+    depth?: number;
+    title?: string;
+    isFile?: boolean;
+    userId?: number;
+  }): Promise<FileStructure | null> {
+    const { depth, isFile, title, userId } = params;
+
+    if (!Object.values(params).length) {
+      return null;
+    }
+
+    return this.prismaService.fileStructure.findFirst({
+      where: {
+        depth,
+        isFile,
+        userId,
+        title,
+      },
+    });
+  }
+
+  async getManyBy(params: {
+    titleStartsWith?: string;
+    depth?: number;
+    title?: string;
+    isFile?: boolean;
+    userId?: number;
+  }): Promise<FileStructure[]> {
+    const { depth, isFile, title, userId, titleStartsWith } = params;
+
+    if (!Object.values(params).length) {
+      return [];
+    }
+
+    return this.prismaService.fileStructure.findMany({
+      where: {
+        depth,
+        isFile,
+        userId,
+        ...(titleStartsWith ? { title: { startsWith: titleStartsWith } } : { title }),
+      },
+    });
+  }
+
   async create(params: CreateFileStructureParams, tx?: PrismaTx): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
 
     return db.fileStructure.create({ data: params });
+  }
+
+  async deleteById(id: number): Promise<FileStructure> {
+    return this.prismaService.fileStructure.delete({
+      where: {
+        id,
+      },
+    });
   }
 }

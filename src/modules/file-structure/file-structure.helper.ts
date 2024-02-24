@@ -1,6 +1,7 @@
 import path from 'path';
 import { FileMimeType } from '@prisma/client';
 import { constants } from '../../common/constants';
+import { escapeRegExp } from '../../common/helper';
 
 export const fileStructureHelper = Object.freeze({
   fileTypeEnumToRawMime: <Record<FileMimeType, string>>{
@@ -47,4 +48,36 @@ export const getUserRootContentPath = (uuid: string) => {
   const userRootContentPath = path.join(distPath, '..', constants.userContentFolderName, uuid);
 
   return userRootContentPath;
+};
+
+/**
+ * @example
+ * ```ts
+ * const string1 = 'anything here including text and symbols and numbers and etc (123)';
+ * const string2 = 'This is another example (456)';
+ * const string3 = 'NoSpaceHere(789)';
+ * console.log(regex.test(string1)); // Output: true
+ * console.log(regex.test(string2)); // Output: true
+ * console.log(regex.test(string3)); // Output: false
+ * ```
+ */
+export const fileNameDuplicateRegex = new RegExp(/^.+\s\(\d+\)$/);
+
+/**
+ * @description
+ * functions same as fileNameDuplicateRegex method but instead of any symbol,number,string
+ * at the start of string before " (" there must be constant text which is given
+ */
+export const constantFileNameDuplicateRegex = (t: string): RegExp => new RegExp(`^${escapeRegExp(t)}\\s\\(\\d+\\)$`);
+
+/**
+ * @description
+ * extracts integer from this kind of string only 'This is another example (456)' -> 456
+ * not from this NoSpaceHere(789)
+ *
+ */
+export const extractNumber = (title: string): number => {
+  const numberWithParenthesis = title.split(' ').pop() as string;
+  const number = parseInt(numberWithParenthesis.substring(1, numberWithParenthesis.length - 1));
+  return number;
 };

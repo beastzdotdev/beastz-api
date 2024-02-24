@@ -1,9 +1,9 @@
+import fs from 'fs';
 import path from 'path';
-import fs, { PathOrFileDescriptor, WriteFileOptions } from 'fs';
 import { match } from 'ts-pattern';
 import { plainToInstance } from 'class-transformer';
 import { ClassConstructor } from 'class-transformer/types/interfaces';
-import { ValidationError } from 'class-validator';
+import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
 import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -171,6 +171,10 @@ export function isErrnoException(error: unknown): error is NodeJS.ErrnoException
   return error instanceof Error && 'code' in error;
 }
 
+export const escapeRegExp = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 //===================================================
 //  ______ _ _      _          _
 // |  ____(_) |    | |        | |
@@ -182,18 +186,54 @@ export function isErrnoException(error: unknown): error is NodeJS.ErrnoException
 //                              |_|
 //===================================================
 
-export async function checkIfDirectoryExists(somePath: string, flags?: { createIfNotExists?: boolean }): Promise<void> {
+export const isMulterFile = (value: unknown): value is Express.Multer.File => {
+  if (!isObject(value) || !isNotEmptyObject(value)) {
+    return false;
+  }
+
+  return (
+    'fieldname' in value &&
+    'originalname' in value &&
+    'encoding' in value &&
+    'mimetype' in value &&
+    'buffer' in value &&
+    'size' in value
+  );
+};
+
+export async function checkIfDirectoryExists(
+  somePath: string,
+  flags?: { createIfNotExists?: boolean },
+): Promise<boolean> {
   const dirPath = path.dirname(somePath);
 
   try {
     // The directory exists
     await fs.promises.access(dirPath);
+
+    return true;
   } catch (error: unknown) {
     if (isErrnoException(error) && error.code === 'ENOENT' && flags?.createIfNotExists) {
       await fs.promises.mkdir(dirPath, { recursive: true });
-      return;
+      return true;
     }
 
-    throw error;
+    console.log('='.repeat(20));
+    console.log(error);
+
+    return false;
+  }
+}
+
+export async function deleteFile(path: string): Promise<boolean> {
+  try {
+    // The directory exists
+    await fs.promises.unlink(path);
+    return true;
+  } catch (error: unknown) {
+    console.log('='.repeat(20));
+    console.log(error);
+
+    return false;
   }
 }
