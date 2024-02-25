@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FileStructure } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
-import { CreateFileStructureParams } from './file-structure.type';
+import { CreateFileStructureParams, GetByMethodParamsInRepo, GetManyByMethodParamsInRepo } from './file-structure.type';
 
 @Injectable()
 export class FileStructureRepository {
@@ -20,12 +20,20 @@ export class FileStructureRepository {
     });
   }
 
-  async getBy(params: {
-    depth?: number;
-    title?: string;
-    isFile?: boolean;
-    userId?: number;
-  }): Promise<FileStructure | null> {
+  async getTotalFilesSize(userId: number): Promise<number | null> {
+    const response = await this.prismaService.fileStructure.aggregate({
+      where: {
+        userId,
+      },
+      _sum: {
+        sizeInBytes: true,
+      },
+    });
+
+    return response._sum.sizeInBytes;
+  }
+
+  async getBy(params: GetByMethodParamsInRepo): Promise<FileStructure | null> {
     const { depth, isFile, title, userId } = params;
 
     if (!Object.values(params).length) {
@@ -42,13 +50,7 @@ export class FileStructureRepository {
     });
   }
 
-  async getManyBy(params: {
-    titleStartsWith?: string;
-    depth?: number;
-    title?: string;
-    isFile?: boolean;
-    userId?: number;
-  }): Promise<FileStructure[]> {
+  async getManyBy(params: GetManyByMethodParamsInRepo): Promise<FileStructure[]> {
     const { depth, isFile, title, userId, titleStartsWith } = params;
 
     if (!Object.values(params).length) {

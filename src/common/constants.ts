@@ -1,4 +1,6 @@
 export const constants = Object.freeze({
+  MAX_STORAGE_PER_USER_IN_BYTES: 1024 ** 3 * 30, // 30 gigabytes in bytes
+
   PLATFORM_HEADER_NAME: 'platform',
   AUTH_HEADER_NAME: 'Authorization',
   COOKIE_ACCESS_NAME: 'access_token',

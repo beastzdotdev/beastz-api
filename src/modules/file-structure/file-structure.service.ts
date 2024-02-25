@@ -1,10 +1,21 @@
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuid } from 'uuid';
-import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { FileMimeType, FileStructure } from '@prisma/client';
+
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { FileStructureRepository } from './file-structure.repository';
+import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
+import { checkIfDirectoryExists, deleteFile } from '../../common/helper';
+import { AuthPayloadType } from '../../model/auth.types';
+import { IncreaseFileNameNumberMethodParams, ReplaceFileMethodParams } from './file-structure.type';
 import {
   constantFileNameDuplicateRegex,
   extractNumber,
@@ -12,9 +23,7 @@ import {
   fileStructureHelper,
   getUserRootContentPath,
 } from './file-structure.helper';
-import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-import { checkIfDirectoryExists, deleteFile } from '../../common/helper';
-import { AuthPayloadType } from '../../model/auth.types';
+import { constants } from '../../common/constants';
 
 @Injectable()
 export class FileStructureService {
@@ -31,29 +40,29 @@ export class FileStructureService {
 
     const isRoot = !parentId && !rootParentId;
 
-    let tempParentFile: FileStructure | null | undefined;
-    let tempRootFolder: FileStructure | null | undefined;
+    let parent: FileStructure | null | undefined;
+    let rootParent: FileStructure | null | undefined;
 
     // if this file has parentId then check if folder exists with this id (refering to parentId)
     if (parentId && rootParentId) {
-      [tempParentFile, tempRootFolder] = await Promise.all([
+      [parent, rootParent] = await Promise.all([
         this.fileStructureRepository.getById(parentId),
         this.fileStructureRepository.getById(rootParentId),
       ]);
 
-      if (!tempParentFile) {
+      if (!parent) {
         throw new NotFoundException(ExceptionMessageCode.PARENT_FOLDER_NOT_FOUND);
       }
 
-      if (tempParentFile.isFile) {
+      if (parent.isFile) {
         throw new NotFoundException(ExceptionMessageCode.PARENT_CANNOT_BE_FILE);
       }
 
-      if (!tempRootFolder) {
+      if (!rootParent) {
         throw new NotFoundException(ExceptionMessageCode.ROOT_PARENT_FOLDER_NOT_FOUND);
       }
 
-      if (tempRootFolder.isFile) {
+      if (rootParent.isFile) {
         throw new NotFoundException(ExceptionMessageCode.ROOT_PARENT_CANNOT_BE_FILE);
       }
     }
@@ -63,15 +72,10 @@ export class FileStructureService {
 
     const title = replaceExisting
       ? parsedFile.name
-      : //TODO here check if is not root file
-        //TODO here check if is not root file
-        //TODO here check if is not root file
-        //TODO here check if is not root file
-        //TODO here check if is not root file
-        //TODO here check if is not root file, use same method just needs different depth
-        await this.increaseRootFileNameNumber({
+      : await this.increaseFileNameNumber({
           title: parsedFile.name,
           userId: authPayload.user.id,
+          parent,
         });
 
     const fileNameWithExt = title + parsedFile.ext;
@@ -81,10 +85,12 @@ export class FileStructureService {
 
     const userRootContentPath = getUserRootContentPath(authPayload.user.uuid);
 
+    await this.checkStorageLimit(authPayload.user.id, file.size);
+
     // Perform fs operation
     if (isRoot) {
       if (replaceExisting) {
-        await this.replaceRootFile({
+        await this.replaceFile({
           title,
           userId: authPayload.user.id,
           userRootContentPath,
@@ -115,23 +121,25 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       });
     } else {
-      //TODO replace existing needs implementing use same method just needs chaniging path and depth
-      //TODO here to check identicall names for comparison read all files with same depth from database and parent id
-      //TODO here to check identicall names for comparison read all files with same depth from database and parent id
-      //TODO here to check identicall names for comparison read all files with same depth from database and parent id
-      //TODO here to check identicall names for comparison read all files with same depth from database and parent id
-      //TODO here to check identicall names for comparison read all files with same depth from database and parent id
-
-      if (!tempParentFile) {
+      if (!parent) {
         this.logger.debug(`This should not happen, tempParentFile mus not be null or undefined`);
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      const filePath = path.join(tempParentFile.path, fileNameWithExt);
+      if (replaceExisting) {
+        await this.replaceFile({
+          title,
+          userId: authPayload.user.id,
+          userRootContentPath,
+          parent: parent,
+        });
+      }
+
+      const filePath = path.join(parent.path, fileNameWithExt);
 
       // for fileStructure entity
       entityPath = filePath;
-      entityDepth = tempParentFile.depth + 1;
+      entityDepth = parent.depth + 1;
 
       this.logger.debug(`Is not root: ${filePath}`);
 
@@ -155,7 +163,7 @@ export class FileStructureService {
       title,
       color: null,
       userId: authPayload.user.id,
-      sizeInBytes: BigInt(file.size),
+      sizeInBytes: file.size,
       fileExstensionRaw: parsedFile.ext,
       mimeTypeRaw: file.mimetype,
       mimeType: fileStructureHelper.fileTypeRawMimeToEnum[file.mimetype] ?? FileMimeType.OTHER,
@@ -177,24 +185,27 @@ export class FileStructureService {
     });
   }
 
-  private async replaceRootFile(params: { title: string; userId: number; userRootContentPath: string }) {
-    const { title, userId, userRootContentPath } = params;
+  private async replaceFile(params: ReplaceFileMethodParams): Promise<void> {
+    const { title, userId, userRootContentPath, parent } = params;
 
-    const sameNameFileOnRoot = await this.fileStructureRepository.getBy({
-      depth: 0,
+    const sameNameFile = await this.fileStructureRepository.getBy({
+      depth: parent?.depth ?? 0, // either on depth or root
       title,
       isFile: true,
       userId: userId,
     });
 
-    if (sameNameFileOnRoot) {
-      const deletedSameNameFileOnRoot = await this.fileStructureRepository.deleteById(sameNameFileOnRoot.id);
+    if (sameNameFile) {
+      const deletedSameNameFile = await this.fileStructureRepository.deleteById(sameNameFile.id);
 
-      const deletedSameNameFilePath = path.join(userRootContentPath, deletedSameNameFileOnRoot.path);
+      const deletedSameNameFilePath = !!parent
+        ? deletedSameNameFile.path
+        : path.join(userRootContentPath, deletedSameNameFile.path);
+
       const exists = await checkIfDirectoryExists(deletedSameNameFilePath);
 
       if (!exists) {
-        this.logger.debug('Root file should exists in file system');
+        this.logger.debug('File should exists in file system');
         throw new InternalServerErrorException('Something went wrong');
       }
 
@@ -202,31 +213,29 @@ export class FileStructureService {
     }
   }
 
-  private async increaseRootFileNameNumber(params: { title: string; userId: number }): Promise<string> {
-    const { title, userId } = params;
+  private async increaseFileNameNumber(params: IncreaseFileNameNumberMethodParams): Promise<string> {
+    const { title, userId, parent } = params;
 
-    const sameNameFileOnRoot = await this.fileStructureRepository.getBy({
-      depth: 0,
+    const sameNameFile = await this.fileStructureRepository.getBy({
+      depth: parent?.depth ?? 0, // either on depth or root
       isFile: true,
       title,
       userId,
     });
 
-    if (!sameNameFileOnRoot) {
+    if (!sameNameFile) {
       return title;
     }
 
     const titleStartsWith = fileNameDuplicateRegex.test(title) ? title.split(' ').slice(0, -1).join(' ') : title;
-    const sameNameFilesOnRoot = await this.fileStructureRepository.getManyBy({
-      depth: 0,
+    const sameNameFiles = await this.fileStructureRepository.getManyBy({
+      depth: parent?.depth ?? 0, // either on depth or root
       isFile: true,
       userId,
       titleStartsWith,
     });
 
-    const withRegexFilter = sameNameFilesOnRoot.filter(e =>
-      constantFileNameDuplicateRegex(titleStartsWith).test(e.title),
-    );
+    const withRegexFilter = sameNameFiles.filter(e => constantFileNameDuplicateRegex(titleStartsWith).test(e.title));
 
     // this here happens when there are no names like "something (num)" and actually exists "something"
     if (!withRegexFilter.length) {
@@ -247,5 +256,18 @@ export class FileStructureService {
       });
 
     return `${titleStartsWith} (${finalFileNumber + 1})`;
+  }
+
+  private async checkStorageLimit(userId: number, extraSizeInBytes: number): Promise<void> {
+    const totalFileSizeBeforeModify = await this.fileStructureRepository.getTotalFilesSize(userId);
+
+    if (!totalFileSizeBeforeModify) {
+      this.logger.debug('Somehow user does not exist in order to get total file size');
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    if (totalFileSizeBeforeModify + extraSizeInBytes > constants.MAX_STORAGE_PER_USER_IN_BYTES) {
+      throw new ForbiddenException('Storage limit exceeds limit');
+    }
   }
 }

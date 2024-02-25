@@ -46,3 +46,5 @@ TODO  every image or file request will have its own cookies and will be shown on
 
       secure static assets
       https://stackoverflow.com/questions/21335868/how-to-protect-static-folder-in-express-with-passport
+
+TODO test out file upload method on file name check but with parent

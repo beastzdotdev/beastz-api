@@ -73,7 +73,7 @@ export const constantFileNameDuplicateRegex = (t: string): RegExp => new RegExp(
 /**
  * @description
  * extracts integer from this kind of string only 'This is another example (456)' -> 456
- * not from this NoSpaceHere(789)
+ * not from this NoSpaceHere(789) -> undesired response
  *
  */
 export const extractNumber = (title: string): number => {

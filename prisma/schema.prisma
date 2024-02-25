@@ -276,7 +276,7 @@ model FileStructure {
   color             String?       @db.VarChar(9) // only hex
   depth             Int           @map("depth") // which level is folder/file from root level
   userId            Int           @map("user_id")
-  sizeInBytes       BigInt?       @map("size_in_bytes")
+  sizeInBytes       Int?          @map("size_in_bytes")
   fileExstensionRaw String?       @map("file_exstension_raw") // like .ts, .js, .heic, ...
   mimeTypeRaw       String?       @map("mime_type_raw") // mimetype just as string
   mimeType          FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
