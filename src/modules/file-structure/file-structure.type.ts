@@ -7,11 +7,13 @@ export type ReplaceFileMethodParams = {
   userId: number;
   userRootContentPath: string;
   parent?: FileStructure | null;
+  isFile: boolean;
 };
 
 export type IncreaseFileNameNumberMethodParams = {
   title: string;
   userId: number;
+  isFile: boolean;
   parent?: FileStructure | null;
 };
 

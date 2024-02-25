@@ -203,9 +203,9 @@ export const isMulterFile = (value: unknown): value is Express.Multer.File => {
 
 export async function checkIfDirectoryExists(
   somePath: string,
-  flags?: { createIfNotExists?: boolean },
+  flags: { isFile: boolean; createIfNotExists?: boolean },
 ): Promise<boolean> {
-  const dirPath = path.dirname(somePath);
+  const dirPath = flags.isFile ? path.dirname(somePath) : somePath;
 
   try {
     // The directory exists
@@ -229,6 +229,19 @@ export async function deleteFile(path: string): Promise<boolean> {
   try {
     // The directory exists
     await fs.promises.unlink(path);
+    return true;
+  } catch (error: unknown) {
+    console.log('='.repeat(20));
+    console.log(error);
+
+    return false;
+  }
+}
+
+export async function deleteFolder(path: string): Promise<boolean> {
+  try {
+    // The directory exists
+    await fs.promises.rm(path, { recursive: true, force: true });
     return true;
   } catch (error: unknown) {
     console.log('='.repeat(20));

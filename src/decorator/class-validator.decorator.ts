@@ -133,6 +133,24 @@ const IsMulterFileNameSafe = (validationOptions?: ValidationOptions) => {
   };
 };
 
+export const IsStringSafeForFileOrFolder = (validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
+    registerDecorator({
+      name: IsStringSafeForFileOrFolder.name,
+      target: object.constructor,
+      propertyName: propertyName.toString(),
+      constraints: [],
+      options: {
+        message: args => `${propertyName.toString()} name is invalid, ${args.value}`,
+        ...validationOptions,
+      },
+      validator: {
+        validate: (value: string) => value === sanitize(value),
+      },
+    });
+  };
+};
+
 export function IsMulterFile(validateParams?: { maxSize?: number; fileTypes?: string[] }): PropertyDecorator {
   return function (target: object, propertyKey: string | symbol): void {
     IsMulterFileInstance()(target, propertyKey);

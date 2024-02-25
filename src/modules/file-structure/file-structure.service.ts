@@ -13,17 +13,18 @@ import { FileMimeType, FileStructure } from '@prisma/client';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { FileStructureRepository } from './file-structure.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-import { checkIfDirectoryExists, deleteFile } from '../../common/helper';
+import { checkIfDirectoryExists, deleteFile, deleteFolder } from '../../common/helper';
 import { AuthPayloadType } from '../../model/auth.types';
 import { IncreaseFileNameNumberMethodParams, ReplaceFileMethodParams } from './file-structure.type';
 import {
-  constantFileNameDuplicateRegex,
+  constFileStructureNameDuplicateRegex,
   extractNumber,
-  fileNameDuplicateRegex,
+  fileStructureNameDuplicateRegex,
   fileStructureHelper,
   getUserRootContentPath,
 } from './file-structure.helper';
 import { constants } from '../../common/constants';
+import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -34,11 +35,225 @@ export class FileStructureService {
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType) {
     const { file, parentId, rootParentId, replaceExisting } = dto;
 
+    const { parent } = await this.validateParentRootParentStructure({
+      parentId,
+      rootParentId,
+    });
+
+    const userId = authPayload.user.id;
+    const isRoot = !parentId && !rootParentId;
+
+    await this.checkStorageLimit(userId, file.size);
+
+    // /something.jpeg -> something or something (1).jpg -> something (1)
+    const parsedFile = path.parse(file.originalname);
+
+    const title = replaceExisting
+      ? parsedFile.name
+      : await this.increaseFileNameNumber({ isFile: true, title: parsedFile.name, userId, parent });
+
+    const fileNameWithExt = title + parsedFile.ext;
+
+    let entityPath: string;
+    let entityDepth: number;
+
+    const userRootContentPath = getUserRootContentPath(authPayload.user.uuid);
+
+    // Perform fs operation
+    if (isRoot) {
+      if (replaceExisting) {
+        await this.replaceFileStructure({ title, userId, userRootContentPath, isFile: true });
+      }
+
+      const filePath = path.join(userRootContentPath, fileNameWithExt);
+
+      // for fileStructure entity
+      entityPath = '/' + fileNameWithExt;
+      entityDepth = 0;
+
+      this.logger.debug(`Is root: ${filePath}`);
+
+      // if not exists create user uuid folder as well if not exists
+      const folderCreationSuccess = await checkIfDirectoryExists(filePath, { isFile: true, createIfNotExists: true });
+
+      if (!folderCreationSuccess) {
+        this.logger.debug('Folder creation error occured');
+        throw new InternalServerErrorException('Something went wrong');
+      }
+
+      // this should have no problem
+      await fs.promises.writeFile(filePath, file.buffer, { encoding: 'utf-8' }).catch(err => {
+        this.logger.debug('Error happend in root file creation');
+        this.logger.error(err);
+
+        throw new InternalServerErrorException('Something went wrong');
+      });
+    } else {
+      if (!parent) {
+        this.logger.debug(`This should not happen, tempParentFile mus not be null or undefined`);
+        throw new InternalServerErrorException('Something went wrong');
+      }
+
+      if (replaceExisting) {
+        await this.replaceFileStructure({ title, userId, userRootContentPath, parent, isFile: true });
+      }
+
+      const filePath = path.join(parent.path, fileNameWithExt);
+
+      // for fileStructure entity
+      entityPath = filePath;
+      entityDepth = parent.depth + 1;
+
+      this.logger.debug(`Is not root: ${filePath}`);
+
+      const exists = await checkIfDirectoryExists(filePath, { isFile: true });
+
+      if (!exists) {
+        this.logger.debug('Error happend in parent file folder check');
+        throw new InternalServerErrorException('Something went wrong');
+      }
+
+      // here create only file in existing directory
+      await fs.promises.writeFile(filePath, file.buffer, { encoding: 'utf-8' }).catch(err => {
+        this.logger.debug('Error happend in parent file creation');
+        this.logger.error(err);
+
+        throw new InternalServerErrorException('Something went wrong');
+      });
+    }
+
+    //TODO calculate if has parent than increase parent folder sizeInBytes as well
+
+    return this.fileStructureRepository.create({
+      title,
+      color: null,
+      userId: authPayload.user.id,
+      sizeInBytes: file.size,
+      fileExstensionRaw: parsedFile.ext,
+      mimeTypeRaw: file.mimetype,
+      mimeType: fileStructureHelper.fileTypeRawMimeToEnum[file.mimetype] ?? FileMimeType.OTHER,
+      uuid: uuid(),
+      isFile: true,
+      isShortcut: false,
+      isInBin: false,
+      isEncrypted: false,
+      isEditable: true,
+      isLocked: false,
+      deletedAt: null,
+      lastModifiedAt: null,
+
+      //! important
+      rootParentId: rootParentId ?? null,
+      parentId: parentId ?? null,
+      path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
+      depth: entityDepth, // if root 0 or parent depth + 1
+    });
+  }
+
+  async createFolder(dto: CreateFolderStructureDto, authPayload: AuthPayloadType) {
+    const { name, parentId, rootParentId, replaceExisting } = dto;
+
+    const { parent } = await this.validateParentRootParentStructure({
+      parentId,
+      rootParentId,
+    });
+
+    const userId = authPayload.user.id;
+    const isRoot = !parentId && !rootParentId;
+    const userRootContentPath = getUserRootContentPath(authPayload.user.uuid);
+
+    const title = replaceExisting
+      ? name
+      : await this.increaseFileNameNumber({ title: name, userId, parent, isFile: false });
+
+    let entityPath: string;
+    let entityDepth: number;
+
+    // Perform fs operation
+    if (isRoot) {
+      if (replaceExisting) {
+        await this.replaceFileStructure({ title, userId, userRootContentPath, isFile: false });
+      }
+
+      const folderPath = path.join(userRootContentPath, title);
+
+      // for fileStructure entity
+      entityPath = '/' + title;
+      entityDepth = 0;
+
+      this.logger.debug(`Is root: ${folderPath}`);
+
+      // if not exists create user uuid folder as well if not exists
+      const folderCreationSuccess = await checkIfDirectoryExists(folderPath, {
+        isFile: false,
+        createIfNotExists: true, // this will create desired folder
+      });
+
+      if (!folderCreationSuccess) {
+        this.logger.debug('Folder creation error occured');
+        throw new InternalServerErrorException('Something went wrong');
+      }
+    } else {
+      if (!parent) {
+        this.logger.debug(`This should not happen, tempParentFile mus not be null or undefined`);
+        throw new InternalServerErrorException('Something went wrong');
+      }
+
+      if (replaceExisting) {
+        await this.replaceFileStructure({ title, userId, userRootContentPath, parent, isFile: false });
+      }
+
+      const folderPath = path.join(parent.path, title);
+
+      // for fileStructure entity
+      entityPath = folderPath;
+      entityDepth = parent.depth + 1;
+
+      this.logger.debug(`Is not root: ${folderPath}`);
+
+      const folderCreationSuccess = await checkIfDirectoryExists(folderPath, {
+        isFile: false,
+        createIfNotExists: true, // this will create desired folder
+      });
+
+      if (!folderCreationSuccess) {
+        this.logger.debug('Error happend in parent folder folder creation');
+        throw new InternalServerErrorException('Something went wrong');
+      }
+    }
+
+    return this.fileStructureRepository.create({
+      title,
+      color: null,
+      sizeInBytes: 0,
+      userId: authPayload.user.id,
+      fileExstensionRaw: null,
+      mimeTypeRaw: null,
+      mimeType: null,
+      uuid: uuid(),
+      isFile: false,
+      isShortcut: false,
+      isInBin: false,
+      isEncrypted: false,
+      isEditable: true,
+      isLocked: false,
+      deletedAt: null,
+      lastModifiedAt: null,
+
+      //! important
+      rootParentId: rootParentId ?? null,
+      parentId: parentId ?? null,
+      path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
+      depth: entityDepth, // if root 0 or parent depth + 1
+    });
+  }
+
+  private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }) {
+    const { parentId, rootParentId } = params;
+
     if ((parentId && !rootParentId) || (!parentId && rootParentId)) {
       throw new NotFoundException('parent id and root parent id must be set at the same time'); // this should not be handled
     }
-
-    const isRoot = !parentId && !rootParentId;
 
     let parent: FileStructure | null | undefined;
     let rootParent: FileStructure | null | undefined;
@@ -67,183 +282,80 @@ export class FileStructureService {
       }
     }
 
-    // /something.jpeg -> something or something (1)
-    const parsedFile = path.parse(file.originalname);
-
-    const title = replaceExisting
-      ? parsedFile.name
-      : await this.increaseFileNameNumber({
-          title: parsedFile.name,
-          userId: authPayload.user.id,
-          parent,
-        });
-
-    const fileNameWithExt = title + parsedFile.ext;
-
-    let entityPath: string;
-    let entityDepth: number;
-
-    const userRootContentPath = getUserRootContentPath(authPayload.user.uuid);
-
-    await this.checkStorageLimit(authPayload.user.id, file.size);
-
-    // Perform fs operation
-    if (isRoot) {
-      if (replaceExisting) {
-        await this.replaceFile({
-          title,
-          userId: authPayload.user.id,
-          userRootContentPath,
-        });
-      }
-
-      const filePath = path.join(userRootContentPath, fileNameWithExt);
-
-      // for fileStructure entity
-      entityPath = '/' + fileNameWithExt;
-      entityDepth = 0;
-
-      this.logger.debug(`Is root: ${filePath}`);
-
-      // if not exists create user uuid folder as well if not exists
-      const folderCreationSuccess = await checkIfDirectoryExists(filePath, { createIfNotExists: true });
-
-      if (!folderCreationSuccess) {
-        this.logger.debug('Folder creation error occured');
-        throw new InternalServerErrorException('Something went wrong');
-      }
-
-      // this should have no problem
-      await fs.promises.writeFile(filePath, file.buffer, { encoding: 'utf-8' }).catch(err => {
-        this.logger.debug('Error happend in root file creation');
-        this.logger.error(err);
-
-        throw new InternalServerErrorException('Something went wrong');
-      });
-    } else {
-      if (!parent) {
-        this.logger.debug(`This should not happen, tempParentFile mus not be null or undefined`);
-        throw new InternalServerErrorException('Something went wrong');
-      }
-
-      if (replaceExisting) {
-        await this.replaceFile({
-          title,
-          userId: authPayload.user.id,
-          userRootContentPath,
-          parent: parent,
-        });
-      }
-
-      const filePath = path.join(parent.path, fileNameWithExt);
-
-      // for fileStructure entity
-      entityPath = filePath;
-      entityDepth = parent.depth + 1;
-
-      this.logger.debug(`Is not root: ${filePath}`);
-
-      const exists = await checkIfDirectoryExists(filePath);
-
-      if (!exists) {
-        this.logger.debug('Error happend in parent file folder check');
-        throw new InternalServerErrorException('Something went wrong');
-      }
-
-      // here create only file in existing directory
-      await fs.promises.writeFile(filePath, file.buffer, { encoding: 'utf-8' }).catch(err => {
-        this.logger.debug('Error happend in parent file creation');
-        this.logger.error(err);
-
-        throw new InternalServerErrorException('Something went wrong');
-      });
-    }
-
-    return this.fileStructureRepository.create({
-      title,
-      color: null,
-      userId: authPayload.user.id,
-      sizeInBytes: file.size,
-      fileExstensionRaw: parsedFile.ext,
-      mimeTypeRaw: file.mimetype,
-      mimeType: fileStructureHelper.fileTypeRawMimeToEnum[file.mimetype] ?? FileMimeType.OTHER,
-      uuid: uuid(),
-      isFile: true,
-      isShortcut: false,
-      isInBin: false,
-      isEncrypted: false,
-      isEditable: true,
-      isLocked: false,
-      deletedAt: null,
-      lastModifiedAt: null,
-
-      //! important
-      rootParentId: rootParentId ?? null,
-      parentId: parentId ?? null,
-      path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
-      depth: entityDepth, // if root 0 or parent depth + 1
-    });
+    return {
+      parent,
+      rootParent,
+    };
   }
 
-  private async replaceFile(params: ReplaceFileMethodParams): Promise<void> {
-    const { title, userId, userRootContentPath, parent } = params;
+  private async replaceFileStructure(params: ReplaceFileMethodParams): Promise<void> {
+    const { title, userId, userRootContentPath, parent, isFile } = params;
 
-    const sameNameFile = await this.fileStructureRepository.getBy({
+    const sameNameFileStructure = await this.fileStructureRepository.getBy({
       depth: parent?.depth ?? 0, // either on depth or root
       title,
-      isFile: true,
-      userId: userId,
+      isFile,
+      userId,
     });
 
-    if (sameNameFile) {
-      const deletedSameNameFile = await this.fileStructureRepository.deleteById(sameNameFile.id);
+    if (sameNameFileStructure) {
+      const delSameNameFileStructure = await this.fileStructureRepository.deleteById(sameNameFileStructure.id);
 
-      const deletedSameNameFilePath = !!parent
-        ? deletedSameNameFile.path
-        : path.join(userRootContentPath, deletedSameNameFile.path);
+      const deletedSameNameFileStructurePath = !!parent
+        ? delSameNameFileStructure.path
+        : path.join(userRootContentPath, delSameNameFileStructure.path);
 
-      const exists = await checkIfDirectoryExists(deletedSameNameFilePath);
+      const exists = await checkIfDirectoryExists(deletedSameNameFileStructurePath, {
+        isFile,
+      }); // no need for creation of folder
 
       if (!exists) {
         this.logger.debug('File should exists in file system');
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      await deleteFile(deletedSameNameFilePath);
+      isFile
+        ? await deleteFile(deletedSameNameFileStructurePath)
+        : await deleteFolder(deletedSameNameFileStructurePath);
     }
   }
 
   private async increaseFileNameNumber(params: IncreaseFileNameNumberMethodParams): Promise<string> {
-    const { title, userId, parent } = params;
+    const { title, userId, parent, isFile } = params;
 
-    const sameNameFile = await this.fileStructureRepository.getBy({
+    const sameNameFileStructure = await this.fileStructureRepository.getBy({
       depth: parent?.depth ?? 0, // either on depth or root
-      isFile: true,
+      isFile,
       title,
       userId,
     });
 
-    if (!sameNameFile) {
+    if (!sameNameFileStructure) {
       return title;
     }
 
-    const titleStartsWith = fileNameDuplicateRegex.test(title) ? title.split(' ').slice(0, -1).join(' ') : title;
-    const sameNameFiles = await this.fileStructureRepository.getManyBy({
+    const titleStartsWith = fileStructureNameDuplicateRegex.test(title)
+      ? title.split(' ').slice(0, -1).join(' ')
+      : title;
+
+    const sameNameFileStructures = await this.fileStructureRepository.getManyBy({
       depth: parent?.depth ?? 0, // either on depth or root
-      isFile: true,
+      isFile,
       userId,
       titleStartsWith,
     });
 
-    const withRegexFilter = sameNameFiles.filter(e => constantFileNameDuplicateRegex(titleStartsWith).test(e.title));
+    const withRegexFilter = sameNameFileStructures.filter(e =>
+      constFileStructureNameDuplicateRegex(titleStartsWith).test(e.title),
+    );
 
     // this here happens when there are no names like "something (num)" and actually exists "something"
     if (!withRegexFilter.length) {
       return `${title} (1)`;
     }
 
-    let finalFileNumber = 0;
-    const fileNameNumber = extractNumber(title) || 0;
+    let finalNum = 0;
+    const fileStructureNameNumber = extractNumber(title) || 0;
 
     // is sorted here number from low to high
     withRegexFilter
@@ -252,10 +364,10 @@ export class FileStructureService {
       .slice() // copy before mutation to avoid future mistakes
       .sort((a, b) => a - b)
       .forEach(number => {
-        finalFileNumber = fileNameNumber > number ? fileNameNumber : number;
+        finalNum = fileStructureNameNumber > number ? fileStructureNameNumber : number;
       });
 
-    return `${titleStartsWith} (${finalFileNumber + 1})`;
+    return `${titleStartsWith} (${finalNum + 1})`;
   }
 
   private async checkStorageLimit(userId: number, extraSizeInBytes: number): Promise<void> {

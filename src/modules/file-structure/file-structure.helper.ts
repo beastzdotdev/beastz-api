@@ -61,14 +61,15 @@ export const getUserRootContentPath = (uuid: string) => {
  * console.log(regex.test(string3)); // Output: false
  * ```
  */
-export const fileNameDuplicateRegex = new RegExp(/^.+\s\(\d+\)$/);
+export const fileStructureNameDuplicateRegex = new RegExp(/^.+\s\(\d+\)$/);
 
 /**
  * @description
- * functions same as fileNameDuplicateRegex method but instead of any symbol,number,string
+ * functions same as fileStructureNameDuplicateRegex method but instead of any symbol,number,string
  * at the start of string before " (" there must be constant text which is given
  */
-export const constantFileNameDuplicateRegex = (t: string): RegExp => new RegExp(`^${escapeRegExp(t)}\\s\\(\\d+\\)$`);
+export const constFileStructureNameDuplicateRegex = (t: string): RegExp =>
+  new RegExp(`^${escapeRegExp(t)}\\s\\(\\d+\\)$`);
 
 /**
  * @description
