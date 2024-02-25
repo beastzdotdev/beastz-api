@@ -18,6 +18,9 @@ export class FileStructureController {
   ): Promise<{ id: number }> {
     const response = await this.fileStructureService.uploadFile(dto, authPayload);
 
+    console.log('='.repeat(20));
+    console.log(response);
+
     return {
       id: response.id,
     };

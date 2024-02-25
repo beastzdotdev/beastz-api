@@ -225,7 +225,7 @@ export class FileStructureService {
     return this.fileStructureRepository.create({
       title,
       color: null,
-      sizeInBytes: 0,
+      sizeInBytes: null,
       userId: authPayload.user.id,
       fileExstensionRaw: null,
       mimeTypeRaw: null,
