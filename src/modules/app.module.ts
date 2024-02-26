@@ -36,14 +36,13 @@ import { FileStructureModule } from './file-structure/file-structure.module';
   providers: [
     {
       provide: APP_PIPE,
-      //TODO return and test
       useValue: new ValidationPipe({
-        // forbidNonWhitelisted: true,
+        forbidNonWhitelisted: true,
+        whitelist: true,
         transform: true,
-        // whitelist: false,
         transformOptions: {
           enableImplicitConversion: true,
-          // enableCircularCheck: true,
+          enableCircularCheck: true,
         },
       }),
     },

@@ -10,7 +10,7 @@ export const fileStructureHelper = Object.freeze({
     [FileMimeType.APPLICATION_JSON]: 'application/json', // JSON data
     [FileMimeType.APPLICATION_XML]: 'application/xml', // XML documents
     [FileMimeType.APPLICATION_PDF]: 'application/pdf', // Portable Document Format (PDF) files
-    [FileMimeType.IMAGE_JPG]: 'image/jpeg', // JPEG images
+    [FileMimeType.IMAGE_JPG]: 'image/jpeg', // JPEG images and JPG images
     [FileMimeType.IMAGE_PNG]: 'image/png', // PNG images
     [FileMimeType.IMAGE_GIF]: 'image/gif', // GIF images
     [FileMimeType.IMAGE_WEBP]: 'image/webp', // WebP images
@@ -43,12 +43,16 @@ export const fileStructureHelper = Object.freeze({
   },
 });
 
-export const getUserRootContentPath = (uuid: string) => {
-  const distPath = require.main!.path;
-  const userRootContentPath = path.join(distPath, '..', constants.userContentFolderName, uuid);
+const distPath = require.main!.path;
+const { publicAssetsImage, userContentFolderName, publicAssets, publicAssetsUser } = constants.assets;
 
-  return userRootContentPath;
-};
+export const getUserRootContentPath = (uuid: string) => path.join(distPath, '..', userContentFolderName, uuid);
+export const getPublicImgPath = (imgPath: string) => path.join(distPath, '..', publicAssetsImage, imgPath);
+export const getPublicUserPath = (uuid: string) => path.join(distPath, '..', publicAssetsUser, uuid);
+
+export const publicPath = path.join(distPath, '..', publicAssets);
+export const publicUserPath = path.join(distPath, '..', publicAssetsUser);
+export const publicImgPath = path.join(distPath, '..', publicAssetsImage);
 
 /**
  * @example

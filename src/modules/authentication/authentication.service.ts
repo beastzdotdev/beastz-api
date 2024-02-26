@@ -1,3 +1,4 @@
+import path from 'path';
 import bcrypt from 'bcrypt';
 import moment from 'moment';
 import { v4 as uuid } from 'uuid';
@@ -40,6 +41,7 @@ import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { transaction } from '../../common/transaction';
 import { AuthResponseViewJsonParams } from '../../model/types';
+import { getPublicImgPath, publicImgPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class AuthenticationService {
@@ -76,7 +78,7 @@ export class AuthenticationService {
       const user = await this.userService.create(
         {
           ...otherParams,
-          profileImagePath: 'default path on object storage of linode', //TODO after storage add from linode
+          profileImagePath: path.join('/', constants.assets.publicAssetsImage, 'profile-default.svg'),
           uuid: uuid(),
         },
         tx,

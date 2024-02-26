@@ -14,7 +14,7 @@ export class FeedbackController {
     return this.feedbackService.filter(filterFeedbacksQueryDto);
   }
 
-  //TODO check this
+  //TODO check this, add each to IsMulterFile
   // @ApiFiles('images')
   @Post()
   async create(@AuthPayload() authPayload: AuthPayloadType, @Body() body: FeedbackCreateDto) {

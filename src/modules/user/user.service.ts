@@ -1,14 +1,31 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { CreateUserParams, UpdateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
+import fs from 'fs';
+import path from 'path';
+import {
+  Logger,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { CreateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
 import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../exceptions/user-locked.exception';
 import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.types';
 import { PrismaTx } from '../@global/prisma/prisma.type';
+import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
+import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
+import { getPublicUserPath } from '../file-structure/file-structure.helper';
+import { AuthPayloadType } from '../../model/auth.types';
+import { checkIfDirectoryExists } from '../../common/helper';
+import { constants } from '../../common/constants';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(private readonly userRepository: UserRepository) {}
 
   async getByEmailIncludeIdentity(email: string, tx?: PrismaTx): Promise<UserIncludeIdentity> {
@@ -67,12 +84,55 @@ export class UserService {
     }
   }
 
-  async updateById(id: number, params: UpdateUserParams): Promise<UserWithRelations> {
+  async update(id: number, params: UpdateUserDetailsDto): Promise<UserWithRelations> {
+    const { userName, birthDate, gender } = params;
+
     const user = await this.userRepository.updateById(id, {
-      userName: params.userName,
-      birthDate: params.birthDate,
-      email: params.email,
-      gender: params.gender,
+      userName,
+      birthDate,
+      gender,
+    });
+
+    if (!user) {
+      throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
+    }
+
+    return user;
+  }
+
+  async updateUserProfile(authPayload: AuthPayloadType, params: UpdateUserProfileImageDto): Promise<UserWithRelations> {
+    const { profileImageFile } = params;
+
+    // /something.jpeg -> something or something (1).jpg -> something (1)
+    const parsedFile = path.parse(profileImageFile.originalname);
+
+    const newFileName = `profile-image${parsedFile.ext}`;
+
+    const filePath = path.join(getPublicUserPath(authPayload.user.uuid), newFileName);
+    const entityPath = path.join('/', constants.assets.publicAssetsUser, authPayload.user.uuid, newFileName);
+
+    this.logger.debug(`Created file path and entity path`);
+    this.logger.debug(filePath);
+    this.logger.debug(entityPath);
+
+    // if not exists create user uuid folder as well if not exists
+    const folderCreationSuccess = await checkIfDirectoryExists(filePath, { isFile: true, createIfNotExists: true });
+
+    if (!folderCreationSuccess) {
+      this.logger.debug('Folder creation error occured');
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    // this should have no problem
+    await fs.promises.writeFile(filePath, profileImageFile.buffer, { encoding: 'utf-8' }).catch(err => {
+      this.logger.debug('Error happend');
+      this.logger.error(err);
+
+      throw new InternalServerErrorException('Something went wrong');
+    });
+
+    const user = await this.userRepository.updateById(authPayload.user.id, {
+      profileImagePath: entityPath,
     });
 
     if (!user) {

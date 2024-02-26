@@ -1,4 +1,5 @@
 import sanitize from 'sanitize-html';
+import multer from 'multer';
 import type { ValidationOptions, ValidationArguments } from 'class-validator';
 import { IsDefined, IsString, MaxLength, MinLength, registerDecorator } from 'class-validator';
 import { applyDecorators } from '@nestjs/common';
@@ -73,11 +74,15 @@ const IsMulterFileTypes = (fileTypes: string[], validationOptions?: ValidationOp
       constraints: [],
       options: {
         message: args =>
-          `${propertyName.toString()} mimetype is not accepted ${(<Express.Multer.File>args.value).mimetype}`,
+          `${propertyName.toString()} mimetype is not accepted ${(<Express.Multer.File>args.value)?.mimetype ?? ''}`,
         ...validationOptions,
       },
       validator: {
         validate(value: Express.Multer.File) {
+          if (!value) {
+            return false;
+          }
+
           if (!fileTypes.length) {
             throw new Error('You forgot to add file types');
           }
@@ -103,12 +108,18 @@ const IsMulterFileMaxSize = (maxSize: number, validationOptions?: ValidationOpti
       options: {
         message: args =>
           `${propertyName.toString()} max size is ${maxSize} bytes, current size ${
-            (<Express.Multer.File>args.value).size
+            (<Express.Multer.File>args.value)?.size ?? 0
           }`,
         ...validationOptions,
       },
       validator: {
-        validate: (value: Express.Multer.File) => value.size < maxSize,
+        validate: (value: Express.Multer.File) => {
+          if (!value) {
+            return false;
+          }
+
+          return value.size < maxSize;
+        },
       },
     });
   };
@@ -123,11 +134,17 @@ const IsMulterFileNameSafe = (validationOptions?: ValidationOptions) => {
       constraints: [],
       options: {
         message: args =>
-          `${propertyName.toString()} name is invalid, ${(<Express.Multer.File>args.value).originalname}`,
+          `${propertyName.toString()} name is invalid ${(<Express.Multer.File>args.value)?.originalname ?? ''}`,
         ...validationOptions,
       },
       validator: {
-        validate: (value: Express.Multer.File) => value.originalname === sanitize(value.originalname),
+        validate: (value: Express.Multer.File) => {
+          if (!value) {
+            return false;
+          }
+
+          return value.originalname === sanitize(value.originalname);
+        },
       },
     });
   };

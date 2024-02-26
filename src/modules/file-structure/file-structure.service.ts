@@ -122,8 +122,6 @@ export class FileStructureService {
       });
     }
 
-    //TODO calculate if has parent than increase parent folder sizeInBytes as well
-
     return this.fileStructureRepository.create({
       title,
       color: null,

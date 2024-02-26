@@ -47,3 +47,10 @@ test/unit/coverage
 # Ignore evrything except readme.md in user content folder so that user-content always exists as caution
 /user-content
 !/user-content/readme.md
+
+
+
+# Ignore evrything except readme.md and img in public folder so that user-content always exists as caution
+/public
+!/public/img/
+!/public/user/readme.md
