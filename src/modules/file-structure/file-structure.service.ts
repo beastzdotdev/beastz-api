@@ -388,11 +388,6 @@ export class FileStructureService {
   private async checkStorageLimit(userId: number, extraSizeInBytes: number): Promise<void> {
     const totalFileSizeBeforeModify = await this.fileStructureRepository.getTotalFilesSize(userId);
 
-    if (!totalFileSizeBeforeModify) {
-      this.logger.debug('Somehow user does not exist in order to get total file size');
-      throw new InternalServerErrorException('Something went wrong');
-    }
-
     if (totalFileSizeBeforeModify + extraSizeInBytes > constants.MAX_STORAGE_PER_USER_IN_BYTES) {
       throw new ForbiddenException('Storage limit exceeds limit');
     }

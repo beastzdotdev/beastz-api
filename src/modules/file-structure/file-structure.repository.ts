@@ -26,7 +26,7 @@ export class FileStructureRepository {
     });
   }
 
-  async getTotalFilesSize(userId: number): Promise<number | null> {
+  async getTotalFilesSize(userId: number): Promise<number> {
     const response = await this.prismaService.fileStructure.aggregate({
       where: {
         userId,
@@ -36,7 +36,7 @@ export class FileStructureRepository {
       },
     });
 
-    return response._sum.sizeInBytes;
+    return response._sum.sizeInBytes ?? 0;
   }
 
   async getBy(params: GetByMethodParamsInRepo): Promise<FileStructure | null> {
