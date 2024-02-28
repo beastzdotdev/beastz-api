@@ -20,6 +20,12 @@ export class FileStructureRepository {
     });
   }
 
+  async getByIdForUser(id: number, userId: number): Promise<FileStructure | null> {
+    return this.prismaService.fileStructure.findFirst({
+      where: { id, userId },
+    });
+  }
+
   async getTotalFilesSize(userId: number): Promise<number | null> {
     const response = await this.prismaService.fileStructure.aggregate({
       where: {

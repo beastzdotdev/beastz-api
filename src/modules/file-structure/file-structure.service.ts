@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuid } from 'uuid';
+import { FileMimeType, FileStructure } from '@prisma/client';
 import {
   ForbiddenException,
   Injectable,
@@ -8,13 +9,14 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { FileMimeType, FileStructure } from '@prisma/client';
 
-import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
+import { constants } from '../../common/constants';
+import { AuthPayloadType } from '../../model/auth.types';
 import { FileStructureRepository } from './file-structure.repository';
+import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
+import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { checkIfDirectoryExists, deleteFile, deleteFolder } from '../../common/helper';
-import { AuthPayloadType } from '../../model/auth.types';
 import { IncreaseFileNameNumberMethodParams, ReplaceFileMethodParams } from './file-structure.type';
 import {
   constFileStructureNameDuplicateRegex,
@@ -23,8 +25,6 @@ import {
   fileStructureHelper,
   getUserRootContentPath,
 } from './file-structure.helper';
-import { constants } from '../../common/constants';
-import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -32,8 +32,25 @@ export class FileStructureService {
 
   constructor(private readonly fileStructureRepository: FileStructureRepository) {}
 
+  async getRootFiles(authPayload: AuthPayloadType) {
+    return this.fileStructureRepository.getManyBy({
+      depth: 0,
+      userId: authPayload.user.id,
+    });
+  }
+
+  async getById(authPayload: AuthPayloadType, id: number) {
+    const fileStructure = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+
+    if (!fileStructure) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    return fileStructure;
+  }
+
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType) {
-    const { file, parentId, rootParentId, replaceExisting } = dto;
+    const { file, parentId, rootParentId, replaceExisting, lastModifiedAt } = dto;
 
     const { parent } = await this.validateParentRootParentStructure({
       parentId,
@@ -138,7 +155,7 @@ export class FileStructureService {
       isEditable: true,
       isLocked: false,
       deletedAt: null,
-      lastModifiedAt: null,
+      lastModifiedAt: lastModifiedAt ?? null,
 
       //! important
       rootParentId: rootParentId ?? null,
@@ -236,7 +253,7 @@ export class FileStructureService {
       isEditable: true,
       isLocked: false,
       deletedAt: null,
-      lastModifiedAt: null,
+      lastModifiedAt: new Date(Date.now()),
 
       //! important
       rootParentId: rootParentId ?? null,

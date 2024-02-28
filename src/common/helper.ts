@@ -66,8 +66,12 @@ export function cyanLog<T>(val: T): void {
   console.log('\x1b[36m%s\x1b[0m', val);
 }
 
-export function plainArrayToInstance<T>(cls: ClassConstructor<T>, plain: Array<unknown>): T[] {
-  return clone<T[]>(plain).map((item: any) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
+export function plainArrayToInstance<T>(cls: ClassConstructor<T>, plain: Array<unknown>, shouldClone?: boolean): T[] {
+  if (shouldClone) {
+    return clone<T[]>(plain).map((item: unknown) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
+  }
+
+  return plain.map((item: unknown) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
 }
 
 export function getBoolExact(value: unknown): boolean | null {

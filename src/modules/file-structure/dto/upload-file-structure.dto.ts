@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsBoolean, IsDate, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
 import { IsMulterFile } from '../../../decorator/class-validator.decorator';
 import { constants } from '../../../common/constants';
 import { fileStructureHelper } from '../file-structure.helper';
@@ -15,6 +15,10 @@ export class UploadFileStructureDto {
     maxSize: constants.singleFileMaxSize,
   })
   file: Express.Multer.File;
+
+  @IsOptional()
+  @IsDate()
+  lastModifiedAt?: Date;
 
   @IsOptional()
   @IsBoolean()
