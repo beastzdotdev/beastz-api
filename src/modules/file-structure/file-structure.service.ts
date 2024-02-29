@@ -190,16 +190,16 @@ export class FileStructureService {
         await this.replaceFileStructure({ title, userId, userRootContentPath, isFile: false });
       }
 
-      const folderPath = path.join(userRootContentPath, title);
+      const folderPath = path.join('/', title);
 
       // for fileStructure entity
-      entityPath = '/' + title;
+      entityPath = folderPath;
       entityDepth = 0;
 
       this.logger.debug(`Is root: ${folderPath}`);
 
       // if not exists create user uuid folder as well if not exists
-      const folderCreationSuccess = await checkIfDirectoryExists(folderPath, {
+      const folderCreationSuccess = await checkIfDirectoryExists(path.join(userRootContentPath, folderPath), {
         isFile: false,
         createIfNotExists: true, // this will create desired folder
       });
@@ -224,9 +224,13 @@ export class FileStructureService {
       entityPath = folderPath;
       entityDepth = parent.depth + 1;
 
+      console.log('='.repeat(20));
+      console.log(folderPath);
+      console.log(entityDepth);
+
       this.logger.debug(`Is not root: ${folderPath}`);
 
-      const folderCreationSuccess = await checkIfDirectoryExists(folderPath, {
+      const folderCreationSuccess = await checkIfDirectoryExists(path.join(userRootContentPath, folderPath), {
         isFile: false,
         createIfNotExists: true, // this will create desired folder
       });
@@ -261,6 +265,11 @@ export class FileStructureService {
       path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
       depth: entityDepth, // if root 0 or parent depth + 1
     });
+  }
+
+  async getContentByParentId(authPayload: AuthPayloadType, parentId: number) {
+    const fileStructure = await this.fileStructureRepository.getContentByParentId(parentId, authPayload.user.id);
+    return fileStructure ?? [];
   }
 
   private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }) {

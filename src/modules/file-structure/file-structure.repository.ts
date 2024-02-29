@@ -26,6 +26,15 @@ export class FileStructureRepository {
     });
   }
 
+  async getContentByParentId(id: number, userId: number): Promise<FileStructure[]> {
+    return this.prismaService.fileStructure.findMany({
+      where: {
+        parentId: id,
+        userId,
+      },
+    });
+  }
+
   async getTotalFilesSize(userId: number): Promise<number> {
     const response = await this.prismaService.fileStructure.aggregate({
       where: {

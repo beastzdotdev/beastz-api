@@ -1,8 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { match } from 'ts-pattern';
-import { plainToInstance } from 'class-transformer';
-import { ClassConstructor } from 'class-transformer/types/interfaces';
 import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
 import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -64,14 +62,6 @@ export async function promisify<T>(callback: () => T): Promise<T> {
 
 export function cyanLog<T>(val: T): void {
   console.log('\x1b[36m%s\x1b[0m', val);
-}
-
-export function plainArrayToInstance<T>(cls: ClassConstructor<T>, plain: Array<unknown>, shouldClone?: boolean): T[] {
-  if (shouldClone) {
-    return clone<T[]>(plain).map((item: unknown) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
-  }
-
-  return plain.map((item: unknown) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
 }
 
 export function getBoolExact(value: unknown): boolean | null {

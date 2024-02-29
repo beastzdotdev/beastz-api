@@ -6,7 +6,6 @@ import { MimeTypeInterceptor } from '../../decorator/mime-type.decorator';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
-import { plainArrayToInstance } from '../../common/helper';
 import { BasicFileStructureResponseDto } from './dto/response/basic-file-structure-response.dto';
 
 @Controller('file-structure')
@@ -16,7 +15,7 @@ export class FileStructureController {
   @Get('only-root')
   async getOnlyRootFiles(@AuthPayload() authPayload: AuthPayloadType): Promise<BasicFileStructureResponseDto[]> {
     const response = await this.fileStructureService.getRootFiles(authPayload);
-    return plainArrayToInstance(BasicFileStructureResponseDto, response);
+    return plainToInstance(BasicFileStructureResponseDto, response);
   }
 
   @Get(':id')
@@ -44,6 +43,15 @@ export class FileStructureController {
     @Body() dto: CreateFolderStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.createFolder(dto, authPayload);
+    return plainToInstance(BasicFileStructureResponseDto, response);
+  }
+
+  @Get('content/:parentId')
+  async getContentById(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('parentId', ParseIntPipe) parentId: number,
+  ): Promise<BasicFileStructureResponseDto[]> {
+    const response = await this.fileStructureService.getContentByParentId(authPayload, parentId);
     return plainToInstance(BasicFileStructureResponseDto, response);
   }
 }
