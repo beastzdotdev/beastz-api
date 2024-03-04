@@ -10,6 +10,7 @@ export const fileStructureHelper = Object.freeze({
     [FileMimeType.APPLICATION_JSON]: 'application/json', // JSON data
     [FileMimeType.APPLICATION_XML]: 'application/xml', // XML documents
     [FileMimeType.APPLICATION_PDF]: 'application/pdf', // Portable Document Format (PDF) files
+    [FileMimeType.APPLICATION_OCTET_STREAM]: 'application/octet-stream', // binary file
     [FileMimeType.IMAGE_JPG]: 'image/jpeg', // JPEG images and JPG images
     [FileMimeType.IMAGE_PNG]: 'image/png', // PNG images
     [FileMimeType.IMAGE_GIF]: 'image/gif', // GIF images
@@ -40,6 +41,7 @@ export const fileStructureHelper = Object.freeze({
     'video/mpeg': FileMimeType.VIDEO_MPEG, // MPEG video files
     'video/webm': FileMimeType.VIDEO_WEBM, // WebM video files
     'video/quicktime': FileMimeType.VIDEO_QUICKTIME, // QuickTime video files.
+    'application/octet-stream': FileMimeType.APPLICATION_OCTET_STREAM, // binary file
   },
 });
 
@@ -65,7 +67,8 @@ export const publicImgPath = path.join(distPath, '..', publicAssetsImage);
  * console.log(regex.test(string3)); // Output: false
  * ```
  */
-export const fileStructureNameDuplicateRegex = new RegExp(/^.+\s\(\d+\)$/);
+export const fileStructureNameDuplicateRegex = new RegExp(/.*\([1-9]\d*\)$/);
+export const fileStructureNameDuplicateNumberCatcherRegex = new RegExp(/.*\(([1-9]\d*)\)$/);
 
 /**
  * @description
@@ -73,7 +76,7 @@ export const fileStructureNameDuplicateRegex = new RegExp(/^.+\s\(\d+\)$/);
  * at the start of string before " (" there must be constant text which is given
  */
 export const constFileStructureNameDuplicateRegex = (t: string): RegExp =>
-  new RegExp(`^${escapeRegExp(t)}\\s\\(\\d+\\)$`);
+  new RegExp(`${escapeRegExp(t)}\\s\\([1-9]\\d*\\)$`);
 
 /**
  * @description
@@ -82,7 +85,5 @@ export const constFileStructureNameDuplicateRegex = (t: string): RegExp =>
  *
  */
 export const extractNumber = (title: string): number => {
-  const numberWithParenthesis = title.split(' ').pop() as string;
-  const number = parseInt(numberWithParenthesis.substring(1, numberWithParenthesis.length - 1));
-  return number;
+  return parseInt(fileStructureNameDuplicateNumberCatcherRegex.exec(title)?.at(1) || '0');
 };

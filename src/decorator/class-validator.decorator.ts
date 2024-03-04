@@ -1,8 +1,6 @@
 import sanitize from 'sanitize-html';
-import multer from 'multer';
 import type { ValidationOptions, ValidationArguments } from 'class-validator';
-import { IsDefined, IsString, MaxLength, MinLength, registerDecorator } from 'class-validator';
-import { applyDecorators } from '@nestjs/common';
+import { registerDecorator } from 'class-validator';
 import { constants } from '../common/constants';
 import { isMulterFile } from '../common/helper';
 

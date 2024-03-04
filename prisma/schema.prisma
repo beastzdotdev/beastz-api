@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -49,6 +50,7 @@ enum FileMimeType {
   APPLICATION_JSON
   APPLICATION_XML
   APPLICATION_PDF
+  APPLICATION_OCTET_STREAM
 
   IMAGE_JPG
   IMAGE_PNG

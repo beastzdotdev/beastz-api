@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FileStructure } from '@prisma/client';
+import { FileStructure, Prisma } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { CreateFileStructureParams, GetByMethodParamsInRepo, GetManyByMethodParamsInRepo } from './file-structure.type';
@@ -49,7 +49,7 @@ export class FileStructureRepository {
   }
 
   async getBy(params: GetByMethodParamsInRepo): Promise<FileStructure | null> {
-    const { depth, isFile, title, userId } = params;
+    const { depth, isFile, title, userId, path, parentId } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -61,12 +61,14 @@ export class FileStructureRepository {
         isFile,
         userId,
         title,
+        path,
+        parentId,
       },
     });
   }
 
   async getManyBy(params: GetManyByMethodParamsInRepo): Promise<FileStructure[]> {
-    const { depth, isFile, title, userId, titleStartsWith } = params;
+    const { depth, isFile, title, userId, titleStartsWith, parentId } = params;
 
     if (!Object.values(params).length) {
       return [];
@@ -77,6 +79,7 @@ export class FileStructureRepository {
         depth,
         isFile,
         userId,
+        parentId,
         ...(titleStartsWith ? { title: { startsWith: titleStartsWith } } : { title }),
       },
     });
@@ -86,6 +89,25 @@ export class FileStructureRepository {
     const db = tx ?? this.prismaService;
 
     return db.fileStructure.create({ data: params });
+  }
+
+  async recursiveDeleteChildren(id: number) {
+    const d = await this.prismaService.$executeRaw(Prisma.sql`
+      WITH RECURSIVE FileStructureHierarchy AS (
+        SELECT id, parent_id 
+        FROM file_structure 
+        WHERE id = ${id}
+    
+        UNION ALL
+    
+        SELECT fs.id, fs.parent_id 
+        FROM file_structure fs 
+          JOIN FileStructureHierarchy fsh ON fs.parent_id = fsh.id
+      )
+        DELETE FROM file_structure WHERE id IN (SELECT id FROM FileStructureHierarchy);
+    `);
+
+    return d;
   }
 
   async deleteById(id: number): Promise<FileStructure> {

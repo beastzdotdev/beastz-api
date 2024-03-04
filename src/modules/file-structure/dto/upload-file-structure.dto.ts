@@ -22,7 +22,7 @@ export class UploadFileStructureDto {
 
   @IsOptional()
   @IsBoolean()
-  replaceExisting?: boolean;
+  keepBoth?: boolean; // increase file number in title
 
   @IsOptional()
   @IsInt()

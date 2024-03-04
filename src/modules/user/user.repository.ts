@@ -16,6 +16,7 @@ export class UserRepository {
     const db = tx ?? this.prismaService;
 
     return db.user.findUnique({
+      relationLoadStrategy: 'join',
       where: { email },
       select: {
         id: true,
@@ -50,6 +51,7 @@ export class UserRepository {
 
   async getById(id: number): Promise<UserWithRelations | null> {
     return this.prismaService.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { id },
       select: {
         id: true,
@@ -70,6 +72,7 @@ export class UserRepository {
     const db = tx ?? this.prismaService;
 
     return db.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { id },
       select: {
         id: true,
@@ -92,6 +95,7 @@ export class UserRepository {
 
   async getIdByEmail(email: string): Promise<number | null> {
     const result = await this.prismaService.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { email },
       select: { id: true },
     });

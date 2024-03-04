@@ -48,3 +48,11 @@ TODO  every image or file request will have its own cookies and will be shown on
       https://stackoverflow.com/questions/21335868/how-to-protect-static-folder-in-express-with-passport
 
 TODO test out file upload method on file name check but with parent
+
+
+
+
+TODO add prometheus for prisma metrics and jaeger for prisma tracing on top of docker
+
+
+

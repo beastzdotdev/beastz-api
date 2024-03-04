@@ -14,7 +14,7 @@ export class CreateFolderStructureDto {
 
   @IsOptional()
   @IsBoolean()
-  replaceExisting?: boolean;
+  keepBoth?: boolean;
 
   @IsOptional()
   @IsInt()

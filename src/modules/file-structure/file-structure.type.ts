@@ -3,10 +3,9 @@ import { FileStructure } from '@prisma/client';
 export type CreateFileStructureParams = Omit<FileStructure, 'id' | 'createdAt'>;
 
 export type ReplaceFileMethodParams = {
-  title: string;
+  path: string;
   userId: number;
   userRootContentPath: string;
-  parent?: FileStructure | null;
   isFile: boolean;
 };
 
@@ -22,8 +21,11 @@ export type GetByMethodParamsInRepo = {
   title?: string;
   isFile?: boolean;
   userId?: number;
+  path?: string;
+  parentId?: number;
 };
 export type GetManyByMethodParamsInRepo = {
+  parentId?: number;
   titleStartsWith?: string;
   depth?: number;
   title?: string;
