@@ -1,8 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuid } from 'uuid';
+import sanitizeHtml from 'sanitize-html';
+import sanitizeFileName from 'sanitize-filename';
 import { FileMimeType, FileStructure } from '@prisma/client';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -25,6 +28,8 @@ import {
   fileStructureHelper,
   getUserRootContentPath,
 } from './file-structure.helper';
+import { DetectDuplicateQueryDto } from './dto/detect-duplicate-query.dto';
+import { DetectDuplicateResponseDto } from './dto/response/detect-duplicate-response.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -47,6 +52,35 @@ export class FileStructureService {
     }
 
     return fileStructure;
+  }
+
+  async checkIfDuplicateExists(
+    authPayload: AuthPayloadType,
+    queryParams: DetectDuplicateQueryDto,
+  ): Promise<DetectDuplicateResponseDto[]> {
+    const { titles, isFile, parentId } = queryParams;
+    const fileStructures: DetectDuplicateResponseDto[] = [];
+
+    for (const title of titles) {
+      if (title !== sanitizeHtml(title) || title !== sanitizeFileName(title)) {
+        this.logger.debug(`File name invalid ${title}`);
+        throw new BadRequestException('File name invalid');
+      }
+
+      const fileStructure = await this.fileStructureRepository.getBy({
+        isFile,
+        title: path.parse(title).name,
+        parentId: parentId ?? null,
+        userId: authPayload.user.id,
+      });
+
+      fileStructures.push({
+        title,
+        hasDuplicate: !!fileStructure,
+      });
+    }
+
+    return fileStructures;
   }
 
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType) {
@@ -175,6 +209,11 @@ export class FileStructureService {
   async createFolder(dto: CreateFolderStructureDto, authPayload: AuthPayloadType) {
     const { name, parentId, rootParentId, keepBoth } = dto;
 
+    if (name !== sanitizeHtml(name) || name !== sanitizeFileName(name)) {
+      this.logger.debug(`File name invalid ${name}`);
+      throw new BadRequestException('File name invalid');
+    }
+
     const { parent } = await this.validateParentRootParentStructure({
       parentId,
       rootParentId,
@@ -275,6 +314,7 @@ export class FileStructureService {
     return fileStructure ?? [];
   }
 
+  //TODO this method can be optimized by only checking existence or adding flags instead of fetching all
   private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }) {
     const { parentId, rootParentId } = params;
 

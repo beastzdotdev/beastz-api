@@ -1,7 +1,5 @@
 import { IsBoolean, IsDate, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
-import { IsMulterFile } from '../../../decorator/class-validator.decorator';
-import { constants } from '../../../common/constants';
-import { fileStructureHelper } from '../file-structure.helper';
+import { Transform } from 'class-transformer';
 
 /**
  * Custom validation: dto will only containt both parentId and rootParentId or none also
@@ -10,10 +8,6 @@ import { fileStructureHelper } from '../file-structure.helper';
  */
 export class UploadFileStructureDto {
   @IsNotEmpty()
-  @IsMulterFile({
-    fileTypes: Object.values(fileStructureHelper.fileTypeEnumToRawMime),
-    maxSize: constants.singleFileMaxSize,
-  })
   file: Express.Multer.File;
 
   @IsOptional()
@@ -21,6 +15,7 @@ export class UploadFileStructureDto {
   lastModifiedAt?: Date;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   keepBoth?: boolean; // increase file number in title
 

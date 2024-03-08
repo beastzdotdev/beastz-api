@@ -1,5 +1,4 @@
 import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { IsStringSafeForFileOrFolder } from '../../../decorator/class-validator.decorator';
 
 /**
  * Custom validation: dto will only containt both parentId and rootParentId or none also
@@ -9,7 +8,6 @@ import { IsStringSafeForFileOrFolder } from '../../../decorator/class-validator.
 export class CreateFolderStructureDto {
   @IsNotEmpty()
   @IsString()
-  @IsStringSafeForFileOrFolder()
   name: string;
 
   @IsOptional()

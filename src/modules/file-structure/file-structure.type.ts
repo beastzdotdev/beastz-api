@@ -22,7 +22,7 @@ export type GetByMethodParamsInRepo = {
   isFile?: boolean;
   userId?: number;
   path?: string;
-  parentId?: number;
+  parentId?: number | null;
 };
 export type GetManyByMethodParamsInRepo = {
   parentId?: number;

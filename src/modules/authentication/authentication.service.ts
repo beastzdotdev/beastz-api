@@ -41,7 +41,6 @@ import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { transaction } from '../../common/transaction';
 import { AuthResponseViewJsonParams } from '../../model/types';
-import { getPublicImgPath, publicImgPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class AuthenticationService {
@@ -107,7 +106,7 @@ export class AuthenticationService {
 
   async signInWithToken(res: Response, params: SignInParams, platform: PlatformWrapper): Promise<Response> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
-      const user = await this.userService.getByEmailIncludeIdentity(params.email).catch(e => {
+      const user = await this.userService.getByEmailIncludeIdentity(params.email).catch(() => {
         throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
       });
 
@@ -209,7 +208,9 @@ export class AuthenticationService {
 
       // we should not let user know that user not exists than user will use this info for password
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
-      const passwordMatches = await bcrypt.compare(oldPassword, user.userIdentity.password);
+      const existingPassword = await this.userService.getUserPasswordOnly(userId, tx);
+
+      const passwordMatches = await bcrypt.compare(oldPassword, existingPassword);
 
       if (!passwordMatches) {
         throw new UnauthorizedException(ExceptionMessageCode.PASSWORD_INVALID);

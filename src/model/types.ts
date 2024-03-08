@@ -8,6 +8,10 @@ export interface GeneralClass {
   new (...args: any[]): any;
 }
 
+export interface BasicMessage<T = string> {
+  message: T;
+}
+
 // Prisma helper
 export type ExceptionType = keyof typeof PrismaExceptionCode;
 export type SafeCallResult<T> = {

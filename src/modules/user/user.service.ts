@@ -28,7 +28,10 @@ export class UserService {
 
   constructor(private readonly userRepository: UserRepository) {}
 
-  async getByEmailIncludeIdentity(email: string, tx?: PrismaTx): Promise<UserIncludeIdentity> {
+  async getByEmailIncludeIdentity(
+    email: string,
+    tx?: PrismaTx,
+  ): Promise<UserIncludeIdentity<{ includesPassword: true }>> {
     const user = await this.userRepository.getByEmailIncludeIdentity(email, tx);
 
     if (!user || !user.userIdentity) {
@@ -56,7 +59,7 @@ export class UserService {
     return user;
   }
 
-  async getByIdIncludeIdentity(id: number, tx?: PrismaTx): Promise<UserIncludeIdentity> {
+  async getByIdIncludeIdentity(id: number, tx?: PrismaTx): Promise<UserIncludeIdentity<{ includesPassword: false }>> {
     const user = await this.userRepository.getByIdIncludeIdentity(id, tx);
 
     if (!user || !user.userIdentity) {
@@ -64,6 +67,16 @@ export class UserService {
     }
 
     return { ...user, userIdentity: user.userIdentity };
+  }
+
+  async getUserPasswordOnly(id: number, tx?: PrismaTx): Promise<string> {
+    const user = await this.userRepository.getUserPasswordOnly(id, tx);
+
+    if (!user || !user.userIdentity?.password) {
+      throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
+    }
+
+    return user.userIdentity.password;
   }
 
   async getIdByEmail(email: string): Promise<number> {
@@ -142,7 +155,10 @@ export class UserService {
     return user;
   }
 
-  validateUser(user: UserIncludeIdentity, flags?: ValidateUserForAccVerifyFlags) {
+  validateUser(
+    user: UserIncludeIdentity<{ includesPassword: true }> | UserIncludeIdentity<{ includesPassword: false }>,
+    flags?: ValidateUserForAccVerifyFlags,
+  ) {
     if (!user) {
       throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
     }

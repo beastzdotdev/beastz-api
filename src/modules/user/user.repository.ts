@@ -20,17 +20,17 @@ export class UserRepository {
       where: { email },
       select: {
         id: true,
-        email: true,
         uuid: true,
+        email: true,
         createdAt: true,
         userIdentity: {
           select: {
             id: true,
-            password: true,
             isAccountVerified: true,
             isBlocked: true,
-            isLocked: true,
             strictMode: true,
+            isLocked: true,
+            password: true,
           },
         },
       },
@@ -82,11 +82,28 @@ export class UserRepository {
         userIdentity: {
           select: {
             id: true,
-            password: true,
             isAccountVerified: true,
             isBlocked: true,
             isLocked: true,
             strictMode: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getUserPasswordOnly(id: number, tx?: PrismaTx) {
+    const db = tx ?? this.prismaService;
+
+    return db.user.findFirst({
+      relationLoadStrategy: 'join',
+      where: { id },
+      select: {
+        id: true,
+        userIdentity: {
+          select: {
+            id: true,
+            password: true,
           },
         },
       },

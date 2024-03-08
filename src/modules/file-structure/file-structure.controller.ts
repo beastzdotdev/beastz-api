@@ -1,12 +1,17 @@
-import { Controller, Post, Body, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { FileStructureService } from './file-structure.service';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
-import { MimeTypeInterceptor } from '../../decorator/mime-type.decorator';
+import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { BasicFileStructureResponseDto } from './dto/response/basic-file-structure-response.dto';
+import { DetectDuplicateQueryDto } from './dto/detect-duplicate-query.dto';
+import { DetectDuplicateResponseDto } from './dto/response/detect-duplicate-response.dto';
+import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
+import { constants } from '../../common/constants';
+import { fileStructureHelper } from './file-structure.helper';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -18,6 +23,14 @@ export class FileStructureController {
     return plainToInstance(BasicFileStructureResponseDto, response);
   }
 
+  @Get('detect-duplicate')
+  async detectDuplicate(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Query() queryParams: DetectDuplicateQueryDto,
+  ): Promise<DetectDuplicateResponseDto[]> {
+    return this.fileStructureService.checkIfDuplicateExists(authPayload, queryParams);
+  }
+
   @Get(':id')
   async getById(
     @AuthPayload() authPayload: AuthPayloadType,
@@ -27,8 +40,22 @@ export class FileStructureController {
     return plainToInstance(BasicFileStructureResponseDto, response);
   }
 
+  @Get('content/:parentId')
+  async getContentById(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('parentId', ParseIntPipe) parentId: number,
+  ): Promise<BasicFileStructureResponseDto[]> {
+    const response = await this.fileStructureService.getContentByParentId(authPayload, parentId);
+    return plainToInstance(BasicFileStructureResponseDto, response);
+  }
+
   @Post('upload-file')
-  @MimeTypeInterceptor(UploadFileStructureDto)
+  @FileUploadInterceptor(
+    new MulterFileInterceptor({
+      fileTypes: Object.values(fileStructureHelper.fileTypeEnumToRawMime),
+      maxSize: constants.singleFileMaxSize,
+    }),
+  )
   async uploadFile(
     @AuthPayload() authPayload: AuthPayloadType,
     @Body() dto: UploadFileStructureDto,
@@ -43,15 +70,6 @@ export class FileStructureController {
     @Body() dto: CreateFolderStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.createFolder(dto, authPayload);
-    return plainToInstance(BasicFileStructureResponseDto, response);
-  }
-
-  @Get('content/:parentId')
-  async getContentById(
-    @AuthPayload() authPayload: AuthPayloadType,
-    @Param('parentId', ParseIntPipe) parentId: number,
-  ): Promise<BasicFileStructureResponseDto[]> {
-    const response = await this.fileStructureService.getContentByParentId(authPayload, parentId);
     return plainToInstance(BasicFileStructureResponseDto, response);
   }
 }

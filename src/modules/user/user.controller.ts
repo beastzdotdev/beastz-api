@@ -5,8 +5,11 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
-import { MimeTypeInterceptor } from '../../decorator/mime-type.decorator';
+import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
+import { constants } from '../../common/constants';
+import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
+import { fileStructureHelper } from '../file-structure/file-structure.helper';
 
 @Controller('user')
 export class UserController {
@@ -34,7 +37,17 @@ export class UserController {
   }
 
   @Patch('current/image')
-  @MimeTypeInterceptor()
+  @FileUploadInterceptor(
+    new MulterFileInterceptor({
+      fileTypes: Object.values([
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
+      ]),
+      maxSize: constants.singleFileMaxSize,
+    }),
+  )
   async getUserProfileImage(
     @Body() body: UpdateUserProfileImageDto,
     @AuthPayload() authPayload: AuthPayloadType,
