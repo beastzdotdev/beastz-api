@@ -12,6 +12,7 @@ import { DetectDuplicateResponseDto } from './dto/response/detect-duplicate-resp
 import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
 import { constants } from '../../common/constants';
 import { fileStructureHelper } from './file-structure.helper';
+import { PlainToInstanceInterceptor } from '../../interceptor/plain-to-instance.interceptor';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -51,6 +52,7 @@ export class FileStructureController {
 
   @Post('upload-file')
   @FileUploadInterceptor(
+    new PlainToInstanceInterceptor(UploadFileStructureDto),
     new MulterFileInterceptor({
       fileTypes: Object.values(fileStructureHelper.fileTypeEnumToRawMime),
       maxSize: constants.singleFileMaxSize,
