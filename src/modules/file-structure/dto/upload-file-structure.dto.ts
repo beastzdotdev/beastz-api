@@ -1,5 +1,5 @@
 import { IsBoolean, IsDate, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { TransformBoolean, TransformDate, TransformNumber } from '../../../decorator/class-transformer.decorator';
 
 /**
  * Custom validation: dto will only containt both parentId and rootParentId or none also
@@ -11,19 +11,22 @@ export class UploadFileStructureDto {
   file: Express.Multer.File;
 
   @IsOptional()
+  @TransformDate()
   @IsDate()
   lastModifiedAt?: Date;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @TransformBoolean()
   @IsBoolean()
   keepBoth?: boolean; // increase file number in title
 
   @IsOptional()
+  @TransformNumber()
   @IsInt()
   parentId?: number;
 
   @IsOptional()
+  @TransformNumber()
   @IsInt()
   rootParentId?: number;
 }

@@ -1,8 +1,8 @@
 import { Gender } from '@prisma/client';
 import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength } from '@nestjs/class-validator';
-import { Type } from 'class-transformer';
 import { IsEmailCustom } from '../../../decorator/class-validator.decorator';
 import { StrongPassword } from '../../../decorator/strong-password.decorator';
+import { TransformDate } from '../../../decorator/class-transformer.decorator';
 
 export class SignUpBodyDto {
   @IsNotEmpty()
@@ -27,7 +27,7 @@ export class SignUpBodyDto {
   email: string;
 
   @IsNotEmpty()
-  @Type(() => Date)
+  @TransformDate()
   @IsDate()
   birthDate: Date;
 

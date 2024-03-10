@@ -2,6 +2,7 @@ import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength } from '@nestjs/class-v
 import { Gender } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsOptional } from 'class-validator';
+import { TransformDate } from '../../../decorator/class-transformer.decorator';
 
 export class UpdateUserDetailsDto {
   @IsOptional()
@@ -12,7 +13,7 @@ export class UpdateUserDetailsDto {
 
   @IsOptional()
   @IsNotEmpty()
-  @Type(() => Date)
+  @TransformDate()
   @IsDate()
   birthDate?: Date;
 

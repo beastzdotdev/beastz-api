@@ -41,8 +41,8 @@ import { FileStructureModule } from './file-structure/file-structure.module';
         whitelist: true,
         transform: true,
         transformOptions: {
-          enableImplicitConversion: true,
           enableCircularCheck: true,
+          enableImplicitConversion: false, // do not enable this param messes up lot of things
         },
       }),
     },

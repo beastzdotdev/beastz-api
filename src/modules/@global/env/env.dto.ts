@@ -1,7 +1,7 @@
-import { Transform, Type } from 'class-transformer';
 import { IsEnum, IsNumber, IsNotEmpty, IsString, IsOptional, IsUrl } from 'class-validator';
 import { IsExactBoolean } from '../../../decorator/class-validator.decorator';
 import { EnvironmentType } from './env.interface';
+import { TransformBoolean, TransformNumber } from '../../../decorator/class-transformer.decorator';
 
 export class EnvironmentVariables {
   @IsNotEmpty()
@@ -9,18 +9,18 @@ export class EnvironmentVariables {
   DEBUG: EnvironmentType;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   PORT: number;
 
   @IsOptional()
   @IsExactBoolean()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @TransformBoolean()
   DATABASE_LOG_QUERY: boolean = true;
 
   @IsOptional()
   @IsExactBoolean()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @TransformBoolean()
   ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: boolean = false;
 
   @IsNotEmpty()
@@ -71,32 +71,32 @@ export class EnvironmentVariables {
   REFRESH_TOKEN_SECRET: string;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   ACCESS_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   REFRESH_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   MAX_FEEDBACK_PER_DAY_COUNT: number;
 

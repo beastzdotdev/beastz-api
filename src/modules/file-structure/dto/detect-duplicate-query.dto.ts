@@ -1,5 +1,5 @@
-import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { TransformBoolean, TransformNumber } from '../../../decorator/class-transformer.decorator';
 
 export class DetectDuplicateQueryDto {
   @IsNotEmpty({ each: true })
@@ -7,11 +7,12 @@ export class DetectDuplicateQueryDto {
   titles: string[];
 
   @IsNotEmpty()
+  @TransformBoolean()
   @IsBoolean()
   isFile: boolean;
 
   @IsOptional()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   parentId?: number;
 }
