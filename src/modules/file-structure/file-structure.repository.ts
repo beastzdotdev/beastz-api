@@ -26,15 +26,6 @@ export class FileStructureRepository {
     });
   }
 
-  async getContentByParentId(id: number, userId: number): Promise<FileStructure[]> {
-    return this.prismaService.fileStructure.findMany({
-      where: {
-        parentId: id,
-        userId,
-      },
-    });
-  }
-
   async getTotalFilesSize(userId: number): Promise<number> {
     const response = await this.prismaService.fileStructure.aggregate({
       where: {
@@ -85,13 +76,37 @@ export class FileStructureRepository {
     });
   }
 
+  async selectUntilSecondDepth(params: {
+    userId: number;
+    depth?: number;
+    parentId?: number;
+  }): Promise<FileStructure[]> {
+    const { userId, depth, parentId } = params;
+
+    return this.prismaService.fileStructure.findMany({
+      relationLoadStrategy: 'join',
+      where: {
+        userId,
+        parentId,
+        depth,
+      },
+      include: {
+        children: {
+          include: {
+            children: true,
+          },
+        },
+      },
+    });
+  }
+
   async create(params: CreateFileStructureParams, tx?: PrismaTx): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
 
     return db.fileStructure.create({ data: params });
   }
 
-  async recursiveDeleteChildren(id: number) {
+  async recursiveDeleteChildren(id: number): Promise<number> {
     const d = await this.prismaService.$executeRaw(Prisma.sql`
       WITH RECURSIVE FileStructureHierarchy AS (
         SELECT id, parent_id 
@@ -118,3 +133,21 @@ export class FileStructureRepository {
     });
   }
 }
+
+// async selectRecursively() {
+//   const d = await this.prismaService.$queryRaw<FileStructure[]>(Prisma.sql`
+//     WITH RECURSIVE descendants AS (
+//       SELECT *
+//       FROM file_structure
+//       WHERE id = 873
+//     UNION ALL
+//         SELECT fs.*
+//         FROM file_structure fs
+//         JOIN descendants d
+//         ON fs.parent_id = d.id
+//         where fs.depth <= 4
+//     )
+//     SELECT * FROM descendants;
+//   `);
+//   return d;
+// }

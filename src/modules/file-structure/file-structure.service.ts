@@ -30,6 +30,7 @@ import {
 } from './file-structure.helper';
 import { DetectDuplicateQueryDto } from './dto/detect-duplicate-query.dto';
 import { DetectDuplicateResponseDto } from './dto/response/detect-duplicate-response.dto';
+import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -37,10 +38,12 @@ export class FileStructureService {
 
   constructor(private readonly fileStructureRepository: FileStructureRepository) {}
 
-  async getRootFiles(authPayload: AuthPayloadType) {
-    return this.fileStructureRepository.getManyBy({
-      depth: 0,
+  async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
+    const { parentId } = queryParams;
+
+    return this.fileStructureRepository.selectUntilSecondDepth({
       userId: authPayload.user.id,
+      ...(parentId ? { parentId } : { depth: 0 }), // get either the root or a specific folder
     });
   }
 
@@ -307,11 +310,6 @@ export class FileStructureService {
       path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
       depth: entityDepth, // if root 0 or parent depth + 1
     });
-  }
-
-  async getContentByParentId(authPayload: AuthPayloadType, parentId: number) {
-    const fileStructure = await this.fileStructureRepository.getContentByParentId(parentId, authPayload.user.id);
-    return fileStructure ?? [];
   }
 
   //TODO this method can be optimized by only checking existence or adding flags instead of fetching all

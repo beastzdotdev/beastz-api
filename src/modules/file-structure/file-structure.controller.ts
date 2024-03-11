@@ -13,14 +13,18 @@ import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor
 import { constants } from '../../common/constants';
 import { fileStructureHelper } from './file-structure.helper';
 import { PlainToInstanceInterceptor } from '../../interceptor/plain-to-instance.interceptor';
+import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
   constructor(private readonly fileStructureService: FileStructureService) {}
 
-  @Get('only-root')
-  async getOnlyRootFiles(@AuthPayload() authPayload: AuthPayloadType): Promise<BasicFileStructureResponseDto[]> {
-    const response = await this.fileStructureService.getRootFiles(authPayload);
+  @Get('content')
+  async getContent(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Query() queryParams: GetFileStructureContentQueryDto,
+  ): Promise<BasicFileStructureResponseDto[]> {
+    const response = await this.fileStructureService.getContent(authPayload, queryParams);
     return plainToInstance(BasicFileStructureResponseDto, response);
   }
 
@@ -38,15 +42,6 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.getById(authPayload, id);
-    return plainToInstance(BasicFileStructureResponseDto, response);
-  }
-
-  @Get('content/:parentId')
-  async getContentById(
-    @AuthPayload() authPayload: AuthPayloadType,
-    @Param('parentId', ParseIntPipe) parentId: number,
-  ): Promise<BasicFileStructureResponseDto[]> {
-    const response = await this.fileStructureService.getContentByParentId(authPayload, parentId);
     return plainToInstance(BasicFileStructureResponseDto, response);
   }
 
