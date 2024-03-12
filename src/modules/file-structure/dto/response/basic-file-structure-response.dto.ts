@@ -1,5 +1,5 @@
 import { FileMimeType } from '@prisma/client';
-import { Exclude, Expose, Type } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
 @Exclude()
 export class BasicFileStructureResponseDto {
@@ -49,6 +49,13 @@ export class BasicFileStructureResponseDto {
   parentId: number | null;
 
   @Expose()
+  @Transform(params => {
+    if ((params.obj as BasicFileStructureResponseDto)?.isFile) {
+      return null;
+    }
+
+    return params.value;
+  })
   @Type(() => BasicFileStructureResponseDto)
-  children: BasicFileStructureResponseDto[];
+  children: BasicFileStructureResponseDto[] | null = []; // giving default value is important !
 }

@@ -25,7 +25,7 @@ export class FileStructureController {
     @Query() queryParams: GetFileStructureContentQueryDto,
   ): Promise<BasicFileStructureResponseDto[]> {
     const response = await this.fileStructureService.getContent(authPayload, queryParams);
-    return plainToInstance(BasicFileStructureResponseDto, response);
+    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 
   @Get('detect-duplicate')
