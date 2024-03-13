@@ -50,7 +50,7 @@ export class MulterFileInterceptor implements NestInterceptor {
       value.originalname !== sanitizeHtml(value.originalname) ||
       value.originalname !== sanitizeFileName(value.originalname)
     ) {
-      this.logger.debug(`Invalid file name ${value.originalname}`);
+      this.logger.debug(`Invalid file name ${value.originalname}, ${value.originalname}`);
       throw new BadRequestException('Invalid file name');
     }
 
@@ -60,23 +60,23 @@ export class MulterFileInterceptor implements NestInterceptor {
       }
 
       if (this.fileTypes.length === 1 && !!value.mimetype.match(this.fileTypes[0])) {
-        this.logger.debug(`File mime type not accepted ${value.mimetype}`);
+        this.logger.debug(`File mime type not accepted ${value.mimetype}, ${value.originalname}`);
         throw new BadRequestException('File mime type not accepted');
       }
 
       if (!this.fileTypes.includes(value.mimetype)) {
-        this.logger.debug(`File mime type not accepted ${value.mimetype}`);
+        this.logger.debug(`File mime type not accepted ${value.mimetype}, ${value.originalname}`);
         throw new BadRequestException('File mime type not accepted');
       }
     }
 
     if (this.maxSize !== undefined) {
       if (this.maxSize <= 0) {
-        throw new Error(`Max size less than 0 ${this.maxSize} provided`);
+        throw new Error(`Max size less than 0 ${this.maxSize} provided, ${value.originalname}`);
       }
 
       if (value.size > this.maxSize) {
-        this.logger.debug(`File size not accepted ${value.size}`);
+        this.logger.debug(`File size not accepted ${value.size}, ${value.originalname}`);
         throw new BadRequestException('File size not accepted');
       }
     }

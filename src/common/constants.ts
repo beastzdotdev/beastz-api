@@ -40,7 +40,7 @@ export const constants = Object.freeze({
     recoverPassword: (base: string) => `${base}/auth/sign-in`,
   },
 
-  singleFileMaxSize: 15 * 1024 * 1024, // ~15mb
+  singleFileMaxSize: 30 * 1024 * 1024, // ~30mb
 
   assets: {
     userContentFolderName: 'user-content',
