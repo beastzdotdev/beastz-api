@@ -42,7 +42,7 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.getById(authPayload, id);
-    return plainToInstance(BasicFileStructureResponseDto, response);
+    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 
   @Post('upload-file')
@@ -58,7 +58,7 @@ export class FileStructureController {
     @Body() dto: UploadFileStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.uploadFile(dto, authPayload);
-    return plainToInstance(BasicFileStructureResponseDto, response);
+    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 
   @Post('create-folder')
@@ -67,6 +67,6 @@ export class FileStructureController {
     @Body() dto: CreateFolderStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.createFolder(dto, authPayload);
-    return plainToInstance(BasicFileStructureResponseDto, response);
+    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 }
