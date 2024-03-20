@@ -27,6 +27,7 @@ import {
   fileStructureNameDuplicateRegex,
   fileStructureHelper,
   getUserRootContentPath,
+  buildTreeFromFileStructure,
 } from './file-structure.helper';
 import { DetectDuplicateQueryDto } from './dto/detect-duplicate-query.dto';
 import { DetectDuplicateResponseDto } from './dto/response/detect-duplicate-response.dto';
@@ -39,12 +40,41 @@ export class FileStructureService {
   constructor(private readonly fileStructureRepository: FileStructureRepository) {}
 
   async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
-    const { parentId } = queryParams;
+    const { parentId, focusParentId, rootParentId } = queryParams;
 
-    return this.fileStructureRepository.selectUntilSecondDepth({
+    const responseDataInDepth2 = await this.fileStructureRepository.selectUntilSecondDepth({
       userId: authPayload.user.id,
       ...(parentId ? { parentId } : { depth: 0 }), // get either the root or a specific folder
     });
+
+    if (focusParentId) {
+      if (!(focusParentId && rootParentId)) {
+        throw new BadRequestException('focusParentId and rootParentId must be set at the same time');
+      }
+
+      const parentParentId = (await this.getById(authPayload, focusParentId))?.parentId; // get from parent of parentId
+
+      if (!parentParentId) {
+        throw new InternalServerErrorException('Something went wrong');
+      }
+
+      const data = await this.fileStructureRepository.recursiveSelectFromParent(parentParentId);
+
+      const root = data.find(e => e.parentId === null);
+      const index = responseDataInDepth2.findIndex(e => e.id === root?.id);
+
+      if (index !== -1) {
+        const tree = buildTreeFromFileStructure(data);
+
+        if (!tree) {
+          throw new BadRequestException('Something went wrong');
+        }
+
+        responseDataInDepth2[index] = tree;
+      }
+    }
+
+    return responseDataInDepth2;
   }
 
   async getById(authPayload: AuthPayloadType, id: number) {

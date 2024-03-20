@@ -1,5 +1,5 @@
 import path from 'path';
-import { FileMimeType } from '@prisma/client';
+import { FileMimeType, FileStructure } from '@prisma/client';
 import { constants } from '../../common/constants';
 import { escapeRegExp } from '../../common/helper';
 
@@ -86,4 +86,26 @@ export const constFileStructureNameDuplicateRegex = (t: string): RegExp =>
  */
 export const extractNumber = (title: string): number => {
   return parseInt(fileStructureNameDuplicateNumberCatcherRegex.exec(title)?.at(1) || '0');
+};
+
+export const buildTreeFromFileStructure = (data: FileStructure[]): FileStructure | null => {
+  const map: FileStructure | object = {}; // Create a map to store references to each node by its ID
+
+  // First pass: Create a map of nodes indexed by their ID
+  data.forEach(node => {
+    map[node.id] = node;
+  });
+
+  // Second pass: Connect each node to its parent node, finding the root
+  let rootNode: FileStructure | null = null;
+
+  data.forEach(node => {
+    if (node.parentId === null) {
+      rootNode = map[node.id]; // If no parent, it's the root
+    } else {
+      map[node.parentId].children.push(map[node.id]); // Add child to parent
+    }
+  });
+
+  return rootNode; // Return the root node (single object)
 };

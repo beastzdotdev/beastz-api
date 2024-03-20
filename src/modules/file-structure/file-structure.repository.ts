@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { FileStructure, Prisma } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { CreateFileStructureParams, GetByMethodParamsInRepo, GetManyByMethodParamsInRepo } from './file-structure.type';
+import { FileStructureFromRaw } from './model/file-structure-from-raw';
 
 @Injectable()
 export class FileStructureRepository {
@@ -123,6 +125,46 @@ export class FileStructureRepository {
     `);
 
     return d;
+  }
+
+  async recursiveSelectFromParent(parentId: number): Promise<FileStructure[]> {
+    const d = await this.prismaService.$queryRaw<FileStructure[]>(Prisma.sql`
+      WITH RECURSIVE AllAncestors AS (
+        -- Anchor member: Select the initial file structure by its ID
+        SELECT
+          title, parent_id,path, is_file, id
+        FROM
+          file_structure
+        WHERE
+          parent_id = ${parentId}
+      
+        UNION ALL
+      
+        -- Recursive member: Select the parent of each file structure until reaching the root
+        SELECT
+            fs.title, fs.parent_id, fs.path, fs.is_file, fs.id
+        FROM
+          file_structure fs
+        INNER JOIN AllAncestors p
+            ON fs.id = p.parent_id
+        where fs.id <> p.id
+      ),
+      
+      AllFileStructures AS (
+        -- Select all file structures under each parent recursively
+        SELECT distinct
+          fs.*
+        FROM
+          AllAncestors a
+        JOIN
+          file_structure fs ON a.id = fs.parent_id or a.id = fs.id
+      )
+      
+      -- Final query: Select all file structures under all parent folders recursively
+      SELECT distinct * FROM AllFileStructures;
+    `);
+
+    return plainToInstance(FileStructureFromRaw, d, { exposeDefaultValues: true });
   }
 
   async deleteById(id: number): Promise<FileStructure> {
