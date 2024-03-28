@@ -1,14 +1,14 @@
 import { IsInt, Min } from '@nestjs/class-validator';
-import { Type } from 'class-transformer';
 import { Max } from 'class-validator';
+import { TransformNumber } from '../../decorator/class-transformer.decorator';
 
 export class PageOptionsDto {
-  @Type(() => Number)
+  @TransformNumber()
   @IsInt()
   @Min(1)
   page: number;
 
-  @Type(() => Number)
+  @TransformNumber()
   @IsInt()
   @Min(1)
   @Max(200)

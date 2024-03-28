@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -41,26 +42,71 @@ enum LegalDocumentType {
   @@map("legal_document_type")
 }
 
+/// This enum contains top mimetypes in everywhere
+enum FileMimeType {
+  TEXT_PLAIN
+  TEXT_MARKDOWN
+
+  APPLICATION_JSON
+  APPLICATION_XML
+  APPLICATION_PDF
+  APPLICATION_OCTET_STREAM
+
+  IMAGE_JPG
+  IMAGE_PNG
+  IMAGE_GIF
+  IMAGE_WEBP
+  IMAGE_BMP
+
+  AUDIO_MPEG
+  AUDIO_WAV
+
+  VIDEO_MP4
+  VIDEO_MPEG
+  VIDEO_WEBM
+  VIDEO_QUICKTIME
+
+  OTHER
+
+  @@map("file_mime_type")
+}
+
+enum EncryptionType {
+  TEXT
+  PIN
+
+  @@map("encryption_type")
+}
+
+enum EncryptionAlgorithm {
+  AES_256_GCM
+
+  @@map("encryption_algorithm")
+}
+
 model User {
-  id   Int    @id @default(autoincrement())
-  uuid String @map("uuid") @db.Uuid
+  id               Int       @id @default(autoincrement())
+  uuid             String    @map("uuid") @db.Uuid
+  email            String    @unique @db.VarChar(255)
+  userName         String    @unique @map("user_name") @db.VarChar(255)
+  birthDate        DateTime? @map("birth_date") @db.Timestamptz()
+  gender           Gender
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  profileImagePath String?   @map("profile_image_path") @db.VarChar(2047)
 
-  email     String   @unique @db.VarChar(255)
-  userName  String   @map("user_name") @db.VarChar(255)
-  birthDate DateTime @map("birth_date") @db.Timestamptz()
-  gender    Gender
-  firstName String   @map("first_name") @db.VarChar(255)
-  lastName  String   @map("last_name") @db.VarChar(255)
-
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
-
-  userIdentity         UserIdentity?
-  feedbacks            Feedback[]
-  refreshTokens        RefreshToken[]
-  recoverPasswords     RecoverPassword[]
-  accountVerifications AccountVerification[]
-  resetPasswords       ResetPassword[]
+  userIdentity                    UserIdentity?
+  feedbacks                       Feedback[]
+  refreshTokens                   RefreshToken[]
+  recoverPasswords                RecoverPassword[]
+  accountVerifications            AccountVerification[]
+  resetPasswords                  ResetPassword[]
+  fileStructure                   FileStructure[]
+  fileStructureBookmark           FileStructureBookmark[]
+  fileStructureEncryption         FileStructureEncryption[]
+  toFileShared                    FileStructureShare[]              @relation(name: "toUser")
+  fromFileShared                  FileStructureShare[]              @relation(name: "fromUser")
+  fileStructureSharePulicLink     FileStructureSharePulicLink[]
+  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -226,186 +272,112 @@ model Feedback {
 }
 
 model FileStructure {
-  id          Int     @id @default(autoincrement())
-  path        String
-  title       String  @db.VarChar(255)
-  sizeInBytes BigInt? @map("size_in_bytes") // for folders this will be hard
-  depth       Int // depth is on which level is folder/file from root level
-  isFile      Boolean @map("is_file") // if false then is folder (boolean is fastest)
-  mimeType    String? @map("mime_type")
+  id                Int           @id @default(autoincrement())
+  path              String        @db.Text
+  title             String        @db.VarChar(255)
+  color             String?       @db.VarChar(9) // only hex
+  depth             Int           @map("depth") // which level is folder/file from root level
+  userId            Int           @map("user_id")
+  sizeInBytes       Int?          @map("size_in_bytes")
+  fileExstensionRaw String?       @map("file_exstension_raw") // like .ts, .js, .heic, ...
+  mimeTypeRaw       String?       @map("mime_type_raw") // mimetype just as string
+  mimeType          FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
+  isFile            Boolean       @map("is_file") // if false then is folder (boolean is fastest)
+  isShortcut        Boolean       @map("is_shortcut")
+  isInBin           Boolean       @map("is_in_bin")
+  isEncrypted       Boolean       @map("is_encrypted") // for files basic, for folders zip must be created
+  isEditable        Boolean?      @map("is_editable") // self explanatory (not intended for folders)
+  isLocked          Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
+  lastModifiedAt    DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz()
+  uuid              String        @map("uuid") @db.Uuid // can be used for various reason e.g. unique name for object storage
 
-  // for recursive file structure
-  parentId Int?            @map("parent_id")
-  parent   FileStructure?  @relation("parentId", fields: [parentId], references: [id])
-  children FileStructure[] @relation("parentId")
+  // recursive properties
+  rootParentId Int?            @map("root_parent_id")
+  parentId     Int?            @map("parent_id")
+  parent       FileStructure?  @relation("parentId", fields: [parentId], references: [id])
+  children     FileStructure[] @relation("parentId")
 
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  user                        User                         @relation(fields: [userId], references: [id])
+  fileStructureBookmark       FileStructureBookmark[]
+  fileStructureShare          FileStructureShare[]
+  fileStructureEncryption     FileStructureEncryption?
+  FileStructureSharePulicLink FileStructureSharePulicLink?
+
+  @@index([uuid], type: BTree)
+  @@map("file_structure")
 }
 
-// Select top 40 mime type for validation
-// for programming and everything elese front will take care
+model FileStructureEncryption {
+  id              Int                 @id @default(autoincrement())
+  type            EncryptionType // this is intended for mobile
+  algorithm       EncryptionAlgorithm
+  userId          Int                 @map("user_id")
+  fileStructureId Int                 @unique @map("file_structure_id")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
 
-//! Top mimetypes
-// text/plain: Plain text files.
-// text/markdown: markdowns
-// text/html: HTML documents.
-// application/json: JSON data.
-// application/xml: XML documents.
-// application/pdf: Portable Document Format (PDF) files.
-// image/jpeg: JPEG images.
-// image/png: PNG images.
-// image/gif: GIF images.
-// audio/mpeg: MP3 audio files.
-// audio/wav: WAV audio files.
-// video/mp4: MP4 video files.
-// video/mpeg: MPEG video files.
-// application/javascript: JavaScript files.
-// application/xhtml+xml: XHTML documents.
-// application/rss+xml: RSS feeds.
-// application/zip: ZIP archive files.
-// application/x-www-form-urlencoded: Form data submitted via HTTP POST.
-// multipart/form-data: Form data, often used for file uploads.
-// application/octet-stream: Binary data with no specific MIME type.
-// application/vnd.ms-excel: Microsoft Excel files.
-// application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: Excel Open XML Workbook files.
-// application/msword: Microsoft Word documents.
-// application/vnd.openxmlformats-officedocument.wordprocessingml.document: Word Open XML Document files.
-// application/vnd.ms-powerpoint: Microsoft PowerPoint files.
-// application/vnd.openxmlformats-officedocument.presentationml.presentation: PowerPoint Open XML Presentation files.
-// text/css: Cascading Style Sheets (CSS).
-// application/ogg: Ogg multimedia container.
-// audio/ogg: Ogg audio files.
-// video/ogg: Ogg video files.
-// application/rtf: Rich Text Format (RTF) files.
-// application/sql: SQL database files.
-// application/xhtml+xml: Extended Hypertext Markup Language (XHTML) files.
-// application/x-shockwave-flash: Adobe Flash files.
-// application/java-archive: Java Archive (JAR) files.
-// application/vnd.android.package-archive: Android Package files (APK).
-// application/rdf+xml: Resource Description Framework (RDF) files.
-// application/ld+json: JSON-LD (JSON Linked Data).
-// image/bmp: Windows Bitmap image.
-// image/tiff: Tagged Image File Format (TIFF) images.
-// audio/wave: Waveform Audio File Format (WAV) audio files.
-// audio/midi: MIDI audio files.
-// video/quicktime: QuickTime video files.
-// video/x-msvideo: AVI (Audio Video Interleave) files.
-// application/vnd.visio: Microsoft Visio files.
-// application/x-rar-compressed: RAR archive files.
-// application/x-tar: Tar archive files.
-// application/gzip: Gzip compressed files.
-// application/x-7z-compressed: 7-Zip archive files.
-// application/vnd.openxmlformats-officedocument.presentationml.slideshow: PowerPoint Open XML Presentation files (slideshow).
-// application/vnd.oasis.opendocument.text: OpenDocument Text files.
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
-//! top 30 for images
-// image/jpeg: JPEG images.
-// image/png: PNG images.
-// image/gif: GIF images.
-// image/bmp: Windows Bitmap image.
-// image/tiff: Tagged Image File Format (TIFF) images.
-// image/webp: WebP images.
-// image/svg+xml: Scalable Vector Graphics (SVG) images.
-// image/x-icon: Icon files.
-// image/vnd.microsoft.icon: Microsoft icon files.
-// image/jp2: JPEG 2000 images.
-// image/vnd.djvu: DjVu images.
-// image/x-xcf: GIMP image files.
-// image/x-ms-bmp: BMP image files.
-// image/heic: High-Efficiency Image Format (HEIC) images.
-// image/heif: High-Efficiency Image Format (HEIF) images.
-// image/x-exr: OpenEXR images.
-// image/x-portable-anymap: Portable anyMap (PNM) images.
-// image/x-portable-bitmap: Portable Bitmap (PBM) images.
-// image/x-portable-graymap: Portable Graymap (PGM) images.
-// image/x-portable-pixmap: Portable Pixmap (PPM) images.
-// image/x-xbitmap: X BitMap (XBM) images.
-// image/x-xpixmap: X PixMap (XPM) images.
-// image/x-xwindowdump: X Window Dump (XWD) images.
-// image/cgm: Computer Graphics Metafile (CGM) images.
-// image/ief: Image Exchange Format (IEF) images.
-// image/ktx: Khronos Texture (KTX) images.
-// image/vnd.wap.wbmp: Wireless Bitmap (WBMP) images.
-// image/fits: Flexible Image Transport System (FITS) images.
-// image/jxr: JPEG XR images.
-// image/hdr: Radiance High Dynamic Range (HDR) images.
+  @@map("file_structure_encryption")
+}
 
-//! top 10 on video
-// video/mp4: MP4 video files.
-// video/mpeg: MPEG video files.
-// video/quicktime: QuickTime video files.
-// video/x-msvideo: AVI (Audio Video Interleave) files.
-// video/x-flv: Flash video files.
-// video/x-matroska: Matroska multimedia container files.
-// video/webm: WebM video files.
-// video/3gpp: 3GP video files.
-// video/ogg: Ogg video files.
-// video/x-ms-wmv: Windows Media Video (WMV) files.
+model FileStructureBookmark {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  fileStructureId Int      @map("file_structure_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-//! top 20 programming languages
-// JavaScript (.js): application/javascript or text/javascript
-// Python (.py): text/x-python
-// Java (.java): text/x-java-source or text/plain
-// C++ (.cpp): text/x-c++src or text/plain
-// C# (.cs): text/x-csharp
-// PHP (.php): text/x-php
-// TypeScript (.ts): application/typescript or video/vnd.dlna.mpeg-tts
-// Ruby (.rb): application/x-ruby
-// Swift (.swift): text/x-swift
-// Go (.go): text/x-go
-// HTML (.html): text/html
-// CSS (.css): text/css
-// Shell (.sh): application/x-shellscript or text/plain
-// Kotlin (.kt): text/x-kotlin
-// Rust (.rs): text/rust
-// Objective-C (.m): text/x-objective-c
-// Perl (.pl): application/x-perl
-// Scala (.scala): text/x-scala
-// Dart (.dart): application/dart
-// R (.r): application/R
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
-//! top 20 programming languages and their corresponding library mimetypes
-// JavaScript (Node.js):
+  @@map("file_structure_bookmark")
+}
 
-// package.json: application/json
-// yarn.lock or package-lock.json: application/json
-// Python (pip):
+/// This table is regular sharing only within users of this platform
+model FileStructureShare {
+  id              Int      @id @default(autoincrement())
+  fromUserId      Int      @map("from_user_id") // who shares
+  sharedToUserId  Int      @map("to_user_id") // who receives
+  fileStructureId Int      @unique @map("file_structure_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-// requirements.txt: text/plain
-// Pipfile: application/x-toml
-// Pipfile.lock: application/json
-// Java (Maven):
+  fromUser      User          @relation(fields: [fromUserId], references: [id], name: "fromUser")
+  toUser        User          @relation(fields: [sharedToUserId], references: [id], name: "toUser")
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
-// pom.xml: application/xml
-// C++ (CMake):
+  @@map("file_structure_share")
+}
 
-// CMakeLists.txt: text/plain
-// C# (.NET):
+model FileStructureSharePulicLink {
+  id                      Int       @id @default(autoincrement())
+  userId                  Int       @map("user_id") // who owns
+  fileStructureId         Int       @unique @map("file_structure_id")
+  uniqueHash              String    @map("unique_hash")
+  isDownloadable          Boolean   @default(false) @map("is_downloadable")
+  isRestrictedToOnlyUsers Boolean   @default(false) @map("is_restricted_to_only_users") // if so use table
+  isPasswordProtected     Boolean   @default(false) @map("is_password_protected")
+  password                String?   @map("password")
+  customTitle             String?   @map("custom_title")
+  expiresAt               DateTime? @map("expires_at")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
-// *.csproj: application/xml
-// PHP (Composer):
+  user                            User                              @relation(fields: [userId], references: [id])
+  fileStructure                   FileStructure                     @relation(fields: [fileStructureId], references: [id])
+  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
 
-// composer.json: application/json
-// composer.lock: application/json
-// TypeScript (npm/Yarn):
+  @@map("file_structure_share_public_link")
+}
 
-// package.json: application/json
-// yarn.lock or package-lock.json: application/json
-// Ruby (Bundler):
+model FileStructureSharePulicLinkUser {
+  id                            Int      @id @default(autoincrement())
+  userId                        Int      @map("user_id") // for who is shared for only
+  fileStructureSharePulicLinkId Int      @map("file_structure_share_public_link_id")
+  createdAt                     DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-// Gemfile: text/plain
-// Gemfile.lock: text/plain
-// Swift (Swift Package Manager):
+  user                        User                        @relation(fields: [userId], references: [id])
+  fileStructureSharePulicLink FileStructureSharePulicLink @relation(fields: [fileStructureSharePulicLinkId], references: [id])
 
-// Package.swift: text/x-swift
-// Go (Go Modules):
-
-// go.mod: text/plain
-// go.sum: text/plain
-// HTML/CSS (Web development):
-
-// package.json (for build tools like Webpack): application/json
-// Rust (Cargo):
-
-// Cargo.toml: text/x-toml
-// Cargo.lock: text/plain
+  @@map("file_structure_share_public_link_user")
+}

@@ -15,6 +15,7 @@ import { LegalDocumentModule } from './legal-document/legal-document.module';
 import { AdminModule } from './admin/admin.module';
 import { MailModule } from './@global/mail/mail.module';
 import { AllExceptionsFilter } from '../filters/all-exception.filter';
+import { FileStructureModule } from './file-structure/file-structure.module';
 
 @Module({
   imports: [
@@ -29,18 +30,19 @@ import { AllExceptionsFilter } from '../filters/all-exception.filter';
     FeedbackModule,
     LegalDocumentModule,
     AdminModule,
+    FileStructureModule,
   ],
   controllers: [AppController],
   providers: [
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
-        // forbidNonWhitelisted: true,
+        forbidNonWhitelisted: true,
+        whitelist: true,
         transform: true,
-        // whitelist: false,
         transformOptions: {
-          enableImplicitConversion: true,
-          // enableCircularCheck: true,
+          enableCircularCheck: true,
+          enableImplicitConversion: false, // do not enable this param messes up lot of things
         },
       }),
     },

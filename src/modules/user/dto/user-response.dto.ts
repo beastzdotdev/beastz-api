@@ -22,5 +22,5 @@ export class UserResponseDto {
   createdAt: Date;
 
   @Expose()
-  isOnline: boolean;
+  profileImagePath: Date;
 }

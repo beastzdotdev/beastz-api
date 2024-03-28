@@ -1,3 +1,4 @@
+import path from 'path';
 import bcrypt from 'bcrypt';
 import moment from 'moment';
 import { v4 as uuid } from 'uuid';
@@ -76,7 +77,7 @@ export class AuthenticationService {
       const user = await this.userService.create(
         {
           ...otherParams,
-          profileImagePath: 'default path on object storage of linode', //TODO after storage add from linode
+          profileImagePath: path.join('/', constants.assets.publicAssetsImage, 'profile-default.svg'),
           uuid: uuid(),
         },
         tx,
@@ -105,7 +106,7 @@ export class AuthenticationService {
 
   async signInWithToken(res: Response, params: SignInParams, platform: PlatformWrapper): Promise<Response> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
-      const user = await this.userService.getByEmailIncludeIdentity(params.email).catch(e => {
+      const user = await this.userService.getByEmailIncludeIdentity(params.email).catch(() => {
         throw new UnauthorizedException(ExceptionMessageCode.EMAIL_OR_PASSWORD_INVALID);
       });
 
@@ -207,7 +208,9 @@ export class AuthenticationService {
 
       // we should not let user know that user not exists than user will use this info for password
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
-      const passwordMatches = await bcrypt.compare(oldPassword, user.userIdentity.password);
+      const existingPassword = await this.userService.getUserPasswordOnly(userId, tx);
+
+      const passwordMatches = await bcrypt.compare(oldPassword, existingPassword);
 
       if (!passwordMatches) {
         throw new UnauthorizedException(ExceptionMessageCode.PASSWORD_INVALID);

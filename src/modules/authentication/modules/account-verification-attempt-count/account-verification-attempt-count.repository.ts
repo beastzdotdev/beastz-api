@@ -10,7 +10,7 @@ export class AccountVerificationAttemptCountRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(params: AccVerifyAttemptCountCreate, tx?: PrismaTx): Promise<AccountVerificationAttemptCount> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     const { accountVerificationId } = params;
 
     return db.accountVerificationAttemptCount.create({
@@ -24,7 +24,7 @@ export class AccountVerificationAttemptCountRepository {
     flags?: { includeDeleted?: boolean },
     tx?: PrismaTx,
   ): Promise<AccountVerificationAttemptCount | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.accountVerificationAttemptCount.findUnique({
       where: {
@@ -39,7 +39,7 @@ export class AccountVerificationAttemptCountRepository {
     params: AccVerifyAttemptCountUpdate,
     tx?: PrismaTx,
   ): Promise<AccountVerificationAttemptCount | null> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
     const { count, countIncreaseLastUpdateDate } = params;
 
     return db.accountVerificationAttemptCount.update({
@@ -54,7 +54,7 @@ export class AccountVerificationAttemptCountRepository {
   }
 
   async softDelete(id: number, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.accountVerificationAttemptCount.update({
       where: { id },

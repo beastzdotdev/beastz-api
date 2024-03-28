@@ -1,9 +1,9 @@
-import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { TransformNumber } from '../../../decorator/class-transformer.decorator';
 
 export class AuthConfirmQueryDto {
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   id: number;
 

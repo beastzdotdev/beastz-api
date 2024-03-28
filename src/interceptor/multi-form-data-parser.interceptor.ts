@@ -3,7 +3,7 @@ import { Request } from 'express';
 
 @Injectable()
 export class MultiFormFileToBodyParserInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler) {
+  async intercept(context: ExecutionContext, next: CallHandler) {
     const request: Request = context.switchToHttp().getRequest<Request>();
 
     if (request.body && request.file?.fieldname) {

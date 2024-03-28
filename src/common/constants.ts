@@ -1,10 +1,13 @@
 export const constants = Object.freeze({
+  MAX_STORAGE_PER_USER_IN_BYTES: 1024 ** 3 * 30, // 30 gigabytes in bytes
+
   PLATFORM_HEADER_NAME: 'platform',
   AUTH_HEADER_NAME: 'Authorization',
   COOKIE_ACCESS_NAME: 'access_token',
   COOKIE_REFRESH_NAME: 'refresh_token',
 
-  MILLIS_IN_HOUR: 10000 * 3600,
+  ONE_DAY_IN_SEC: 24 * 3600,
+  MILLIS_IN_HOUR: 1000 * 3600,
 
   get MILLIS_IN_DAY() {
     return this.MILLIS_IN_HOUR * 24;
@@ -22,8 +25,6 @@ export const constants = Object.freeze({
   ONE_TIME_CODE_MIN: 100000,
   ONE_TIME_CODE_MAX: 999999,
 
-  ONE_DAY_IN_SEC: 24 * 3600,
-
   MAX_ATTEMPT_COUNT: 20,
 
   SYMBOLS: '!#$%&*?@',
@@ -37,5 +38,15 @@ export const constants = Object.freeze({
     resetPassword: (base: string) => base,
     accountVerify: (base: string) => base,
     recoverPassword: (base: string) => `${base}/auth/sign-in`,
+  },
+
+  singleFileMaxSize: 30 * 1024 * 1024, // ~30mb
+
+  assets: {
+    userContentFolderName: 'user-content',
+
+    publicAssets: 'public',
+    publicAssetsUser: 'public/user',
+    publicAssetsImage: 'public/img',
   },
 });

@@ -3,21 +3,25 @@ import figlet from 'figlet';
 import helmet from 'helmet';
 import nunjucks from 'nunjucks';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 
 import { json, urlencoded } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { Logger } from '@nestjs/common';
 import { AppModule } from './modules/app.module';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
 
+//@ts-expect-error
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
 NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
-  const logger = new Logger('Main logger');
 
   const nunjuckMainRenderer = nunjucks.configure(assetsPath, {
     express: app,
@@ -41,13 +45,13 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.use(urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser(envService.get('COOKIE_SECRET')));
   app.use(helmet());
+  app.use(compression());
   app.setViewEngine('njk');
   app.setBaseViewsDir(assetsPath);
 
   await app.listen(envService.get('PORT'));
 
   // log misc stuff
-  logger.verbose(`GorillaVault api listening on --- ${await app.getUrl()}`);
   cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
 });
 

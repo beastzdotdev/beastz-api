@@ -13,22 +13,24 @@ export class UserRepository {
   }
 
   async getByEmailIncludeIdentity(email: string, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.user.findUnique({
+      relationLoadStrategy: 'join',
       where: { email },
       select: {
         id: true,
+        uuid: true,
         email: true,
         createdAt: true,
         userIdentity: {
           select: {
             id: true,
-            password: true,
             isAccountVerified: true,
             isBlocked: true,
-            isLocked: true,
             strictMode: true,
+            isLocked: true,
+            password: true,
           },
         },
       },
@@ -42,13 +44,14 @@ export class UserRepository {
   }
 
   async createUser(params: CreateUserParams, tx?: PrismaTx): Promise<User> {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.user.create({ data: params });
   }
 
   async getById(id: number): Promise<UserWithRelations | null> {
     return this.prismaService.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { id },
       select: {
         id: true,
@@ -59,25 +62,26 @@ export class UserRepository {
         birthDate: true,
         uuid: true,
         profileImagePath: true,
-        firstName: true,
-        lastName: true,
+        // firstName: true,
+        // lastName: true,
       },
     });
   }
 
   async getByIdIncludeIdentity(id: number, tx?: PrismaTx) {
-    const db = tx ? tx : this.prismaService;
+    const db = tx ?? this.prismaService;
 
     return db.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { id },
       select: {
         id: true,
         email: true,
         createdAt: true,
+        uuid: true,
         userIdentity: {
           select: {
             id: true,
-            password: true,
             isAccountVerified: true,
             isBlocked: true,
             isLocked: true,
@@ -88,8 +92,27 @@ export class UserRepository {
     });
   }
 
+  async getUserPasswordOnly(id: number, tx?: PrismaTx) {
+    const db = tx ?? this.prismaService;
+
+    return db.user.findFirst({
+      relationLoadStrategy: 'join',
+      where: { id },
+      select: {
+        id: true,
+        userIdentity: {
+          select: {
+            id: true,
+            password: true,
+          },
+        },
+      },
+    });
+  }
+
   async getIdByEmail(email: string): Promise<number | null> {
     const result = await this.prismaService.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { email },
       select: { id: true },
     });

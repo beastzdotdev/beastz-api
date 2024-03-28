@@ -1,10 +1,15 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { UpdateUserBodyDto } from './dto/update-user-body.dto';
+import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
+import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
+import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
+import { constants } from '../../common/constants';
+import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
+import { fileStructureHelper } from '../file-structure/file-structure.helper';
 
 @Controller('user')
 export class UserController {
@@ -23,13 +28,31 @@ export class UserController {
   }
 
   @Patch('current')
-  //TODO check this
-  // @ApiFile('profileImage')
-  async getUserDetails(
-    @Body() body: UpdateUserBodyDto,
+  async updateUserDetails(
+    @Body() body: UpdateUserDetailsDto,
     @AuthPayload() authPayload: AuthPayloadType,
   ): Promise<UserResponseDto | null> {
-    const user = await this.userService.updateById(authPayload.user.id, body);
+    const user = await this.userService.update(authPayload.user.id, body);
+    return plainToInstance(UserResponseDto, user);
+  }
+
+  @Patch('current/image')
+  @FileUploadInterceptor(
+    new MulterFileInterceptor({
+      fileTypes: Object.values([
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
+      ]),
+      maxSize: constants.singleFileMaxSize,
+    }),
+  )
+  async getUserProfileImage(
+    @Body() body: UpdateUserProfileImageDto,
+    @AuthPayload() authPayload: AuthPayloadType,
+  ): Promise<UserResponseDto | null> {
+    const user = await this.userService.updateUserProfile(authPayload, body);
     return plainToInstance(UserResponseDto, user);
   }
 }

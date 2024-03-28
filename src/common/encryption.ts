@@ -3,9 +3,12 @@ import { promisify } from './helper';
 
 // https://crypto.stackexchange.com/questions/101106/how-does-aes-gcm-encryption-work
 export const encryption = Object.freeze({
-  aes256gcm: {
-    name: 'aes-256-gcm' as const,
+  constants: {
+    pbkdf2IterationCountOnSHA512: 210000, // recommended amount
+    aes256gcmAlgName: 'aes-256-gcm' as const,
+  },
 
+  aes256gcm: {
     encryptSync(text: string, masterkey: string): string {
       // random initialization vector
       const iv = crypto.randomBytes(16);
@@ -16,11 +19,10 @@ export const encryption = Object.freeze({
       // derive encryption key: 32 byte key length
       // in assumption the masterkey is a cryptographic and NOT a password there is no need for
       // a large number of iterations. It may can replaced by HKDF
-      // the value of 2145 is randomly chosen!
-      const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
+      const key = crypto.pbkdf2Sync(masterkey, salt, encryption.constants.pbkdf2IterationCountOnSHA512, 32, 'sha512');
 
       // AES 256 GCM Mode
-      const cipher = crypto.createCipheriv(this.name, key, iv);
+      const cipher = crypto.createCipheriv(encryption.constants.aes256gcmAlgName, key, iv);
 
       // encrypt the given text
       const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
@@ -43,10 +45,10 @@ export const encryption = Object.freeze({
       const text = bData.subarray(96);
 
       // derive key using; 32 byte key length
-      const key = crypto.pbkdf2Sync(masterkey, salt, 2145, 32, 'sha512');
+      const key = crypto.pbkdf2Sync(masterkey, salt, encryption.constants.pbkdf2IterationCountOnSHA512, 32, 'sha512');
 
       // AES 256 GCM Mode
-      const decipher = crypto.createDecipheriv(this.name, key, iv);
+      const decipher = crypto.createDecipheriv(encryption.constants.aes256gcmAlgName, key, iv);
       decipher.setAuthTag(tag);
 
       try {

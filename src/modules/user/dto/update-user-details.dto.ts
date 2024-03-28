@@ -2,8 +2,9 @@ import { IsDate, IsEnum, IsNotEmpty, IsString, MaxLength } from '@nestjs/class-v
 import { Gender } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsOptional } from 'class-validator';
+import { TransformDate } from '../../../decorator/class-transformer.decorator';
 
-export class UpdateUserBodyDto {
+export class UpdateUserDetailsDto {
   @IsOptional()
   @IsNotEmpty()
   @IsString()
@@ -12,7 +13,7 @@ export class UpdateUserBodyDto {
 
   @IsOptional()
   @IsNotEmpty()
-  @Type(() => Date)
+  @TransformDate()
   @IsDate()
   birthDate?: Date;
 
@@ -20,11 +21,4 @@ export class UpdateUserBodyDto {
   @IsNotEmpty()
   @IsEnum(Gender)
   gender?: Gender;
-
-  @IsOptional()
-  @IsString()
-  bio?: string;
-
-  @IsOptional()
-  profileImage?: Express.Multer.File;
 }
