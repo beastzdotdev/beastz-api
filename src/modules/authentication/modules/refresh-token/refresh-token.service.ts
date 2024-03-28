@@ -1,36 +1,26 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { RefreshToken } from '@prisma/client';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { CreateRefreshTokenParams } from './refresh-token.type';
-import { RefreshToken } from '@prisma/client';
-import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class RefreshTokenService {
   constructor(private readonly refreshTokenRepository: RefreshTokenRepository) {}
 
-  async getByJTI(id: string): Promise<RefreshToken> {
-    const token = await this.refreshTokenRepository.getByJTI(id);
-
-    if (!token) {
-      throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
-    }
-
-    return token;
+  async getByJTI(id: string, tx?: PrismaTx): Promise<RefreshToken | null> {
+    return this.refreshTokenRepository.getByJTI(id, tx);
   }
 
-  async clearRefreshTokensForUser(userId: number): Promise<void> {
-    return this.refreshTokenRepository.deleteAllByUserId(userId);
+  async deleteAllByUserId(userId: number, tx?: PrismaTx): Promise<void> {
+    return this.refreshTokenRepository.deleteAllByUserId(userId, tx);
   }
 
-  async addRefreshTokenByUserId(params: CreateRefreshTokenParams) {
-    await this.refreshTokenRepository.createEntity(params);
+  async addRefreshTokenByUserId(params: CreateRefreshTokenParams, tx?: PrismaTx): Promise<RefreshToken> {
+    return this.refreshTokenRepository.createEntity(params, tx);
   }
 
-  async updateIsUsedById(id: number) {
-    await this.refreshTokenRepository.updateIsUsedById(id);
-  }
-
-  async updateIsUsedForAllByUserId(userId: number) {
-    await this.refreshTokenRepository.updateIsUsedForAllByUserId(userId);
+  async deleteById(id: number, tx?: PrismaTx): Promise<void> {
+    await this.refreshTokenRepository.deleteById(id, tx);
   }
 }

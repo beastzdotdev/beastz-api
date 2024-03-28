@@ -1,26 +1,26 @@
 import { PlatformForJwt } from '@prisma/client';
 import { Request } from 'express';
-
-export type UserPayload = {
-  userId: number;
-};
+import { PlatformWrapper } from './platform.wrapper';
 
 export type AuthTokenPayload = {
   userId: number;
   platform: PlatformForJwt;
 };
 
-export type AuthPayloadRequest = Request & {
-  userPayload: UserPayload | null;
-
-  userForGuard: {
+export type AuthPayloadType = {
+  platform: PlatformWrapper;
+  user: {
     id: number;
     email: string;
     createdAt: Date;
+    uuid: string;
     userIdentity: {
       id: number;
       isAccountVerified: boolean;
-      locked: boolean;
-    } | null;
+      isLocked: boolean;
+      isBlocked: boolean;
+    };
   };
 };
+
+export type AuthPayloadAndRequest = Request & AuthPayloadType;

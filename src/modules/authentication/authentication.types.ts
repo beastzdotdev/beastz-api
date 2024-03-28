@@ -1,16 +1,14 @@
-import { Gender } from '@prisma/client';
-
-export type SignUpWithTokenParams = {
-  userName: string;
-  email: string;
-  gender: Gender;
-  birthDate: Date;
-  password: string;
-};
+import { Response } from 'express';
+import { PlatformWrapper } from '../../model/platform.wrapper';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 export type SignInParams = {
   email: string;
   password: string;
+};
+
+export type RefreshParams = {
+  oldRefreshTokenString: string;
 };
 
 export type RecoverPasswordConfirmCodeParams = {
@@ -18,7 +16,16 @@ export type RecoverPasswordConfirmCodeParams = {
   email: string;
 };
 
-export type RecoverPasswordParams = {
-  uuid: string;
-  password: string;
+export type ValidateUserForAccVerifyFlags = {
+  showIsVerifiedErr?: boolean;
+  showNotVerifiedErr?: boolean;
+};
+
+export type GenTokensAndSendResponseParams = {
+  res: Response;
+  userId: number;
+  email: string;
+  platform: PlatformWrapper;
+  isAccountVerified: boolean;
+  tx?: PrismaTx;
 };

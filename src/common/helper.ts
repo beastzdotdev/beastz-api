@@ -1,19 +1,33 @@
-import * as crypto from 'crypto';
-import { InternalServerErrorException } from '@nestjs/common';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { plainToInstance } from 'class-transformer';
-import { ClassConstructor } from 'class-transformer/types/interfaces';
-import { ValidationError } from 'class-validator';
-import { Request } from 'express';
-import { extname } from 'path';
+import fs from 'fs';
+import path from 'path';
 import { match } from 'ts-pattern';
+import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
+import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+
 import { SafeCallResult, ExceptionType, GeneralEnumType } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
-import { RandomService } from './modules/random/random.service';
+import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
+import { ImportantExceptionBody } from '../model/exception.type';
 
-export async function prismaSafeCall<T>(call: () => T): Promise<SafeCallResult<T>> {
+export const helper = Object.freeze({
+  url: {
+    create<T = Record<string, string>>(url: string, params?: T) {
+      const urlInstance = new URL(url);
+
+      if (params && Object.keys(params).length) {
+        const queryParams = new URLSearchParams(params);
+        urlInstance.search = queryParams.toString();
+      }
+
+      return urlInstance.toString();
+    },
+  },
+});
+
+export async function prismaSafeCall<T>(callback: () => T): Promise<SafeCallResult<T>> {
   try {
-    const t = await call();
+    const t = await callback();
 
     return { success: true, data: t, error: null };
   } catch (e) {
@@ -35,8 +49,19 @@ export async function prismaSafeCall<T>(call: () => T): Promise<SafeCallResult<T
   }
 }
 
-export function plainArrayToInstance<T>(cls: ClassConstructor<T>, plain: Array<unknown>): T[] {
-  return clone<T[]>(plain).map((item: any) => plainToInstance(cls, item || [], { enableCircularCheck: true }));
+export async function promisify<T>(callback: () => T): Promise<T> {
+  return new Promise((resolve, reject) => {
+    try {
+      const resp = callback();
+      return resolve(resp);
+    } catch (error) {
+      return reject(error);
+    }
+  });
+}
+
+export function cyanLog<T>(val: T): void {
+  console.log('\x1b[36m%s\x1b[0m', val);
 }
 
 export function getBoolExact(value: unknown): boolean | null {
@@ -111,49 +136,111 @@ export function getAllErrorConstraints(errors: ValidationError[]): string[] {
   return constraints;
 }
 
-export function formatDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  return `${year}-${month}-${day}/${hours}:${minutes}`;
-}
-
-export function todayStartEndDates(): { startDate: Date; endDate: Date } {
-  const startDate = new Date();
-  startDate.setUTCHours(0, 0, 0, 0);
-
-  const endDate = new Date();
-  endDate.setUTCHours(23, 59, 59, 999);
-
-  return { startDate, endDate };
-}
-
-export function generateFileName(
-  _: Request,
-  file: Express.Multer.File,
-  callback: (e: Error | null, f: string) => void,
-) {
-  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-
-  const fileExtName = extname(file.originalname);
-  const fileName = `${uniqueSuffix}${fileExtName || '.jpg'}`;
-
-  callback(null, fileName);
-}
-
-export function generateRandomString(length: number): string {
-  let s = '';
-
-  for (let i = 0; i < length; i++) {
-    s += RandomService.ASCII.charAt(Math.floor(Math.random() * RandomService.ASCII.length));
-  }
-
-  return s;
-}
-
 export function enumValueIncludes<E extends GeneralEnumType<E>>(someEnum: E, value: string) {
   return Object.values(someEnum).includes(value);
+}
+
+// Type guard function to check if 'userIdentity' is not null
+export function checkNonNull<T>(val: T): val is NonNullable<T> {
+  return val !== null;
+}
+
+export function getMessageAsExceptionMessageCode(error: ImportantExceptionBody): ExceptionMessageCode {
+  let message = ExceptionMessageCode.HTTP_EXCEPTION;
+
+  if (error.statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+    message = ExceptionMessageCode.INTERNAL_ERROR;
+  }
+
+  if (
+    enumValueIncludes(ExceptionMessageCode, error?.message.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString())
+  ) {
+    message = error?.message as ExceptionMessageCode;
+  }
+
+  return message;
+}
+
+export function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && 'code' in error;
+}
+
+export const escapeRegExp = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+//===================================================
+//  ______ _ _      _          _
+// |  ____(_) |    | |        | |
+// | |__   _| | ___| |__   ___| |_ __   ___ _ __ ___
+// |  __| | | |/ _ \ '_ \ / _ \ | '_ \ / _ \ '__/ __|
+// | |    | | |  __/ | | |  __/ | |_) |  __/ |  \__ \
+// |_|    |_|_|\___|_| |_|\___|_| .__/ \___|_|  |___/
+//                              | |
+//                              |_|
+//===================================================
+
+export const isMulterFile = (value: unknown): value is Express.Multer.File => {
+  if (!isObject(value) || !isNotEmptyObject(value)) {
+    return false;
+  }
+
+  return (
+    'fieldname' in value &&
+    'originalname' in value &&
+    'encoding' in value &&
+    'mimetype' in value &&
+    'buffer' in value &&
+    'size' in value
+  );
+};
+
+export async function checkIfDirectoryExists(
+  somePath: string,
+  flags: { isFile: boolean; createIfNotExists?: boolean },
+): Promise<boolean> {
+  const dirPath = flags.isFile ? path.dirname(somePath) : somePath;
+
+  try {
+    // The directory exists
+    await fs.promises.access(dirPath);
+
+    return true;
+  } catch (error: unknown) {
+    if (isErrnoException(error) && error.code === 'ENOENT' && flags?.createIfNotExists) {
+      await fs.promises.mkdir(dirPath, { recursive: true });
+      return true;
+    }
+
+    console.log('='.repeat(20));
+    console.log(error);
+
+    return false;
+  }
+}
+
+export async function deleteFile(path: string): Promise<boolean> {
+  try {
+    // The directory exists
+    await fs.promises.unlink(path);
+    return true;
+  } catch (error: unknown) {
+    console.log('='.repeat(20));
+    console.log(error);
+
+    return false;
+  }
+}
+
+export async function deleteFolder(path: string): Promise<boolean> {
+  try {
+    // The directory exists
+    await fs.promises.rm(path, { recursive: true, force: true });
+    return true;
+  } catch (error: unknown) {
+    console.log('='.repeat(20));
+    console.log(error);
+
+    return false;
+  }
 }

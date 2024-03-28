@@ -1,19 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RecoverPasswordRepository } from './recover-password.repository';
 import { RecoverPassword } from '@prisma/client';
+import { RecoverPasswordRepository } from './recover-password.repository';
 import { CreateRecoverPasswordParams, UpdateRecoverPasswordParams } from './recover-password.type';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
+import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class RecoverPasswordService {
   constructor(private readonly recoverPasswordRepository: RecoverPasswordRepository) {}
 
-  async upsert(params: CreateRecoverPasswordParams): Promise<RecoverPassword> {
-    return this.recoverPasswordRepository.upsert(params);
+  async create(params: CreateRecoverPasswordParams, tx?: PrismaTx): Promise<RecoverPassword> {
+    return this.recoverPasswordRepository.create(params, tx);
   }
 
-  async getByUUID(uuid: string): Promise<RecoverPassword> {
-    const recoverPassword = await this.recoverPasswordRepository.getByUUID(uuid);
+  async getById(id: number, tx?: PrismaTx): Promise<RecoverPassword> {
+    const recoverPassword = await this.recoverPasswordRepository.getById(id, tx);
 
     if (!recoverPassword) {
       throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
@@ -22,8 +23,20 @@ export class RecoverPasswordService {
     return recoverPassword;
   }
 
-  async getByUserId(userId: number): Promise<RecoverPassword> {
-    const recoverPassword = await this.recoverPasswordRepository.getByUserId(userId);
+  async getByJTI(jti: string, tx?: PrismaTx): Promise<RecoverPassword | null> {
+    return this.recoverPasswordRepository.getByJTI(jti, tx);
+  }
+
+  async getByUserId(
+    userId: number,
+    tx?: PrismaTx,
+    flags?: { includeDeleted?: boolean },
+  ): Promise<RecoverPassword | null> {
+    return this.recoverPasswordRepository.getByUserId(userId, tx, flags);
+  }
+
+  async updateById(id: number, params: UpdateRecoverPasswordParams, tx?: PrismaTx): Promise<RecoverPassword> {
+    const recoverPassword = await this.recoverPasswordRepository.updateById(id, params, tx);
 
     if (!recoverPassword) {
       throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
@@ -32,17 +45,7 @@ export class RecoverPasswordService {
     return recoverPassword;
   }
 
-  async updateById(id: number, params: UpdateRecoverPasswordParams): Promise<RecoverPassword> {
-    const recoverPassword = await this.recoverPasswordRepository.updateById(id, params);
-
-    if (!recoverPassword) {
-      throw new NotFoundException(ExceptionMessageCode.RECOVER_PASSWORD_REQUEST_NOT_FOUND);
-    }
-
-    return recoverPassword;
-  }
-
-  async deleteById(uuid: string) {
-    return this.recoverPasswordRepository.deleteById(uuid);
+  async softDelete(id: number, tx?: PrismaTx): Promise<RecoverPassword> {
+    return this.recoverPasswordRepository.softDelete(id, tx);
   }
 }

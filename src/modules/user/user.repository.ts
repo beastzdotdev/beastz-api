@@ -1,7 +1,8 @@
-import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
+import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
 import { PrismaService } from '../@global/prisma/prisma.service';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserRepository {
@@ -11,10 +12,28 @@ export class UserRepository {
     return this.prismaService.user.findUnique({ where: { email } });
   }
 
-  async getByEmailIncludeIdentity(email: string): Promise<UserWithRelations | null> {
-    return this.prismaService.user.findUnique({
+  async getByEmailIncludeIdentity(email: string, tx?: PrismaTx) {
+    const db = tx ?? this.prismaService;
+
+    return db.user.findUnique({
+      relationLoadStrategy: 'join',
       where: { email },
-      include: { userIdentity: true },
+      select: {
+        id: true,
+        uuid: true,
+        email: true,
+        createdAt: true,
+        userIdentity: {
+          select: {
+            id: true,
+            isAccountVerified: true,
+            isBlocked: true,
+            strictMode: true,
+            isLocked: true,
+            password: true,
+          },
+        },
+      },
     });
   }
 
@@ -24,12 +43,15 @@ export class UserRepository {
     return count > 0;
   }
 
-  async createUser(params: CreateUserParams): Promise<User> {
-    return this.prismaService.user.create({ data: params });
+  async createUser(params: CreateUserParams, tx?: PrismaTx): Promise<User> {
+    const db = tx ?? this.prismaService;
+
+    return db.user.create({ data: params });
   }
 
   async getById(id: number): Promise<UserWithRelations | null> {
     return this.prismaService.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { id },
       select: {
         id: true,
@@ -38,24 +60,50 @@ export class UserRepository {
         email: true,
         gender: true,
         birthDate: true,
-        isOnline: true,
+        uuid: true,
         profileImagePath: true,
+        // firstName: true,
+        // lastName: true,
       },
     });
   }
 
-  async getByIdIncludeIdentityForGuard(id: number) {
-    return this.prismaService.user.findFirst({
+  async getByIdIncludeIdentity(id: number, tx?: PrismaTx) {
+    const db = tx ?? this.prismaService;
+
+    return db.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { id },
       select: {
         id: true,
         email: true,
         createdAt: true,
+        uuid: true,
         userIdentity: {
           select: {
             id: true,
             isAccountVerified: true,
-            locked: true,
+            isBlocked: true,
+            isLocked: true,
+            strictMode: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getUserPasswordOnly(id: number, tx?: PrismaTx) {
+    const db = tx ?? this.prismaService;
+
+    return db.user.findFirst({
+      relationLoadStrategy: 'join',
+      where: { id },
+      select: {
+        id: true,
+        userIdentity: {
+          select: {
+            id: true,
+            password: true,
           },
         },
       },
@@ -64,19 +112,13 @@ export class UserRepository {
 
   async getIdByEmail(email: string): Promise<number | null> {
     const result = await this.prismaService.user.findFirst({
+      relationLoadStrategy: 'join',
       where: { email },
       select: { id: true },
     });
 
     return result?.id ?? null;
   }
-
-  // async updatePasswordById(id: number, newHashedPassword: string) {
-  //   return this.prismaService.user.update({
-  //     where: { id },
-  //     data: { passwordHash: newHashedPassword },
-  //   });
-  // }
 
   async existsById(id: number): Promise<boolean> {
     const count = await this.prismaService.user.count({ where: { id } });
@@ -98,30 +140,5 @@ export class UserRepository {
         ...params,
       },
     });
-  }
-
-  async updateOnlineStatus(id: number, status: boolean) {
-    return this.prismaService.user.updateMany({
-      where: { id },
-      data: { isOnline: status },
-    });
-  }
-
-  async getSocketIdByIds(ids: number[]): Promise<string[]> {
-    const result = await this.prismaService.user.findMany({
-      where: { id: { in: ids } },
-      select: { socketId: true },
-    });
-
-    return result.map(e => e.socketId);
-  }
-
-  async getSocketIdById(id: number): Promise<string | null> {
-    const result = await this.prismaService.user.findUnique({
-      where: { id },
-      select: { socketId: true },
-    });
-
-    return result?.socketId ?? null;
   }
 }

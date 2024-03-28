@@ -1,5 +1,5 @@
 import { DynamicModule, Global, Logger, Module, Provider } from '@nestjs/common';
-import { ConfigModule, ConfigModuleOptions } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { plainToClass } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { EnvironmentVariables } from './env.dto';

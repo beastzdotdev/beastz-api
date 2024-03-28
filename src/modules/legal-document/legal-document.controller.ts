@@ -8,7 +8,6 @@ import { LegalDocumentResponseDto } from './dto/legal-document-response.dto';
 import { UpdateLegalDocumentParagraphBodyDto } from './dto/update-legal-document-paragraph-body.dto';
 import { LegalDocumentParagraphService } from './legal-document-paragraph/legal-document-paragraph.service';
 import { LegalDocumentService } from './legal-document.service';
-import { plainArrayToInstance } from '../../common/helper';
 
 @Controller('legal-document')
 export class LegalDocumentController {
@@ -70,7 +69,7 @@ export class LegalDocumentController {
       legalDocumentId,
     });
 
-    return plainArrayToInstance(LegalDocumentParagraphResponseDto, legalDocumentParagraphs);
+    return plainToInstance(LegalDocumentParagraphResponseDto, legalDocumentParagraphs);
   }
 
   @Post(':legalDocumentId/paragraphs')

@@ -1,42 +1,60 @@
-import * as bodyParser from 'body-parser';
+import path from 'path';
+import figlet from 'figlet';
+import helmet from 'helmet';
+import nunjucks from 'nunjucks';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+
+import { json, urlencoded } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './modules/app.module';
-import { Logger } from '@nestjs/common';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
-import helmet from 'helmet';
+import { cyanLog } from './common/helper';
+import { setupNunjucksFilters } from './common/nunjucks';
 
-//TODO Implement email service mailgun
-//TODO        [ ask toko for downgrading to basic plan, default will force you to pay ]
-//TODO        send email for reseting password (message: we have detected credential reuse) - method refreshToken
-//TODO        send one time code to user on mail - method recoverPasswordSendVerificationCode
-//TODO        send one time code to user on mail - method sendAccountVerificationCode
+//@ts-expect-error
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
 
-//TODO return hashed jwt to frontend and make it optional from env add is_jwt_hashed and jwt_hash_secret
-//TODO implemetn free logger monitoring service and use winston maybe ??
-
-NestFactory.create<NestExpressApplication>(AppModule).then(async (app: NestExpressApplication) => {
+NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
+  const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
-  const logger = new Logger('Main logger');
 
-  app.enableCors();
+  const nunjuckMainRenderer = nunjucks.configure(assetsPath, {
+    express: app,
+    autoescape: true,
+    watch: true,
+    throwOnUndefined: false,
+    trimBlocks: false,
+    lstripBlocks: false,
+  });
+
+  setupNunjucksFilters(nunjuckMainRenderer);
+
+  app.enableCors({
+    credentials: true,
+    origin: [envService.get('FRONTEND_URL')],
+  });
+
   app.enableShutdownHooks();
-  app.set('trust proxy', 1);
+  app.set('trust proxy', true);
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
+  app.use(cookieParser(envService.get('COOKIE_SECRET')));
   app.use(helmet());
-  app.use(bodyParser.json({ limit: '50mb' }));
-  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+  app.use(compression());
+  app.setViewEngine('njk');
+  app.setBaseViewsDir(assetsPath);
 
   await app.listen(envService.get('PORT'));
 
   // log misc stuff
-  const apiUrl: string = await app.getUrl();
-  logger.verbose(`GorillaVault api listening on --- ${apiUrl}`);
+  cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
 });
 
-// so in frontend when for example a,b,c requests are all sent and lets say b was fastest and got refresh
-// immediatly when b refreshes a and c must be cancelled, then filled with new accessToken and resent
-// which is implemented in this video
-// But I think 2 axios instance will be needed one for refresh route and one fore all other
-// https://www.youtube.com/watch?v=nI8PYZNFtac
-// and this is code example
+// Cool libraries for future
+// https://nosir.github.io/cleave.js/
+// https://sarcadass.github.io/granim.js/examples.html

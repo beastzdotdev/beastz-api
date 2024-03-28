@@ -8,6 +8,7 @@ export class LegalDocumentRepository {
 
   async getByType(type: LegalDocumentType): Promise<LegalDocument | null> {
     return this.prismaService.legalDocument.findUnique({
+      relationLoadStrategy: 'join',
       where: { type },
       include: { paragraphs: { orderBy: { index: 'asc' } } },
     });
@@ -15,6 +16,7 @@ export class LegalDocumentRepository {
 
   async getAll(): Promise<LegalDocument[]> {
     return this.prismaService.legalDocument.findMany({
+      relationLoadStrategy: 'join',
       include: {
         paragraphs: {
           orderBy: {

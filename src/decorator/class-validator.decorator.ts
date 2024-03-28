@@ -1,12 +1,13 @@
-import { ValidationOptions, registerDecorator, ValidationArguments } from 'class-validator';
-import { Constants } from '../common/constants';
+import type { ValidationOptions, ValidationArguments } from 'class-validator';
+import { registerDecorator } from 'class-validator';
+import { constants } from '../common/constants';
 
-export function IsExactBoolean(validationOptions?: ValidationOptions) {
-  return function (object: object, propertyName: string) {
+export const IsExactBoolean = (validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
     registerDecorator({
       name: 'IsExactBoolean',
       target: object.constructor,
-      propertyName: propertyName,
+      propertyName: propertyName.toString(),
       options: validationOptions,
       validator: {
         validate(value: unknown) {
@@ -20,14 +21,14 @@ export function IsExactBoolean(validationOptions?: ValidationOptions) {
       },
     });
   };
-}
+};
 
-export function IsEmailCustom(validationOptions?: ValidationOptions) {
-  return function (object: object, propertyName: string) {
+export const IsEmailCustom = (validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
     registerDecorator({
       name: 'IsEmailCustom',
       target: object.constructor,
-      propertyName: propertyName,
+      propertyName: propertyName.toString(),
       constraints: [],
       options: {
         message: 'Email is invalid',
@@ -35,9 +36,9 @@ export function IsEmailCustom(validationOptions?: ValidationOptions) {
       },
       validator: {
         validate(value: unknown) {
-          return typeof value === 'string' && Constants.EMAIL_REGEX.test(value);
+          return typeof value === 'string' && constants.EMAIL_REGEX.test(value);
         },
       },
     });
   };
-}
+};

@@ -1,7 +1,7 @@
-import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsEnum, IsNumber, IsNotEmpty, IsString, IsOptional, IsUrl } from 'class-validator';
 import { IsExactBoolean } from '../../../decorator/class-validator.decorator';
 import { EnvironmentType } from './env.interface';
+import { TransformBoolean, TransformNumber } from '../../../decorator/class-transformer.decorator';
 
 export class EnvironmentVariables {
   @IsNotEmpty()
@@ -9,14 +9,54 @@ export class EnvironmentVariables {
   DEBUG: EnvironmentType;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
   PORT: number;
 
   @IsOptional()
   @IsExactBoolean()
-  @Transform(({ value }) => value === 'true' || value === true)
-  DATABASE_LOG_QUERY = true;
+  @TransformBoolean()
+  DATABASE_LOG_QUERY: boolean = true;
+
+  @IsOptional()
+  @IsExactBoolean()
+  @TransformBoolean()
+  ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: boolean = false;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsUrl()
+  FRONTEND_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsUrl()
+  BACKEND_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  COOKIE_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAIL_DOMAIN: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAIL_API_KEY: string;
+
+  @IsUrl()
+  @IsNotEmpty()
+  @IsString()
+  MAIL_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAIL_USERNAME: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAIL_FROM: string;
 
   @IsNotEmpty()
   @IsString()
@@ -28,30 +68,55 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
-  REFRESH_TOKEN_ENCRYPTION_SECRET: string;
+  REFRESH_TOKEN_SECRET: string;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
-  ACCESS_TOKEN_EXPIRATION: number;
+  ACCESS_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
-  REFRESH_TOKEN_EXPIRATION: number;
+  REFRESH_TOKEN_EXPIRATION_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
-  RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_MILLIS: number;
+  RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
   @IsNumber()
-  ACCOUNT_VERIFICATION_REQUEST_TIMEOUT_IN_MILLIS: number;
+  RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC: number;
 
   @IsNotEmpty()
-  @Type(() => Number)
+  @TransformNumber()
+  @IsNumber()
+  ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: number;
+
+  @IsNotEmpty()
+  @TransformNumber()
   @IsNumber()
   MAX_FEEDBACK_PER_DAY_COUNT: number;
+
+  @IsNotEmpty()
+  @IsString()
+  PRISMA_ENGINE_PROTOCOL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ACCOUNT_VERIFY_TOKEN_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  RECOVER_PASSWORD_TOKEN_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  RESET_PASSWORD_TOKEN_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  SESSION_ACCESS_JWT_ENCRYPTION_KEY: string;
 }

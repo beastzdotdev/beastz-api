@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -41,25 +42,74 @@ enum LegalDocumentType {
   @@map("legal_document_type")
 }
 
+/// This enum contains top mimetypes in everywhere
+enum FileMimeType {
+  TEXT_PLAIN
+  TEXT_MARKDOWN
+
+  APPLICATION_JSON
+  APPLICATION_XML
+  APPLICATION_PDF
+  APPLICATION_OCTET_STREAM
+
+  IMAGE_JPG
+  IMAGE_PNG
+  IMAGE_GIF
+  IMAGE_WEBP
+  IMAGE_BMP
+
+  AUDIO_MPEG
+  AUDIO_WAV
+
+  VIDEO_MP4
+  VIDEO_MPEG
+  VIDEO_WEBM
+  VIDEO_QUICKTIME
+
+  OTHER
+
+  @@map("file_mime_type")
+}
+
+enum EncryptionType {
+  TEXT
+  PIN
+
+  @@map("encryption_type")
+}
+
+enum EncryptionAlgorithm {
+  AES_256_GCM
+
+  @@map("encryption_algorithm")
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  isOnline  Boolean  @default(false) @map("is_online")
-  email     String   @unique @db.VarChar(255)
-  userName  String   @map("user_name") @db.VarChar(255)
-  birthDate DateTime @map("birth_date")
-  gender    Gender
+  id               Int       @id @default(autoincrement())
+  uuid             String    @map("uuid") @db.Uuid
+  email            String    @unique @db.VarChar(255)
+  userName         String    @unique @map("user_name") @db.VarChar(255)
+  birthDate        DateTime? @map("birth_date") @db.Timestamptz()
+  gender           Gender
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  profileImagePath String?   @map("profile_image_path") @db.VarChar(2047)
 
-  createdAt        DateTime @default(now()) @map("created_at")
-  socketId         String   @map("socket_id") @db.VarChar(32)
-  profileImagePath String?  @map("profile_image_path") @db.VarChar(2047)
-
-  refreshTokens       RefreshToken[]
-  feedbacks           Feedback[]
-  recoverPassword     RecoverPassword?
-  accountVerification AccountVerification?
-  userIdentity        UserIdentity?
+  userIdentity                    UserIdentity?
+  feedbacks                       Feedback[]
+  refreshTokens                   RefreshToken[]
+  recoverPasswords                RecoverPassword[]
+  accountVerifications            AccountVerification[]
+  resetPasswords                  ResetPassword[]
+  fileStructure                   FileStructure[]
+  fileStructureBookmark           FileStructureBookmark[]
+  fileStructureEncryption         FileStructureEncryption[]
+  toFileShared                    FileStructureShare[]              @relation(name: "toUser")
+  fromFileShared                  FileStructureShare[]              @relation(name: "fromUser")
+  fileStructureSharePulicLink     FileStructureSharePulicLink[]
+  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
 
   @@index([email])
+  @@index([uuid], type: BTree)
   @@map("users")
 }
 
@@ -68,28 +118,26 @@ model UserIdentity {
   isAccountVerified Boolean @default(false) @map("is_account_verified")
   password          String  @map("password") @db.VarChar(255)
   strictMode        Boolean @default(false) @map("strict_mode")
-  locked            Boolean @default(false) @map("locked")
+  isBlocked         Boolean @default(false) @map("is_blocked") // this property can be removed by user
+  isLocked          Boolean @default(false) @map("is_locked") // this property can only be removed by admin
   userId            Int     @unique @map("user_id")
 
   user User @relation(fields: [userId], references: [id])
 
-  @@map("user_identity")
+  @@map("user_identitites")
 }
 
 model RefreshToken {
-  id                 Int            @id @default(autoincrement())
-  userId             Int            @map("user_id")
-  token              String
-  sub                String
-  iss                String
-  platform           PlatformForJwt
-  exp                String
-  jti                String         @unique @db.Uuid()
-  iat                String
-  cypherIV           String         @map("cypher_iv")
-  isUsed             Boolean        @default(false) @map("is_used")
-  secretKeyEncrypted String         @map("secret_key_encrypted") @db.VarChar(255)
-  createdAt          DateTime       @default(now()) @map("created_at")
+  id        Int            @id @default(autoincrement())
+  userId    Int            @map("user_id")
+  token     String
+  sub       String
+  iss       String
+  platform  PlatformForJwt
+  exp       String
+  jti       String         @unique @db.Uuid()
+  iat       String
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz()
 
   user User @relation(fields: [userId], references: [id])
 
@@ -98,35 +146,99 @@ model RefreshToken {
 }
 
 model AccountVerification {
-  id          Int      @id @default(autoincrement())
-  oneTimeCode Int      @map("one_time_code")
-  userId      Int      @unique @map("user_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            Int       @id @default(autoincrement())
+  securityToken String    @map("security_token")
+  jti           String    @unique @db.Uuid()
+  userId        Int       @map("user_id")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
 
-  user User @relation(fields: [userId], references: [id])
+  acountVerificationAttemptCount AccountVerificationAttemptCount?
+  user                           User                             @relation(fields: [userId], references: [id])
 
-  @@map("account_verification")
+  @@map("account_verifications")
+}
+
+/// This database will be for checking for too many requests if count is {x} and 
+/// {some_amount} of time is not passed yet by checking created_at other insert will be blocked
+/// after successfull verification all column will be deleted
+model AccountVerificationAttemptCount {
+  id                          Int       @id @default(autoincrement())
+  count                       Int       @default(0) @db.SmallInt
+  countIncreaseLastUpdateDate DateTime? @map("count_increase_last_update_date") @db.Timestamptz()
+  accountVerificationId       Int       @unique @map("account_verification_id")
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt                   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  accountVerification AccountVerification @relation(fields: [accountVerificationId], references: [id])
+
+  @@map("account_verifications_attempt_count")
 }
 
 model RecoverPassword {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @unique @map("user_id")
-  oneTimeCode Int      @map("one_time_code")
-  isVerified  Boolean  @default(false) @map("is_verified")
-  uuid        String?  @unique @db.Uuid()
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            Int       @id @default(autoincrement())
+  securityToken String    @map("security_token")
+  jti           String    @unique @db.Uuid()
+  userId        Int       @map("user_id")
+  newPassword   String    @map("new_password") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
 
-  user User @relation(fields: [userId], references: [id])
+  recoverPasswordAttemptCount RecoverPasswordAttemptCount?
+  user                        User                         @relation(fields: [userId], references: [id])
 
   @@map("recover_passwords")
+}
+
+/// Same logic as account verification
+/// for more info see table description found in account_verifications_attempt_count
+model RecoverPasswordAttemptCount {
+  id                          Int       @id @default(autoincrement())
+  count                       Int       @default(0) @db.SmallInt
+  countIncreaseLastUpdateDate DateTime? @map("count_increase_last_update_date") @db.Timestamptz()
+  recoverPasswordId           Int       @unique @map("recover_password_id")
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt                   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  recoverPassword RecoverPassword @relation(fields: [recoverPasswordId], references: [id])
+
+  @@map("recover_passwords_attempt_count")
+}
+
+model ResetPassword {
+  id            Int       @id @default(autoincrement())
+  securityToken String    @map("security_token")
+  jti           String    @unique @db.Uuid()
+  userId        Int       @map("user_id")
+  newPassword   String    @map("new_password") @db.VarChar(255)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user                      User                       @relation(fields: [userId], references: [id])
+  resetPasswordAttemptCount ResetPasswordAttemptCount?
+
+  @@map("reset_passwords")
+}
+
+model ResetPasswordAttemptCount {
+  id                          Int       @id @default(autoincrement())
+  count                       Int       @default(0) @db.SmallInt
+  countIncreaseLastUpdateDate DateTime? @map("count_increase_last_update_date") @db.Timestamptz()
+  resetPasswordId             Int       @unique @map("recover_password_id")
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt                   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  resetPassword ResetPassword @relation(fields: [resetPasswordId], references: [id])
+
+  @@map("reset_passwords_attempt_count")
 }
 
 model LegalDocument {
   id        Int               @id @default(autoincrement())
   title     String            @db.VarChar(255)
   type      LegalDocumentType @unique
-  updatedAt DateTime          @updatedAt @map("updated_at")
-  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz()
 
   paragraphs LegalDocumentParagraph[]
 
@@ -138,7 +250,7 @@ model LegalDocumentParagraph {
   title     String   @db.VarChar(255)
   content   String   @db.Text
   index     Int
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   legalDocument   LegalDocument @relation(fields: [legalDocumentId], references: [id])
   legalDocumentId Int           @map("legal_document_id")
@@ -152,9 +264,120 @@ model Feedback {
   review    Review
   images    String[]
   userId    Int      @map("user_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   user User @relation(fields: [userId], references: [id])
 
   @@map("feedbacks")
+}
+
+model FileStructure {
+  id                Int           @id @default(autoincrement())
+  path              String        @db.Text
+  title             String        @db.VarChar(255)
+  color             String?       @db.VarChar(9) // only hex
+  depth             Int           @map("depth") // which level is folder/file from root level
+  userId            Int           @map("user_id")
+  sizeInBytes       Int?          @map("size_in_bytes")
+  fileExstensionRaw String?       @map("file_exstension_raw") // like .ts, .js, .heic, ...
+  mimeTypeRaw       String?       @map("mime_type_raw") // mimetype just as string
+  mimeType          FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
+  isFile            Boolean       @map("is_file") // if false then is folder (boolean is fastest)
+  isShortcut        Boolean       @map("is_shortcut")
+  isInBin           Boolean       @map("is_in_bin")
+  isEncrypted       Boolean       @map("is_encrypted") // for files basic, for folders zip must be created
+  isEditable        Boolean?      @map("is_editable") // self explanatory (not intended for folders)
+  isLocked          Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
+  lastModifiedAt    DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz()
+  uuid              String        @map("uuid") @db.Uuid // can be used for various reason e.g. unique name for object storage
+
+  // recursive properties
+  rootParentId Int?            @map("root_parent_id")
+  parentId     Int?            @map("parent_id")
+  parent       FileStructure?  @relation("parentId", fields: [parentId], references: [id])
+  children     FileStructure[] @relation("parentId")
+
+  user                        User                         @relation(fields: [userId], references: [id])
+  fileStructureBookmark       FileStructureBookmark[]
+  fileStructureShare          FileStructureShare[]
+  fileStructureEncryption     FileStructureEncryption?
+  FileStructureSharePulicLink FileStructureSharePulicLink?
+
+  @@index([uuid], type: BTree)
+  @@map("file_structure")
+}
+
+model FileStructureEncryption {
+  id              Int                 @id @default(autoincrement())
+  type            EncryptionType // this is intended for mobile
+  algorithm       EncryptionAlgorithm
+  userId          Int                 @map("user_id")
+  fileStructureId Int                 @unique @map("file_structure_id")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+
+  @@map("file_structure_encryption")
+}
+
+model FileStructureBookmark {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  fileStructureId Int      @map("file_structure_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+
+  @@map("file_structure_bookmark")
+}
+
+/// This table is regular sharing only within users of this platform
+model FileStructureShare {
+  id              Int      @id @default(autoincrement())
+  fromUserId      Int      @map("from_user_id") // who shares
+  sharedToUserId  Int      @map("to_user_id") // who receives
+  fileStructureId Int      @unique @map("file_structure_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  fromUser      User          @relation(fields: [fromUserId], references: [id], name: "fromUser")
+  toUser        User          @relation(fields: [sharedToUserId], references: [id], name: "toUser")
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+
+  @@map("file_structure_share")
+}
+
+model FileStructureSharePulicLink {
+  id                      Int       @id @default(autoincrement())
+  userId                  Int       @map("user_id") // who owns
+  fileStructureId         Int       @unique @map("file_structure_id")
+  uniqueHash              String    @map("unique_hash")
+  isDownloadable          Boolean   @default(false) @map("is_downloadable")
+  isRestrictedToOnlyUsers Boolean   @default(false) @map("is_restricted_to_only_users") // if so use table
+  isPasswordProtected     Boolean   @default(false) @map("is_password_protected")
+  password                String?   @map("password")
+  customTitle             String?   @map("custom_title")
+  expiresAt               DateTime? @map("expires_at")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user                            User                              @relation(fields: [userId], references: [id])
+  fileStructure                   FileStructure                     @relation(fields: [fileStructureId], references: [id])
+  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
+
+  @@map("file_structure_share_public_link")
+}
+
+model FileStructureSharePulicLinkUser {
+  id                            Int      @id @default(autoincrement())
+  userId                        Int      @map("user_id") // for who is shared for only
+  fileStructureSharePulicLinkId Int      @map("file_structure_share_public_link_id")
+  createdAt                     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user                        User                        @relation(fields: [userId], references: [id])
+  fileStructureSharePulicLink FileStructureSharePulicLink @relation(fields: [fileStructureSharePulicLinkId], references: [id])
+
+  @@map("file_structure_share_public_link_user")
 }
