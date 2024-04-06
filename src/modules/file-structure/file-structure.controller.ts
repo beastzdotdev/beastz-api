@@ -7,13 +7,15 @@ import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { BasicFileStructureResponseDto } from './dto/response/basic-file-structure-response.dto';
-import { DetectDuplicateQueryDto } from './dto/detect-duplicate-query.dto';
-import { DetectDuplicateResponseDto } from './dto/response/detect-duplicate-response.dto';
+import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
+import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
 import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
 import { constants } from '../../common/constants';
 import { fileStructureHelper } from './file-structure.helper';
 import { PlainToInstanceInterceptor } from '../../interceptor/plain-to-instance.interceptor';
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
+import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
+import { GetGeneralInfoResponseDto } from './dto/response/get-general-info-response.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -28,12 +30,20 @@ export class FileStructureController {
     return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 
-  @Get('detect-duplicate')
-  async detectDuplicate(
+  @Get('general-info')
+  async getGeneralInfo(
     @AuthPayload() authPayload: AuthPayloadType,
-    @Query() queryParams: DetectDuplicateQueryDto,
-  ): Promise<DetectDuplicateResponseDto[]> {
-    return this.fileStructureService.checkIfDuplicateExists(authPayload, queryParams);
+    @Query() queryParams: GetGeneralInfoQueryDto,
+  ): Promise<GetGeneralInfoResponseDto> {
+    return this.fileStructureService.getGeneralInfo(authPayload, queryParams);
+  }
+
+  @Get('duplicate-status')
+  async getDuplicateStatus(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Query() queryParams: GetDuplicateStatusQueryDto,
+  ): Promise<GetDuplicateStatusResponseDto[]> {
+    return this.fileStructureService.getDuplicateStatus(authPayload, queryParams);
   }
 
   @Get(':id')

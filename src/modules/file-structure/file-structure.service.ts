@@ -29,9 +29,10 @@ import {
   getUserRootContentPath,
   buildTreeFromFileStructure,
 } from './file-structure.helper';
-import { DetectDuplicateQueryDto } from './dto/detect-duplicate-query.dto';
-import { DetectDuplicateResponseDto } from './dto/response/detect-duplicate-response.dto';
+import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
+import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
+import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -77,22 +78,22 @@ export class FileStructureService {
     return responseDataInDepth2;
   }
 
-  async getById(authPayload: AuthPayloadType, id: number) {
-    const fileStructure = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+  async getGeneralInfo(authPayload: AuthPayloadType, queryParams: GetGeneralInfoQueryDto) {
+    const {} = queryParams; // for future use
 
-    if (!fileStructure) {
-      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
-    }
+    const totalSize = await this.fileStructureRepository.getTotalFilesSize(authPayload.user.id);
 
-    return fileStructure;
+    return {
+      totalSize,
+    };
   }
 
-  async checkIfDuplicateExists(
+  async getDuplicateStatus(
     authPayload: AuthPayloadType,
-    queryParams: DetectDuplicateQueryDto,
-  ): Promise<DetectDuplicateResponseDto[]> {
+    queryParams: GetDuplicateStatusQueryDto,
+  ): Promise<GetDuplicateStatusResponseDto[]> {
     const { titles, isFile, parentId } = queryParams;
-    const fileStructures: DetectDuplicateResponseDto[] = [];
+    const fileStructures: GetDuplicateStatusResponseDto[] = [];
 
     for (const title of titles) {
       if (title !== sanitizeHtml(title) || title !== sanitizeFileName(title)) {
@@ -114,6 +115,16 @@ export class FileStructureService {
     }
 
     return fileStructures;
+  }
+
+  async getById(authPayload: AuthPayloadType, id: number) {
+    const fileStructure = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+
+    if (!fileStructure) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    return fileStructure;
   }
 
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType) {
