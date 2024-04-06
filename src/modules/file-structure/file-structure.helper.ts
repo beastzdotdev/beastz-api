@@ -5,7 +5,7 @@ import { escapeRegExp } from '../../common/helper';
 
 export const fileStructureHelper = Object.freeze({
   fileTypeEnumToRawMime: <Record<FileMimeType, string>>{
-    [FileMimeType.TEXT_PLAIN]: 'text/plain', // Plain text files
+    [FileMimeType.TEXT_PLAIN]: 'text/plain', // Plain text files¡
     [FileMimeType.TEXT_MARKDOWN]: 'text/markdown', // markdowns
     [FileMimeType.APPLICATION_JSON]: 'application/json', // JSON data
     [FileMimeType.APPLICATION_XML]: 'application/xml', // XML documents
@@ -16,6 +16,7 @@ export const fileStructureHelper = Object.freeze({
     [FileMimeType.IMAGE_GIF]: 'image/gif', // GIF images
     [FileMimeType.IMAGE_WEBP]: 'image/webp', // WebP images
     [FileMimeType.IMAGE_BMP]: 'image/bmp', // BMP (Bitmap) is a standard Windows image
+    [FileMimeType.IMAGE_SVG]: 'image/svg+xml', // Svg images
     [FileMimeType.AUDIO_MPEG]: 'audio/mpeg', // MP3 audio files
     [FileMimeType.AUDIO_WAV]: 'audio/wav', // WAV audio files
     [FileMimeType.VIDEO_MP4]: 'video/mp4', // MP4 video files
@@ -35,6 +36,7 @@ export const fileStructureHelper = Object.freeze({
     'image/gif': FileMimeType.IMAGE_GIF, // GIF images
     'image/webp': FileMimeType.IMAGE_WEBP, // WebP images
     'image/bmp': FileMimeType.IMAGE_BMP, // BMP (Bitmap) is a standard Windows image
+    'image/svg+xml': FileMimeType.IMAGE_SVG, // Svg images
     'audio/mpeg': FileMimeType.AUDIO_MPEG, // MP3 audio files
     'audio/wav': FileMimeType.AUDIO_WAV, // WAV audio files
     'video/mp4': FileMimeType.VIDEO_MP4, // MP4 video files

@@ -57,6 +57,7 @@ enum FileMimeType {
   IMAGE_GIF
   IMAGE_WEBP
   IMAGE_BMP
+  IMAGE_SVG
 
   AUDIO_MPEG
   AUDIO_WAV
