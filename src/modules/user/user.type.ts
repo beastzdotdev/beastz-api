@@ -1,7 +1,7 @@
 import { Prisma, User, UserIdentity } from '@prisma/client';
-import { PageOptionParams } from '../../model/types';
+import { PaginationOptionParams } from '../../model/types';
 
-export type GetUsersParams = { searchQuery?: string; excludeId: number } & PageOptionParams;
+export type GetUsersParams = { searchQuery?: string; excludeId: number } & PaginationOptionParams;
 
 export type CreateUserParams = Omit<User, 'id' | 'createdAt'>;
 

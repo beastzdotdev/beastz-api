@@ -23,6 +23,7 @@ export type GetByMethodParamsInRepo = {
   userId?: number;
   path?: string;
   parentId?: number | null;
+  isInBin?: boolean;
 };
 export type GetManyByMethodParamsInRepo = {
   parentId?: number;

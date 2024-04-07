@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { FileStructureService } from './file-structure.service';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
@@ -16,6 +16,9 @@ import { PlainToInstanceInterceptor } from '../../interceptor/plain-to-instance.
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 import { GetGeneralInfoResponseDto } from './dto/response/get-general-info-response.dto';
+import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto copy';
+import { Pagination } from '../../model/types';
+import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -36,6 +39,18 @@ export class FileStructureController {
     @Query() queryParams: GetGeneralInfoQueryDto,
   ): Promise<GetGeneralInfoResponseDto> {
     return this.fileStructureService.getGeneralInfo(authPayload, queryParams);
+  }
+
+  @Get('from-bin')
+  async getFromBin(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Query() queryParams: GetFromBinQueryDto,
+  ): Promise<Pagination<BasicFileStructureResponseDto>> {
+    const response = await this.fileStructureService.getFromBin(authPayload, queryParams);
+    return {
+      data: plainToInstance(BasicFileStructureResponseDto, response.data, { exposeDefaultValues: true }),
+      total: response.total,
+    };
   }
 
   @Get('duplicate-status')
@@ -77,6 +92,16 @@ export class FileStructureController {
     @Body() dto: CreateFolderStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.createFolder(dto, authPayload);
+    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+  }
+
+  @Patch('update/:id')
+  async update(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateFolderStructureDto,
+  ): Promise<BasicFileStructureResponseDto> {
+    const response = await this.fileStructureService.update(id, dto, authPayload);
     return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 }

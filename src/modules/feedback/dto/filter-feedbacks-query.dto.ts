@@ -1,9 +1,9 @@
 import { IsOptional } from 'class-validator';
-import { PageOptionsDto } from 'src/model/dto/page-options.dto';
+import { PaginationRequestDto } from 'src/model/dto/pagination-request.dto';
 import { FilterFeedbackParams } from '../feedback.type';
 import { TransformNumber } from '../../../decorator/class-transformer.decorator';
 
-export class FilterFeedbacksQueryDto extends PageOptionsDto implements FilterFeedbackParams {
+export class FilterFeedbacksQueryDto extends PaginationRequestDto implements FilterFeedbackParams {
   @IsOptional()
   @TransformNumber()
   userId?: number;

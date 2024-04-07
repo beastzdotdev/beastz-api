@@ -21,11 +21,11 @@ export type SafeCallResult<T> = {
 };
 
 // Pagination
-export type PageOptionParams = {
+export type PaginationOptionParams = {
   page: number;
   pageSize: number;
 };
-export type DataPage<T> = {
+export type Pagination<T> = {
   data: T[];
   total: number;
 };

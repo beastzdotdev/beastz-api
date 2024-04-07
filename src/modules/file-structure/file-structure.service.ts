@@ -33,6 +33,9 @@ import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto
 import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
+import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto copy';
+import { Pagination } from '../../model/types';
+import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -86,6 +89,16 @@ export class FileStructureService {
     return {
       totalSize,
     };
+  }
+
+  async getFromBin(authPayload: AuthPayloadType, queryParams: GetFromBinQueryDto): Promise<Pagination<FileStructure>> {
+    const { page, pageSize, parentId } = queryParams;
+
+    return this.fileStructureRepository.getFromBin(authPayload, {
+      page,
+      pageSize,
+      parentId,
+    });
   }
 
   async getDuplicateStatus(
@@ -351,6 +364,17 @@ export class FileStructureService {
       path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
       depth: entityDepth, // if root 0 or parent depth + 1
     });
+  }
+
+  async update(id: number, dto: UpdateFolderStructureDto, authPayload: AuthPayloadType): Promise<FileStructure> {
+    const fileStructure = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+
+    if (!fileStructure) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    const response = await this.fileStructureRepository.updateById(id, dto, authPayload.user.id);
+    return response;
   }
 
   //TODO this method can be optimized by only checking existence or adding flags instead of fetching all

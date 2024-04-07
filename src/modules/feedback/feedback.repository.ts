@@ -3,7 +3,7 @@ import { Feedback, Prisma } from '@prisma/client';
 import { FeedbackCreateDto } from './dto/feedback-create.dto';
 import { FilterFeedbackParams } from './feedback.type';
 import { PrismaService } from '../@global/prisma/prisma.service';
-import { DataPage } from '../../model/types';
+import { Pagination } from '../../model/types';
 
 @Injectable()
 export class FeedbackRepository {
@@ -31,7 +31,7 @@ export class FeedbackRepository {
     });
   }
 
-  async filter(params: FilterFeedbackParams): Promise<DataPage<Feedback>> {
+  async filter(params: FilterFeedbackParams): Promise<Pagination<Feedback>> {
     const { page, pageSize, userId } = params;
 
     const where: Prisma.FeedbackWhereInput = {

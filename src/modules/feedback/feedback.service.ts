@@ -5,7 +5,7 @@ import { TooManyRequestException } from 'src/exceptions/too-many-request.excepti
 import { FeedbackCreateDto } from './dto/feedback-create.dto';
 import { FeedbackRepository } from './feedback.repository';
 import { FilterFeedbackParams } from './feedback.type';
-import { DataPage } from '../../model/types';
+import { Pagination } from '../../model/types';
 import { EnvService } from '../@global/env/env.service';
 import { InjectEnv } from '../@global/env/env.decorator';
 
@@ -17,7 +17,7 @@ export class FeedbackService {
     private readonly feedbackRepository: FeedbackRepository,
   ) {}
 
-  async filter(params: FilterFeedbackParams): Promise<DataPage<Feedback>> {
+  async filter(params: FilterFeedbackParams): Promise<Pagination<Feedback>> {
     return this.feedbackRepository.filter(params);
   }
 
