@@ -46,7 +46,8 @@ export const constants = Object.freeze({
     userContentFolderName: 'user-content',
 
     publicAssets: 'public',
-    publicAssetsUser: 'public/user',
     publicAssetsImage: 'public/img',
+
+    userUploadAssets: 'user-upload',
   },
 });

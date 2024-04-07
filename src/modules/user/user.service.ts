@@ -17,7 +17,7 @@ import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
-import { getPublicUserPath } from '../file-structure/file-structure.helper';
+import { getUserUploadPath } from '../file-structure/file-structure.helper';
 import { AuthPayloadType } from '../../model/auth.types';
 import { checkIfDirectoryExists } from '../../common/helper';
 import { constants } from '../../common/constants';
@@ -121,8 +121,8 @@ export class UserService {
 
     const newFileName = `profile-image${parsedFile.ext}`;
 
-    const filePath = path.join(getPublicUserPath(authPayload.user.uuid), newFileName);
-    const entityPath = path.join('/', constants.assets.publicAssetsUser, authPayload.user.uuid, newFileName);
+    const filePath = path.join(getUserUploadPath(authPayload.user.uuid), newFileName);
+    const entityPath = path.join('/', constants.assets.userUploadAssets, authPayload.user.uuid, newFileName);
 
     this.logger.debug(`Created file path and entity path`);
     this.logger.debug(filePath);

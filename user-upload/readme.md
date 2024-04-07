@@ -1,0 +1,1 @@
+This file is only for initial folder creation. (so that extra check is not needed for user)

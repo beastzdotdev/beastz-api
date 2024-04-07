@@ -48,14 +48,14 @@ export const fileStructureHelper = Object.freeze({
 });
 
 const distPath = require.main!.path;
-const { publicAssetsImage, userContentFolderName, publicAssets, publicAssetsUser } = constants.assets;
+const { publicAssetsImage, userContentFolderName, publicAssets, userUploadAssets } = constants.assets;
 
 export const getUserRootContentPath = (uuid: string) => path.join(distPath, '..', userContentFolderName, uuid);
 export const getPublicImgPath = (imgPath: string) => path.join(distPath, '..', publicAssetsImage, imgPath);
-export const getPublicUserPath = (uuid: string) => path.join(distPath, '..', publicAssetsUser, uuid);
+export const getUserUploadPath = (uuid: string) => path.join(distPath, '..', userUploadAssets, uuid);
 
 export const publicPath = path.join(distPath, '..', publicAssets);
-export const publicUserPath = path.join(distPath, '..', publicAssetsUser);
+export const userUploadPath = path.join(distPath, '..', userUploadAssets);
 export const publicImgPath = path.join(distPath, '..', publicAssetsImage);
 
 /**

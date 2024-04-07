@@ -56,3 +56,6 @@ TODO add prometheus for prisma metrics and jaeger for prisma tracing on top of d
 
 
 
+
+
+TODO needs secutiry on all static assets
