@@ -13,7 +13,7 @@ import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
-import { publicPath, userUploadPath } from './modules/file-structure/file-structure.helper';
+import { absolutePublicPath, absoluteUserUploadPath } from './modules/file-structure/file-structure.helper';
 
 //@ts-expect-error
 BigInt.prototype.toJSON = function () {
@@ -49,8 +49,8 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.use(compression());
   app.setViewEngine('njk');
   app.setBaseViewsDir(assetsPath);
-  app.use('/user-upload', express.static(userUploadPath)); // needs security
-  app.use('/public', express.static(publicPath));
+  app.use('/user-upload', express.static(absoluteUserUploadPath)); // needs security
+  app.use('/public', express.static(absolutePublicPath));
 
   await app.listen(envService.get('PORT'));
 

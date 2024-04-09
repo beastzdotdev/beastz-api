@@ -30,6 +30,11 @@ export type Pagination<T> = {
   total: number;
 };
 
+export type CustomFsResponse = {
+  success: boolean;
+  err: NodeJS.ErrnoException | null;
+};
+
 // For view rendering in nunjucks
 export type BaseViewJsonParams = {
   pageTabTitle: string;

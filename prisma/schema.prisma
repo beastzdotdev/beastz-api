@@ -108,6 +108,7 @@ model User {
   fromFileShared                  FileStructureShare[]              @relation(name: "fromUser")
   fileStructureSharePulicLink     FileStructureSharePulicLink[]
   fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
+  fileStructureBin                FileStructureBin[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -305,6 +306,7 @@ model FileStructure {
   fileStructureShare          FileStructureShare[]
   fileStructureEncryption     FileStructureEncryption?
   FileStructureSharePulicLink FileStructureSharePulicLink?
+  fileStructureBin            FileStructureBin?
 
   @@index([uuid], type: BTree)
   @@map("file_structure")
@@ -381,4 +383,18 @@ model FileStructureSharePulicLinkUser {
   fileStructureSharePulicLink FileStructureSharePulicLink @relation(fields: [fileStructureSharePulicLinkId], references: [id])
 
   @@map("file_structure_share_public_link_user")
+}
+
+model FileStructureBin {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  path            String   @db.Text
+  nameUUID        String   @map("name_uuid") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  fileStructureId Int      @unique @map("file_structure_id")
+
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
+
+  @@map("file_structure_bin")
 }

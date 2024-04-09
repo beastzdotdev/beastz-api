@@ -5,9 +5,6 @@ import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { CreateFileStructureParams, GetByMethodParamsInRepo, GetManyByMethodParamsInRepo } from './file-structure.type';
 import { FileStructureFromRaw } from './model/file-structure-from-raw';
-import { Pagination } from '../../model/types';
-import { AuthPayloadType } from '../../model/auth.types';
-import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto copy';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 
 @Injectable()
@@ -65,26 +62,6 @@ export class FileStructureRepository {
     });
   }
 
-  async getFromBin(authPayload: AuthPayloadType, queryParams: GetFromBinQueryDto): Promise<Pagination<FileStructure>> {
-    const { page, pageSize, parentId } = queryParams;
-
-    const where: Prisma.FileStructureWhereInput = {
-      userId: authPayload.user.id,
-      isInBin: true,
-      parentId,
-    };
-
-    const [data, total] = await Promise.all([
-      this.prismaService.fileStructure.findMany({ where, take: pageSize, skip: (page - 1) * pageSize }),
-      this.prismaService.fileStructure.count({ where }),
-    ]);
-
-    return {
-      data,
-      total,
-    };
-  }
-
   async getManyBy(params: GetManyByMethodParamsInRepo): Promise<FileStructure[]> {
     const { depth, isFile, title, userId, titleStartsWith, parentId } = params;
 
@@ -117,6 +94,13 @@ export class FileStructureRepository {
         parentId,
         depth,
         isInBin: false,
+
+        //TODO checkout raw code and fix
+        // children: {
+        //   every: {
+        //     isInBin: false
+        //   }
+        // }
       },
       include: {
         children: {
@@ -148,6 +132,25 @@ export class FileStructureRepository {
           JOIN FileStructureHierarchy fsh ON fs.parent_id = fsh.id
       )
         DELETE FROM file_structure WHERE id IN (SELECT id FROM FileStructureHierarchy);
+    `);
+
+    return d;
+  }
+
+  async recursiveUpdateIsInBin(id: number, isInBin: boolean): Promise<number> {
+    const d = await this.prismaService.$executeRaw(Prisma.sql`
+      WITH RECURSIVE FileStructureHierarchy AS (
+        SELECT id, parent_id
+        FROM file_structure
+        WHERE id = ${id}
+
+        UNION ALL
+
+        SELECT fs.id, fs.parent_id
+        FROM file_structure fs
+          JOIN FileStructureHierarchy fsh ON fs.parent_id = fsh.id
+      )
+        UPDATE file_structure SET is_in_bin = ${isInBin} WHERE id IN (SELECT id FROM FileStructureHierarchy);
     `);
 
     return d;
@@ -193,10 +196,10 @@ export class FileStructureRepository {
     return plainToInstance(FileStructureFromRaw, d, { exposeDefaultValues: true });
   }
 
-  async updateById(id: number, dto: UpdateFolderStructureDto, userId: number): Promise<FileStructure> {
+  async updateById(id: number, dto: UpdateFolderStructureDto, userId: number): Promise<FileStructure | null> {
     const { isInBin } = dto;
 
-    const response = await this.prismaService.fileStructure.update({
+    return this.prismaService.fileStructure.update({
       where: {
         id,
         userId,
@@ -205,8 +208,6 @@ export class FileStructureRepository {
         isInBin,
       },
     });
-
-    return response;
   }
 
   async deleteById(id: number): Promise<FileStructure> {

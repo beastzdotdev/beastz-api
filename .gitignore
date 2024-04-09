@@ -44,6 +44,10 @@ test/unit/coverage
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# Ignore evrything except readme.md in user content folder so that user-content always exists as caution
+# Ignore evrything except readme.md in user content/bin folder so that user-content always exists as caution
 /user-content
 !/user-content/readme.md
+/user-bin
+!/user-bin/readme.md
+/user-upload
+!/user-upload/readme.md

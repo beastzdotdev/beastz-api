@@ -1,3 +1,8 @@
+TODO method validateParentRootParentStructure
+  this method can be optimized by only checking existence or adding flags instead of fetching all
+
+
+
 File versioning
 
 TODO user settings will be saved in many to one where {user_id, settings_key: varchar, settings_value: BSON}

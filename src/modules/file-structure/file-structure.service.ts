@@ -3,7 +3,7 @@ import path from 'path';
 import { v4 as uuid } from 'uuid';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
-import { FileMimeType, FileStructure } from '@prisma/client';
+import { FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
 import {
   BadRequestException,
   ForbiddenException,
@@ -19,29 +19,33 @@ import { FileStructureRepository } from './file-structure.repository';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-import { checkIfDirectoryExists, deleteFile, deleteFolder } from '../../common/helper';
+
 import { IncreaseFileNameNumberMethodParams, ReplaceFileMethodParams } from './file-structure.type';
 import {
   constFileStructureNameDuplicateRegex,
   extractNumber,
   fileStructureNameDuplicateRegex,
   fileStructureHelper,
-  getUserRootContentPath,
+  getAbsUserRootContentPath,
   buildTreeFromFileStructure,
+  getAbsUserBinPath,
 } from './file-structure.helper';
 import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
 import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
-import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto copy';
-import { Pagination } from '../../model/types';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
+import { fsCustom } from '../../common/helper';
+import { FileStructureBinService } from '../file-structure-bin/file-structure-bin.service';
 
 @Injectable()
 export class FileStructureService {
   private readonly logger = new Logger(FileStructureService.name);
 
-  constructor(private readonly fileStructureRepository: FileStructureRepository) {}
+  constructor(
+    private readonly fileStructureRepository: FileStructureRepository,
+    private readonly fileStructureBinService: FileStructureBinService,
+  ) {}
 
   async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
     const { parentId, focusParentId, rootParentId } = queryParams;
@@ -89,16 +93,6 @@ export class FileStructureService {
     return {
       totalSize,
     };
-  }
-
-  async getFromBin(authPayload: AuthPayloadType, queryParams: GetFromBinQueryDto): Promise<Pagination<FileStructure>> {
-    const { page, pageSize, parentId } = queryParams;
-
-    return this.fileStructureRepository.getFromBin(authPayload, {
-      page,
-      pageSize,
-      parentId,
-    });
   }
 
   async getDuplicateStatus(
@@ -165,7 +159,7 @@ export class FileStructureService {
     let entityPath: string;
     let entityDepth: number;
 
-    const userRootContentPath = getUserRootContentPath(authPayload.user.uuid);
+    const userRootContentPath = getAbsUserRootContentPath(authPayload.user.uuid);
 
     // Perform fs operation
     if (isRoot) {
@@ -183,7 +177,7 @@ export class FileStructureService {
       this.logger.debug(`Is root: ${absolutePath}`);
 
       // if not exists create user uuid folder as well if not exists
-      const folderCreationSuccess = await checkIfDirectoryExists(absolutePath, {
+      const folderCreationSuccess = await fsCustom.checkDirOrCreate(absolutePath, {
         isFile: true,
         createIfNotExists: true,
       });
@@ -221,7 +215,7 @@ export class FileStructureService {
 
       this.logger.debug(`Is not root: ${absolutePath}`);
 
-      const exists = await checkIfDirectoryExists(absolutePath, { isFile: true });
+      const exists = await fsCustom.checkDirOrCreate(absolutePath, { isFile: true });
 
       if (!exists) {
         this.logger.debug('Error happend in parent file folder check');
@@ -278,7 +272,7 @@ export class FileStructureService {
 
     const userId = authPayload.user.id;
     const isRoot = !parentId && !rootParentId;
-    const userRootContentPath = getUserRootContentPath(authPayload.user.uuid);
+    const userRootContentPath = getAbsUserRootContentPath(authPayload.user.uuid);
 
     const title = !keepBoth ? name : await this.increaseFileNameNumber({ title: name, userId, parent, isFile: false });
 
@@ -301,7 +295,7 @@ export class FileStructureService {
       this.logger.debug(`Is root: ${absolutePath}`);
 
       // if not exists create user uuid folder as well if not exists
-      const folderCreationSuccess = await checkIfDirectoryExists(absolutePath, {
+      const folderCreationSuccess = await fsCustom.checkDirOrCreate(absolutePath, {
         isFile: false,
         createIfNotExists: true, // this will create desired folder
       });
@@ -329,7 +323,7 @@ export class FileStructureService {
 
       this.logger.debug(`Is not root: ${absolutePath}`);
 
-      const folderCreationSuccess = await checkIfDirectoryExists(absolutePath, {
+      const folderCreationSuccess = await fsCustom.checkDirOrCreate(absolutePath, {
         isFile: false,
         createIfNotExists: true, // this will create desired folder
       });
@@ -374,10 +368,71 @@ export class FileStructureService {
     }
 
     const response = await this.fileStructureRepository.updateById(id, dto, authPayload.user.id);
+
+    if (!response) {
+      throw new NotFoundException(ExceptionMessageCode.INTERNAL_ERROR);
+    }
+
     return response;
   }
 
-  //TODO this method can be optimized by only checking existence or adding flags instead of fetching all
+  async moveToBin(id: number, authPayload: AuthPayloadType): Promise<FileStructureBin> {
+    const fs = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+
+    if (!fs) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    if (fs.isInBin) {
+      throw new BadRequestException('File is already in bin'); // should not happend from frontend
+    }
+
+    // update all descendants is_in_bin
+    await this.fileStructureRepository.recursiveUpdateIsInBin(id, true);
+
+    const nameUUID = uuid();
+    const nameWithExt = nameUUID + (fs.fileExstensionRaw ?? '');
+    const relativePath = path.join('/', nameWithExt);
+
+    const sourceContentPath = path.join(getAbsUserRootContentPath(authPayload.user.uuid), fs.path);
+    const destinationBinPath = path.join(getAbsUserBinPath(authPayload.user.uuid), nameWithExt);
+
+    console.log({
+      //
+      nameUUID,
+      nameWithExt,
+      relativePath,
+      sourceContentPath,
+      destinationBinPath,
+    });
+
+    // if not exists create user uuid folder as well if not exists
+    const folderCreationSuccess = await fsCustom.checkDirOrCreate(destinationBinPath, {
+      isFile: fs.isFile,
+      createIfNotExists: true,
+    });
+
+    if (!folderCreationSuccess) {
+      this.logger.debug('Folder creation error occured');
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    // move folder/file to user-bin
+    await fsCustom.move(sourceContentPath, destinationBinPath);
+
+    // add to fs bin
+    const response = await this.fileStructureBinService.create({
+      userId: fs.userId,
+      fileStructureId: fs.id,
+      path: relativePath,
+      nameUUID,
+    });
+
+    console.log(response);
+
+    return response;
+  }
+
   private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }) {
     const { parentId, rootParentId } = params;
 
@@ -435,14 +490,16 @@ export class FileStructureService {
       }
 
       const absolutePath = path.join(userRootContentPath, sameNameFileStructure.path);
-      const exists = await checkIfDirectoryExists(absolutePath, { isFile }); // no need for creation of folder
+      const exists = await fsCustom.checkDirOrCreate(absolutePath, { isFile }); // no need for creation of folder
 
       if (!exists) {
         this.logger.debug('File should exists in file system');
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      isFile ? await deleteFile(absolutePath) : await deleteFolder(absolutePath);
+      fsCustom.delete(absolutePath);
+
+      // isFile ? await deleteFile(absolutePath) : await deleteFolder(absolutePath);
     }
   }
 

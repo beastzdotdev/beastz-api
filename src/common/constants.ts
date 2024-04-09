@@ -43,11 +43,11 @@ export const constants = Object.freeze({
   singleFileMaxSize: 30 * 1024 * 1024, // ~30mb
 
   assets: {
-    userContentFolderName: 'user-content',
-
     publicAssets: 'public',
     publicAssetsImage: 'public/img',
 
-    userUploadAssets: 'user-upload',
+    userContentFolderName: 'user-content',
+    userUploadFolderName: 'user-upload',
+    userBinFolderName: 'user-bin',
   },
 });

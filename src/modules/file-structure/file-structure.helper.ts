@@ -48,15 +48,24 @@ export const fileStructureHelper = Object.freeze({
 });
 
 const distPath = require.main!.path;
-const { publicAssetsImage, userContentFolderName, publicAssets, userUploadAssets } = constants.assets;
+const {
+  //
+  publicAssetsImage,
+  userContentFolderName,
+  publicAssets,
+  userUploadFolderName,
+  userBinFolderName,
+} = constants.assets;
 
-export const getUserRootContentPath = (uuid: string) => path.join(distPath, '..', userContentFolderName, uuid);
-export const getPublicImgPath = (imgPath: string) => path.join(distPath, '..', publicAssetsImage, imgPath);
-export const getUserUploadPath = (uuid: string) => path.join(distPath, '..', userUploadAssets, uuid);
+export const getAbsPublicImgPath = (imgPath: string) => path.join(distPath, '..', publicAssetsImage, imgPath);
+export const getAbsUserRootContentPath = (uuid: string) => path.join(distPath, '..', userContentFolderName, uuid);
+export const getAbsUserUploadPath = (uuid: string) => path.join(distPath, '..', userUploadFolderName, uuid);
+export const getAbsUserBinPath = (uuid: string) => path.join(distPath, '..', userBinFolderName, uuid);
 
-export const publicPath = path.join(distPath, '..', publicAssets);
-export const userUploadPath = path.join(distPath, '..', userUploadAssets);
-export const publicImgPath = path.join(distPath, '..', publicAssetsImage);
+export const absolutePublicPath = path.join(distPath, '..', publicAssets);
+export const absoluteUserUploadPath = path.join(distPath, '..', userUploadFolderName);
+export const absolutePublicImgPath = path.join(distPath, '..', publicAssetsImage);
+export const absoluteUserBinPath = path.join(distPath, '..', userBinFolderName);
 
 /**
  * @example

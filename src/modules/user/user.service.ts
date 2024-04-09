@@ -17,10 +17,10 @@ import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
-import { getUserUploadPath } from '../file-structure/file-structure.helper';
+import { getAbsUserUploadPath } from '../file-structure/file-structure.helper';
 import { AuthPayloadType } from '../../model/auth.types';
-import { checkIfDirectoryExists } from '../../common/helper';
 import { constants } from '../../common/constants';
+import { fsCustom } from '../../common/helper';
 
 @Injectable()
 export class UserService {
@@ -121,15 +121,18 @@ export class UserService {
 
     const newFileName = `profile-image${parsedFile.ext}`;
 
-    const filePath = path.join(getUserUploadPath(authPayload.user.uuid), newFileName);
-    const entityPath = path.join('/', constants.assets.userUploadAssets, authPayload.user.uuid, newFileName);
+    const filePath = path.join(getAbsUserUploadPath(authPayload.user.uuid), newFileName);
+    const entityPath = path.join('/', constants.assets.userUploadFolderName, authPayload.user.uuid, newFileName);
 
     this.logger.debug(`Created file path and entity path`);
     this.logger.debug(filePath);
     this.logger.debug(entityPath);
 
     // if not exists create user uuid folder as well if not exists
-    const folderCreationSuccess = await checkIfDirectoryExists(filePath, { isFile: true, createIfNotExists: true });
+    const folderCreationSuccess = await fsCustom.checkDirOrCreate(filePath, {
+      isFile: true,
+      createIfNotExists: true,
+    });
 
     if (!folderCreationSuccess) {
       this.logger.debug('Folder creation error occured');

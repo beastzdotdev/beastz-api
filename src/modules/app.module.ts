@@ -16,6 +16,7 @@ import { AdminModule } from './admin/admin.module';
 import { MailModule } from './@global/mail/mail.module';
 import { AllExceptionsFilter } from '../filters/all-exception.filter';
 import { FileStructureModule } from './file-structure/file-structure.module';
+import { FileStructureBinModule } from './file-structure-bin/file-structure-bin.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { FileStructureModule } from './file-structure/file-structure.module';
     LegalDocumentModule,
     AdminModule,
     FileStructureModule,
+    FileStructureBinModule,
   ],
   controllers: [AppController],
   providers: [

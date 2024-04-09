@@ -16,8 +16,6 @@ import { PlainToInstanceInterceptor } from '../../interceptor/plain-to-instance.
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 import { GetGeneralInfoResponseDto } from './dto/response/get-general-info-response.dto';
-import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto copy';
-import { Pagination } from '../../model/types';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 
 @Controller('file-structure')
@@ -39,18 +37,6 @@ export class FileStructureController {
     @Query() queryParams: GetGeneralInfoQueryDto,
   ): Promise<GetGeneralInfoResponseDto> {
     return this.fileStructureService.getGeneralInfo(authPayload, queryParams);
-  }
-
-  @Get('from-bin')
-  async getFromBin(
-    @AuthPayload() authPayload: AuthPayloadType,
-    @Query() queryParams: GetFromBinQueryDto,
-  ): Promise<Pagination<BasicFileStructureResponseDto>> {
-    const response = await this.fileStructureService.getFromBin(authPayload, queryParams);
-    return {
-      data: plainToInstance(BasicFileStructureResponseDto, response.data, { exposeDefaultValues: true }),
-      total: response.total,
-    };
   }
 
   @Get('duplicate-status')
@@ -103,5 +89,10 @@ export class FileStructureController {
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.update(id, dto, authPayload);
     return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+  }
+
+  @Patch('move-to-bin/:id')
+  async moveToBin(@AuthPayload() authPayload: AuthPayloadType, @Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.fileStructureService.moveToBin(id, authPayload);
   }
 }
