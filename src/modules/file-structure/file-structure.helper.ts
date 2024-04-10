@@ -2,6 +2,7 @@ import path from 'path';
 import { FileMimeType, FileStructure } from '@prisma/client';
 import { constants } from '../../common/constants';
 import { escapeRegExp } from '../../common/helper';
+import { FileStructureFromRaw } from './model/file-structure-from-raw';
 
 export const fileStructureHelper = Object.freeze({
   fileTypeEnumToRawMime: <Record<FileMimeType, string>>{
@@ -99,8 +100,8 @@ export const extractNumber = (title: string): number => {
   return parseInt(fileStructureNameDuplicateNumberCatcherRegex.exec(title)?.at(1) || '0');
 };
 
-export const buildTreeFromFileStructure = (data: FileStructure[]): FileStructure | null => {
-  const map: FileStructure | object = {}; // Create a map to store references to each node by its ID
+export const makeTreeSingle = (data: FileStructureFromRaw[]): FileStructureFromRaw | null => {
+  const map: Partial<FileStructureFromRaw> = {}; // Create a map to store references to each node by its ID
 
   // First pass: Create a map of nodes indexed by their ID
   data.forEach(node => {
@@ -119,4 +120,28 @@ export const buildTreeFromFileStructure = (data: FileStructure[]): FileStructure
   });
 
   return rootNode; // Return the root node (single object)
+};
+
+export const makeTreeMultiple = (flatList: FileStructureFromRaw[]): FileStructureFromRaw[] => {
+  const map = new Map();
+  const roots: FileStructureFromRaw[] = [];
+
+  // First, create a map of all nodes keyed by their id
+  flatList.forEach(node => {
+    map.set(node.id, node);
+  });
+
+  // Then, iterate over the flat list again to build the tree
+  flatList.forEach(node => {
+    const parentNode = map.get(node.parentId);
+
+    if (parentNode) {
+      parentNode.children.push(map.get(node.id));
+    } else {
+      // If a node has no parent, it's a root node
+      roots.push(map.get(node.id));
+    }
+  });
+
+  return roots;
 };

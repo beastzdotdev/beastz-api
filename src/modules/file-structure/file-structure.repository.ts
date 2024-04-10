@@ -80,36 +80,50 @@ export class FileStructureRepository {
     });
   }
 
-  async selectUntilSecondDepth(params: {
+  async recursiveSelect(params: {
     userId: number;
+    parentId?: number | null;
     depth?: number;
-    parentId?: number;
-  }): Promise<FileStructure[]> {
+  }): Promise<FileStructureFromRaw[]> {
     const { userId, depth, parentId } = params;
 
-    return this.prismaService.fileStructure.findMany({
-      relationLoadStrategy: 'join',
-      where: {
-        userId,
-        parentId,
-        depth,
-        isInBin: false,
+    let rootParentIdCheck: Prisma.Sql = Prisma.empty; // parentId null here means null check in db
 
-        //TODO checkout raw code and fix
-        // children: {
-        //   every: {
-        //     isInBin: false
-        //   }
-        // }
-      },
-      include: {
-        children: {
-          include: {
-            children: true,
-          },
-        },
-      },
-    });
+    // only check for undefined not null
+    if (parentId !== undefined) {
+      rootParentIdCheck =
+        parentId === null ? Prisma.sql`and parent_id is null` : Prisma.sql`and parent_id = ${parentId}`;
+    }
+
+    let recursiveDepthCheck: Prisma.Sql = Prisma.empty;
+
+    // only check for undefined not null
+    if (depth !== undefined) {
+      recursiveDepthCheck = Prisma.sql`and fs.depth <= ${depth}`;
+    }
+
+    const d = await this.prismaService.$queryRaw<unknown[]>(Prisma.sql`
+      WITH RECURSIVE AllAncestors AS (
+        SELECT *
+        FROM file_structure
+        WHERE is_in_bin = false
+        and user_id = ${userId}
+        ${rootParentIdCheck}
+
+        UNION ALL
+
+        SELECT fs.*
+        FROM file_structure fs
+            JOIN AllAncestors p ON fs.parent_id = p.id
+        where fs.id <> p.id
+          and fs.is_in_bin = false
+          and fs.user_id = ${userId}
+          ${recursiveDepthCheck}
+      )
+      SELECT distinct * FROM AllAncestors;
+    `);
+
+    return plainToInstance(FileStructureFromRaw, d, { exposeDefaultValues: true });
   }
 
   async create(params: CreateFileStructureParams, tx?: PrismaTx): Promise<FileStructure> {
@@ -156,46 +170,6 @@ export class FileStructureRepository {
     return d;
   }
 
-  async recursiveSelectFromParent(parentId: number): Promise<FileStructure[]> {
-    const d = await this.prismaService.$queryRaw<FileStructure[]>(Prisma.sql`
-      WITH RECURSIVE AllAncestors AS (
-        -- Anchor member: Select the initial file structure by its ID
-        SELECT
-          title, parent_id,path, is_file, id, is_in_bin
-        FROM
-          file_structure
-        WHERE
-          parent_id = ${parentId} and is_in_bin = false
-      
-        UNION ALL
-      
-        -- Recursive member: Select the parent of each file structure until reaching the root
-        SELECT
-            fs.title, fs.parent_id, fs.path, fs.is_file, fs.id, fs.is_in_bin
-        FROM
-          file_structure fs
-        INNER JOIN AllAncestors p
-            ON fs.id = p.parent_id
-        where fs.id <> p.id and fs.is_in_bin = false
-      ),
-      
-      AllFileStructures AS (
-        -- Select all file structures under each parent recursively
-        SELECT distinct
-          fs.*
-        FROM
-          AllAncestors a
-        JOIN
-          file_structure fs ON a.id = fs.parent_id or a.id = fs.id
-      )
-      
-      -- Final query: Select all file structures under all parent folders recursively
-      SELECT distinct * FROM AllFileStructures;
-    `);
-
-    return plainToInstance(FileStructureFromRaw, d, { exposeDefaultValues: true });
-  }
-
   async updateById(id: number, dto: UpdateFolderStructureDto, userId: number): Promise<FileStructure | null> {
     const { isInBin } = dto;
 
@@ -218,21 +192,3 @@ export class FileStructureRepository {
     });
   }
 }
-
-// async selectRecursively() {
-//   const d = await this.prismaService.$queryRaw<FileStructure[]>(Prisma.sql`
-//     WITH RECURSIVE descendants AS (
-//       SELECT *
-//       FROM file_structure
-//       WHERE id = 873
-//     UNION ALL
-//         SELECT fs.*
-//         FROM file_structure fs
-//         JOIN descendants d
-//         ON fs.parent_id = d.id
-//         where fs.depth <= 4
-//     )
-//     SELECT * FROM descendants;
-//   `);
-//   return d;
-// }
