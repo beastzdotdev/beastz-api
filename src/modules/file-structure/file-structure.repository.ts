@@ -11,21 +11,15 @@ import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 export class FileStructureRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async existsById(id: number) {
-    const count = await this.prismaService.fileStructure.count({ where: { id } });
-
-    return count > 0;
-  }
-
   async getById(id: number): Promise<FileStructure | null> {
     return this.prismaService.fileStructure.findFirst({
-      where: { id },
+      where: { id, isInBin: false },
     });
   }
 
   async getByIdForUser(id: number, userId: number): Promise<FileStructure | null> {
     return this.prismaService.fileStructure.findFirst({
-      where: { id, userId },
+      where: { id, userId, isInBin: false },
     });
   }
 
@@ -33,6 +27,7 @@ export class FileStructureRepository {
     const response = await this.prismaService.fileStructure.aggregate({
       where: {
         userId,
+        isInBin: false,
       },
       _sum: {
         sizeInBytes: true,
@@ -43,7 +38,7 @@ export class FileStructureRepository {
   }
 
   async getBy(params: GetByMethodParamsInRepo): Promise<FileStructure | null> {
-    const { depth, isFile, title, userId, path, parentId, isInBin } = params;
+    const { depth, isFile, title, userId, path, parentId } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -57,7 +52,7 @@ export class FileStructureRepository {
         title,
         path,
         parentId,
-        isInBin,
+        isInBin: false,
       },
     });
   }
@@ -75,6 +70,7 @@ export class FileStructureRepository {
         isFile,
         userId,
         parentId,
+        isInBin: false,
         ...(titleStartsWith ? { title: { startsWith: titleStartsWith } } : { title }),
       },
     });
@@ -132,20 +128,21 @@ export class FileStructureRepository {
     return db.fileStructure.create({ data: params });
   }
 
-  async recursiveDeleteChildren(id: number): Promise<number> {
+  async recursiveDelete(id: number): Promise<number> {
     const d = await this.prismaService.$executeRaw(Prisma.sql`
-      WITH RECURSIVE FileStructureHierarchy AS (
+      WITH RECURSIVE AllAncestors AS (
         SELECT id, parent_id 
         FROM file_structure 
-        WHERE id = ${id}
+        WHERE id = ${id} and is_in_bin = false
     
         UNION ALL
     
         SELECT fs.id, fs.parent_id 
         FROM file_structure fs 
-          JOIN FileStructureHierarchy fsh ON fs.parent_id = fsh.id
+          JOIN AllAncestors p ON fs.parent_id = p.id
+        WHERE fs.id <> p.id and is_in_bin = false
       )
-        DELETE FROM file_structure WHERE id IN (SELECT id FROM FileStructureHierarchy);
+        DELETE FROM file_structure WHERE id IN (SELECT id FROM AllAncestors);
     `);
 
     return d;
@@ -153,18 +150,19 @@ export class FileStructureRepository {
 
   async recursiveUpdateIsInBin(id: number, isInBin: boolean): Promise<number> {
     const d = await this.prismaService.$executeRaw(Prisma.sql`
-      WITH RECURSIVE FileStructureHierarchy AS (
+      WITH RECURSIVE AllAncestors AS (
         SELECT id, parent_id
         FROM file_structure
-        WHERE id = ${id}
+        WHERE id = ${id} and is_in_bin = false
 
         UNION ALL
 
         SELECT fs.id, fs.parent_id
         FROM file_structure fs
-          JOIN FileStructureHierarchy fsh ON fs.parent_id = fsh.id
+          JOIN AllAncestors p ON fs.parent_id = p.id
+        WHERE fs.id <> p.id and is_in_bin = false
       )
-        UPDATE file_structure SET is_in_bin = ${isInBin} WHERE id IN (SELECT id FROM FileStructureHierarchy);
+        UPDATE file_structure SET is_in_bin = ${isInBin} WHERE id IN (SELECT id FROM AllAncestors);
     `);
 
     return d;
@@ -177,6 +175,7 @@ export class FileStructureRepository {
       where: {
         id,
         userId,
+        isInBin: false,
       },
       data: {
         isInBin,
@@ -188,6 +187,7 @@ export class FileStructureRepository {
     return this.prismaService.fileStructure.delete({
       where: {
         id,
+        isInBin: false,
       },
     });
   }

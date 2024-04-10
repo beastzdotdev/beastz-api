@@ -492,7 +492,7 @@ export class FileStructureService {
       if (isFile) {
         await this.fileStructureRepository.deleteById(sameNameFileStructure.id);
       } else {
-        await this.fileStructureRepository.recursiveDeleteChildren(sameNameFileStructure.id);
+        await this.fileStructureRepository.recursiveDelete(sameNameFileStructure.id);
       }
 
       const absolutePath = path.join(userRootContentPath, sameNameFileStructure.path);

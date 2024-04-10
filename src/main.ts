@@ -15,6 +15,8 @@ import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
 import { absolutePublicPath, absoluteUserUploadPath } from './modules/file-structure/file-structure.helper';
 
+//TODO - MAIN - remove deletedAt from file structure too much headache
+
 //@ts-expect-error
 BigInt.prototype.toJSON = function () {
   return this.toString();
