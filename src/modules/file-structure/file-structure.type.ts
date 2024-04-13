@@ -1,4 +1,4 @@
-import { FileStructure } from '@prisma/client';
+import { FileStructure, Prisma } from '@prisma/client';
 
 export type CreateFileStructureParams = Omit<FileStructure, 'id' | 'createdAt'>;
 
@@ -33,3 +33,6 @@ export type GetManyByMethodParamsInRepo = {
   isFile?: boolean;
   userId?: number;
 };
+
+export type UpdateFSParams = Omit<Prisma.FileStructureUncheckedUpdateInput, 'id' | 'createdAt'>;
+// export type UpdateFSParams = Omit<Prisma.FileStructureUpdateInput, 'createdAt'>;

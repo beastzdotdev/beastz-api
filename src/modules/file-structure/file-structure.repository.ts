@@ -3,28 +3,45 @@ import { FileStructure, Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
-import { CreateFileStructureParams, GetByMethodParamsInRepo, GetManyByMethodParamsInRepo } from './file-structure.type';
+import {
+  CreateFileStructureParams,
+  GetByMethodParamsInRepo,
+  GetManyByMethodParamsInRepo,
+  UpdateFSParams,
+} from './file-structure.type';
 import { FileStructureFromRaw } from './model/file-structure-from-raw';
-import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 
 @Injectable()
 export class FileStructureRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getById(id: number): Promise<FileStructure | null> {
-    return this.prismaService.fileStructure.findFirst({
-      where: { id, isInBin: false },
+  async getById(id: number, tx?: PrismaTx): Promise<FileStructure | null> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructure.findFirst({
+      where: {
+        id,
+        isInBin: false,
+      },
     });
   }
 
-  async getByIdForUser(id: number, userId: number): Promise<FileStructure | null> {
-    return this.prismaService.fileStructure.findFirst({
-      where: { id, userId, isInBin: false },
+  async getByIdForUser(id: number, userId: number, tx?: PrismaTx): Promise<FileStructure | null> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructure.findFirst({
+      where: {
+        id,
+        userId,
+        isInBin: false,
+      },
     });
   }
 
-  async getTotalFilesSize(userId: number): Promise<number> {
-    const response = await this.prismaService.fileStructure.aggregate({
+  async getTotalFilesSize(userId: number, tx?: PrismaTx): Promise<number> {
+    const db = tx ?? this.prismaService;
+
+    const response = await db.fileStructure.aggregate({
       where: {
         userId,
         isInBin: false,
@@ -37,14 +54,16 @@ export class FileStructureRepository {
     return response._sum.sizeInBytes ?? 0;
   }
 
-  async getBy(params: GetByMethodParamsInRepo): Promise<FileStructure | null> {
+  async getBy(params: GetByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure | null> {
+    const db = tx ?? this.prismaService;
+
     const { depth, isFile, title, userId, path, parentId } = params;
 
     if (!Object.values(params).length) {
       return null;
     }
 
-    return this.prismaService.fileStructure.findFirst({
+    return db.fileStructure.findFirst({
       where: {
         depth,
         isFile,
@@ -57,14 +76,16 @@ export class FileStructureRepository {
     });
   }
 
-  async getManyBy(params: GetManyByMethodParamsInRepo): Promise<FileStructure[]> {
+  async getManyBy(params: GetManyByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure[]> {
+    const db = tx ?? this.prismaService;
+
     const { depth, isFile, title, userId, titleStartsWith, parentId } = params;
 
     if (!Object.values(params).length) {
       return [];
     }
 
-    return this.prismaService.fileStructure.findMany({
+    return db.fileStructure.findMany({
       where: {
         depth,
         isFile,
@@ -76,35 +97,50 @@ export class FileStructureRepository {
     });
   }
 
-  async recursiveSelect(params: {
-    userId: number;
-    parentId?: number | null;
-    depth?: number;
-  }): Promise<FileStructureFromRaw[]> {
-    const { userId, depth, parentId } = params;
+  async recursiveSelect(
+    params: {
+      userId: number;
+      parentId?: number | null;
+      id?: number;
+      depth?: number;
+      inBin?: boolean;
+    },
+    tx?: PrismaTx,
+  ): Promise<FileStructureFromRaw[]> {
+    const db = tx ?? this.prismaService;
+
+    const { id, userId, depth, parentId, inBin } = params;
 
     let rootParentIdCheck: Prisma.Sql = Prisma.empty; // parentId null here means null check in db
 
     // only check for undefined not null
     if (parentId !== undefined) {
       rootParentIdCheck =
-        parentId === null ? Prisma.sql`and parent_id is null` : Prisma.sql`and parent_id = ${parentId}`;
+        parentId === null ? Prisma.sql` and parent_id is null ` : Prisma.sql` and parent_id = ${parentId} `;
     }
 
     let recursiveDepthCheck: Prisma.Sql = Prisma.empty;
 
     // only check for undefined not null
     if (depth !== undefined) {
-      recursiveDepthCheck = Prisma.sql`and fs.depth <= ${depth}`;
+      recursiveDepthCheck = Prisma.sql` and fs.depth <= ${depth} `;
     }
 
-    const d = await this.prismaService.$queryRaw<unknown[]>(Prisma.sql`
+    let idCheck: Prisma.Sql = Prisma.empty;
+
+    // only check for undefined not null
+    if (id !== undefined) {
+      idCheck = Prisma.sql` and fs.id = ${id} `;
+    }
+
+    const d = await db.$queryRaw<unknown[]>(Prisma.sql`
       WITH RECURSIVE AllAncestors AS (
         SELECT *
         FROM file_structure
-        WHERE is_in_bin = false
-        and user_id = ${userId}
+        WHERE user_id = ${userId}
+        ${inBin ? Prisma.sql` and is_in_bin = true ` : Prisma.sql` and is_in_bin = false `}
         ${rootParentIdCheck}
+        ${idCheck}
 
         UNION ALL
 
@@ -112,7 +148,7 @@ export class FileStructureRepository {
         FROM file_structure fs
             JOIN AllAncestors p ON fs.parent_id = p.id
         where fs.id <> p.id
-          and fs.is_in_bin = false
+          ${inBin ? Prisma.sql` and fs.is_in_bin = true ` : Prisma.sql` and fs.is_in_bin = false `}
           and fs.user_id = ${userId}
           ${recursiveDepthCheck}
       )
@@ -125,11 +161,15 @@ export class FileStructureRepository {
   async create(params: CreateFileStructureParams, tx?: PrismaTx): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
 
-    return db.fileStructure.create({ data: params });
+    return db.fileStructure.create({
+      data: params,
+    });
   }
 
-  async recursiveDelete(id: number): Promise<number> {
-    const d = await this.prismaService.$executeRaw(Prisma.sql`
+  async recursiveDelete(id: number, tx?: PrismaTx): Promise<number> {
+    const db = tx ?? this.prismaService;
+
+    const d = await db.$executeRaw(Prisma.sql`
       WITH RECURSIVE AllAncestors AS (
         SELECT id, parent_id 
         FROM file_structure 
@@ -148,8 +188,10 @@ export class FileStructureRepository {
     return d;
   }
 
-  async recursiveUpdateIsInBin(id: number, isInBin: boolean): Promise<number> {
-    const d = await this.prismaService.$executeRaw(Prisma.sql`
+  async recursiveUpdateIsInBin(id: number, isInBin: boolean, tx?: PrismaTx): Promise<number> {
+    const db = tx ?? this.prismaService;
+
+    const d = await db.$executeRaw(Prisma.sql`
       WITH RECURSIVE AllAncestors AS (
         SELECT id, parent_id
         FROM file_structure
@@ -168,26 +210,47 @@ export class FileStructureRepository {
     return d;
   }
 
-  async updateById(id: number, dto: UpdateFolderStructureDto, userId: number): Promise<FileStructure | null> {
-    const { isInBin } = dto;
+  async updateById(id: number, data: UpdateFSParams, userId: number, tx?: PrismaTx): Promise<FileStructure> {
+    const db = tx ?? this.prismaService;
 
-    return this.prismaService.fileStructure.update({
+    return db.fileStructure.update({
       where: {
         id,
         userId,
         isInBin: false,
       },
-      data: {
-        isInBin,
+      data,
+    });
+  }
+
+  async deleteById(id: number, tx?: PrismaTx): Promise<FileStructure> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructure.delete({
+      where: {
+        id,
+        isInBin: false,
       },
     });
   }
 
-  async deleteById(id: number): Promise<FileStructure> {
-    return this.prismaService.fileStructure.delete({
+  async getByPathUnderDir(
+    parentId: number | null,
+    newPath: string,
+    userId: number,
+    tx?: PrismaTx,
+  ): Promise<{ id: number } | null> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructure.findFirst({
+      select: {
+        id: true,
+      },
       where: {
-        id,
+        parentId,
+        path: newPath,
         isInBin: false,
+        userId,
       },
     });
   }

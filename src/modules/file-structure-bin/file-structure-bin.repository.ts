@@ -5,6 +5,7 @@ import { CreateFileStructureBinParams } from './file-structure-bin.type';
 import { AuthPayloadType } from '../../model/auth.types';
 import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto';
 import { Pagination } from '../../model/types';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class FileStructureBinRepository {
@@ -44,7 +45,19 @@ export class FileStructureBinRepository {
     };
   }
 
+  async getById(id: number, userId: number, tx: PrismaTx): Promise<FileStructureBin | null> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructureBin.findFirst({ where: { id, userId } });
+  }
+
   async create(params: CreateFileStructureBinParams): Promise<FileStructureBin> {
     return this.prismaService.fileStructureBin.create({ data: params });
+  }
+
+  async deleteById(id: number, userId: number, tx: PrismaTx): Promise<FileStructureBin> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructureBin.delete({ where: { id, userId } });
   }
 }

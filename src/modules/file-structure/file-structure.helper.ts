@@ -1,3 +1,5 @@
+import sanitizeHtml from 'sanitize-html';
+import sanitizeFileName from 'sanitize-filename';
 import path from 'path';
 import { FileMimeType, FileStructure } from '@prisma/client';
 import { constants } from '../../common/constants';
@@ -98,6 +100,30 @@ export const constFileStructureNameDuplicateRegex = (t: string): RegExp =>
  */
 export const extractNumber = (title: string): number => {
   return parseInt(fileStructureNameDuplicateNumberCatcherRegex.exec(title)?.at(1) || '0');
+};
+
+/**
+ * @description
+ * Remove all unecessary characters from the dir relative path
+ *
+ * @example
+ * ```ts
+ * sanitizeRelativePathForFolder('/something/something/'); // -> /something/something/
+ * sanitizeRelativePathForFolder('/something..//x'); // -> /something/x
+ * sanitizeRelativePathForFolder('/some//'); // -> /some/
+ * sanitizeRelativePathForFolder('/asom/.'); // -> /asom/
+ * sanitizeRelativePathForFolder('/soem/some.x'); // -> /soem/somex
+ * sanitizeRelativePathForFolder('/soem/some.x/file'); // -> /soem/somex/file
+ * sanitizeRelativePathForFolder('/soem/some.x/file/subfile'); // -> /soem/somex/file/subfile
+ * ```
+ */
+export const sanitizeRelativePathForFolder = (path: string) => {
+  return path
+    .split('/')
+    .map(e => sanitizeHtml(sanitizeFileName(e)))
+    .join('/')
+    .replace('.', '')
+    .replace(/\/+/g, '/'); // replace all / which are more than 1;
 };
 
 export const makeTreeSingle = (data: FileStructureFromRaw[]): FileStructureFromRaw | null => {

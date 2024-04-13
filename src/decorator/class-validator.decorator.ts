@@ -1,11 +1,12 @@
 import type { ValidationOptions, ValidationArguments } from 'class-validator';
 import { registerDecorator } from 'class-validator';
 import { constants } from '../common/constants';
+import { sanitizeRelativePathForFolder } from '../modules/file-structure/file-structure.helper';
 
 export const IsExactBoolean = (validationOptions?: ValidationOptions) => {
   return function (object: object, propertyName: string | symbol) {
     registerDecorator({
-      name: 'IsExactBoolean',
+      name: IsExactBoolean.name,
       target: object.constructor,
       propertyName: propertyName.toString(),
       options: validationOptions,
@@ -26,7 +27,7 @@ export const IsExactBoolean = (validationOptions?: ValidationOptions) => {
 export const IsEmailCustom = (validationOptions?: ValidationOptions) => {
   return function (object: object, propertyName: string | symbol) {
     registerDecorator({
-      name: 'IsEmailCustom',
+      name: IsEmailCustom.name,
       target: object.constructor,
       propertyName: propertyName.toString(),
       constraints: [],
@@ -37,6 +38,26 @@ export const IsEmailCustom = (validationOptions?: ValidationOptions) => {
       validator: {
         validate(value: unknown) {
           return typeof value === 'string' && constants.EMAIL_REGEX.test(value);
+        },
+      },
+    });
+  };
+};
+
+export const IsRelativeDirPath = (validationOptions?: ValidationOptions) => {
+  return function (object: object, propertyName: string | symbol) {
+    registerDecorator({
+      name: IsRelativeDirPath.name,
+      target: object.constructor,
+      propertyName: propertyName.toString(),
+      constraints: [],
+      options: {
+        message: 'Invalid dir relative path',
+        ...validationOptions,
+      },
+      validator: {
+        validate(value: string) {
+          return value === sanitizeRelativePathForFolder(value);
         },
       },
     });

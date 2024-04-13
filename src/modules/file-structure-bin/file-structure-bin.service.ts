@@ -6,10 +6,21 @@ import { ExceptionMessageCode } from '../../model/enum/exception-message-code.en
 import { AuthPayloadType } from '../../model/auth.types';
 import { Pagination } from '../../model/types';
 import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class FileStructureBinService {
   constructor(private readonly fileStructureBinRepository: FileStructureBinRepository) {}
+
+  async getById(id: number, userId: number, tx: PrismaTx): Promise<FileStructureBin> {
+    const response = await this.fileStructureBinRepository.getById(id, userId, tx);
+
+    if (!response) {
+      throw new Error(ExceptionMessageCode.FILE_STRUCTURE_BIN_NOT_FOUND);
+    }
+
+    return response;
+  }
 
   async getAll(authPayload: AuthPayloadType, queryParams: GetFromBinQueryDto): Promise<Pagination<FileStructureBin>> {
     return this.fileStructureBinRepository.getAll(authPayload, queryParams);
@@ -23,5 +34,9 @@ export class FileStructureBinService {
     }
 
     return fileStructureBin;
+  }
+
+  async deleteById(id: number, userId: number, tx: PrismaTx): Promise<FileStructureBin> {
+    return this.fileStructureBinRepository.deleteById(id, userId, tx);
   }
 }

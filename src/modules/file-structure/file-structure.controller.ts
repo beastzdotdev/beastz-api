@@ -17,6 +17,7 @@ import { GetFileStructureContentQueryDto } from './dto/get-file-structure-conten
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 import { GetGeneralInfoResponseDto } from './dto/response/get-general-info-response.dto';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
+import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -94,5 +95,14 @@ export class FileStructureController {
   @Patch('move-to-bin/:id')
   async moveToBin(@AuthPayload() authPayload: AuthPayloadType, @Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.fileStructureService.moveToBin(id, authPayload);
+  }
+
+  @Patch('restore-from-bin/:id')
+  async restoreFromBin(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RestoreFromBinDto,
+  ): Promise<void> {
+    await this.fileStructureService.restoreFromBin(id, dto, authPayload);
   }
 }

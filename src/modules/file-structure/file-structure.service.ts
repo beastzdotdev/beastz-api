@@ -36,14 +36,20 @@ import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-stat
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
-import { fsCustom } from '../../common/helper';
+import { batchPromises, fsCustom } from '../../common/helper';
 import { FileStructureBinService } from '../file-structure-bin/file-structure-bin.service';
+import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
+import { PrismaService } from '../@global/prisma/prisma.service';
+import { transaction } from '../../common/transaction';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class FileStructureService {
   private readonly logger = new Logger(FileStructureService.name);
 
   constructor(
+    private readonly prismaService: PrismaService,
+
     private readonly fileStructureRepository: FileStructureRepository,
     private readonly fileStructureBinService: FileStructureBinService,
   ) {}
@@ -403,15 +409,6 @@ export class FileStructureService {
     const sourceContentPath = path.join(getAbsUserRootContentPath(authPayload.user.uuid), fs.path);
     const destinationBinPath = path.join(getAbsUserBinPath(authPayload.user.uuid), nameWithExt);
 
-    console.log({
-      //
-      nameUUID,
-      nameWithExt,
-      relativePath,
-      sourceContentPath,
-      destinationBinPath,
-    });
-
     // if not exists create user uuid folder as well if not exists
     const folderCreationSuccess = await fsCustom.checkDirOrCreate(destinationBinPath, {
       isFile: fs.isFile,
@@ -434,9 +431,108 @@ export class FileStructureService {
       nameUUID,
     });
 
-    console.log(response);
-
     return response;
+  }
+
+  async restoreFromBin(id: number, dto: RestoreFromBinDto, authPayload: AuthPayloadType) {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const { newParentId } = dto;
+
+      const [fs, fsBin, newParentFs] = await Promise.all([
+        this.fileStructureRepository.getByIdForUser(id, authPayload.user.id, tx),
+        this.fileStructureBinService.getById(id, authPayload.user.id, tx),
+        newParentId ? this.fileStructureRepository.getByIdForUser(newParentId, authPayload.user.id, tx) : null,
+      ]);
+
+      if (!fs) {
+        throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+      }
+
+      if (!fs.isInBin) {
+        throw new BadRequestException('File is not in bin');
+      }
+
+      if (newParentId !== null) {
+        if (!newParentFs) {
+          throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+        }
+
+        if (newParentFs.isInBin) {
+          throw new BadRequestException('File is already in bin'); // should not happend from frontend
+        }
+
+        if (newParentFs.isFile) {
+          throw new BadRequestException('Parent should be folder');
+        }
+      }
+
+      // here we have verified that fs is in bin and exists as well parent fs exists and not in bin and is not file
+      // and fs in bin entity exists
+      const newPath = path.join(...[newParentFs?.path, '/', fs.title, fs.fileExstensionRaw].filter(Boolean));
+
+      // under same parent same folder or file name is disqualified no need to add whether fs is file or not because of path
+      const sameFs = await this.fileStructureRepository.getByPathUnderDir(
+        newParentId,
+        newPath,
+        authPayload.user.id,
+        tx,
+      );
+
+      if (sameFs) {
+        throw new BadRequestException(ExceptionMessageCode.FS_SAME_NAME);
+      }
+
+      // delete from fs bin
+      await this.fileStructureBinService.deleteById(fsBin.id, authPayload.user.id, tx);
+
+      const updatedFs = await this.fileStructureRepository.updateById(
+        fs.id,
+        {
+          depth: newParentFs ? newParentFs.depth + 1 : 0,
+          isInBin: false,
+          path: newPath,
+          rootParentId: newParentFs ? newParentFs.rootParentId : null,
+          parentId: newParentFs ? newParentFs.id : null,
+        },
+        authPayload.user.id,
+        tx,
+      );
+
+      if (!fs.isFile) {
+        const fsChildren = await this.fileStructureRepository.recursiveSelect(
+          {
+            userId: authPayload.user.id,
+            id: fs.id,
+            inBin: false,
+          },
+          tx,
+        );
+
+        const depthDifference = updatedFs.depth - fs.depth; // can be both positive and negative
+
+        const promises = fsChildren.map(child => {
+          return this.fileStructureRepository.updateById(
+            child.id,
+            {
+              depth: child.depth + depthDifference,
+              isInBin: false,
+              rootParentId: newParentFs ? newParentFs.rootParentId : fs.id,
+              path: child.path.replace(fs.path, newPath), // replace old parent path with new path
+            },
+            authPayload.user.id,
+            tx,
+          );
+        });
+
+        await batchPromises(promises, 15);
+      }
+
+      // move from user-bin back to new user-content path
+      await fsCustom.move(
+        path.join(getAbsUserBinPath(authPayload.user.uuid), fsBin.path), // source path,
+        path.join(getAbsUserRootContentPath(authPayload.user.uuid), newPath), // source path
+      );
+    });
   }
 
   private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }) {
