@@ -22,8 +22,6 @@ export class FileStructureBinRepository {
       },
     };
 
-    console.log({ where, take: pageSize, skip: (page - 1) * pageSize });
-
     const [data, total] = await Promise.all([
       this.prismaService.fileStructureBin.findMany({
         relationLoadStrategy: 'join',
@@ -49,6 +47,12 @@ export class FileStructureBinRepository {
     const db = tx ?? this.prismaService;
 
     return db.fileStructureBin.findFirst({ where: { id, userId } });
+  }
+
+  async getByFsId(fileStructureId: number, userId: number, tx: PrismaTx): Promise<FileStructureBin | null> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructureBin.findFirst({ where: { fileStructureId, userId } });
   }
 
   async create(params: CreateFileStructureBinParams): Promise<FileStructureBin> {

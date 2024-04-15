@@ -19,8 +19,19 @@ import { FileStructureRepository } from './file-structure.repository';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-
 import { IncreaseFileNameNumberMethodParams, ReplaceFileMethodParams } from './file-structure.type';
+import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
+import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
+import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
+import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
+import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
+import { batchPromises, batchPromisesAndResponse, fsCustom } from '../../common/helper';
+import { FileStructureBinService } from '../file-structure-bin/file-structure-bin.service';
+import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
+import { PrismaService } from '../@global/prisma/prisma.service';
+import { transaction } from '../../common/transaction';
+import { PrismaTx } from '../@global/prisma/prisma.type';
+import { FileStructureRawQueryRepository } from './file-structure-raw-query.repositor';
 import {
   constFileStructureNameDuplicateRegex,
   extractNumber,
@@ -31,17 +42,6 @@ import {
   getAbsUserBinPath,
   makeTreeMultiple,
 } from './file-structure.helper';
-import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
-import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
-import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
-import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
-import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
-import { batchPromises, fsCustom } from '../../common/helper';
-import { FileStructureBinService } from '../file-structure-bin/file-structure-bin.service';
-import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class FileStructureService {
@@ -50,17 +50,20 @@ export class FileStructureService {
   constructor(
     private readonly prismaService: PrismaService,
 
-    private readonly fileStructureRepository: FileStructureRepository,
+    private readonly fsRepository: FileStructureRepository,
+    private readonly fsRawQueryRepository: FileStructureRawQueryRepository,
     private readonly fileStructureBinService: FileStructureBinService,
   ) {}
 
   async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
-    const { parentId, focusParentId, rootParentId } = queryParams;
+    const { parentId, focusParentId, rootParentId, isFile } = queryParams;
 
-    let responseDataInDepth2 = await this.fileStructureRepository.recursiveSelect({
+    let responseDataInDepth2 = await this.fsRawQueryRepository.recursiveSelect({
       userId: authPayload.user.id,
       depth: 2,
       parentId: parentId ?? null,
+      isFile,
+      inBin: false,
     });
     responseDataInDepth2 = makeTreeMultiple(responseDataInDepth2);
 
@@ -75,9 +78,11 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      const data = await this.fileStructureRepository.recursiveSelect({
+      //TODO on focus parent id all parents come but not children of focusParentId.children
+      const data = await this.fsRawQueryRepository.recursiveSelect({
         userId: authPayload.user.id,
         parentId: parentParentId,
+        inBin: false,
       });
 
       const root = data.find(e => e.parentId === null);
@@ -100,7 +105,7 @@ export class FileStructureService {
   async getGeneralInfo(authPayload: AuthPayloadType, queryParams: GetGeneralInfoQueryDto) {
     const {} = queryParams; // for future use
 
-    const totalSize = await this.fileStructureRepository.getTotalFilesSize(authPayload.user.id);
+    const totalSize = await this.fsRepository.getTotalFilesSize(authPayload.user.id);
 
     return {
       totalSize,
@@ -120,7 +125,7 @@ export class FileStructureService {
         throw new BadRequestException('File name invalid');
       }
 
-      const fileStructure = await this.fileStructureRepository.getBy({
+      const fileStructure = await this.fsRepository.getBy({
         isFile,
         title: path.parse(title).name,
         parentId: parentId ?? null,
@@ -137,7 +142,7 @@ export class FileStructureService {
   }
 
   async getById(authPayload: AuthPayloadType, id: number) {
-    const fileStructure = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+    const fileStructure = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
 
     if (!fileStructure) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
@@ -243,7 +248,7 @@ export class FileStructureService {
       });
     }
 
-    return this.fileStructureRepository.create({
+    return this.fsRepository.create({
       title,
       color: null,
       userId: authPayload.user.id,
@@ -346,7 +351,7 @@ export class FileStructureService {
       }
     }
 
-    return this.fileStructureRepository.create({
+    return this.fsRepository.create({
       title,
       color: null,
       sizeInBytes: null,
@@ -373,13 +378,13 @@ export class FileStructureService {
   }
 
   async update(id: number, dto: UpdateFolderStructureDto, authPayload: AuthPayloadType): Promise<FileStructure> {
-    const fileStructure = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+    const fileStructure = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
 
     if (!fileStructure) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
     }
 
-    const response = await this.fileStructureRepository.updateById(id, dto, authPayload.user.id);
+    const response = await this.fsRepository.updateByIdAndReturn(id, dto, { userId: authPayload.user.id });
 
     if (!response) {
       throw new NotFoundException(ExceptionMessageCode.INTERNAL_ERROR);
@@ -389,7 +394,7 @@ export class FileStructureService {
   }
 
   async moveToBin(id: number, authPayload: AuthPayloadType): Promise<FileStructureBin> {
-    const fs = await this.fileStructureRepository.getByIdForUser(id, authPayload.user.id);
+    const fs = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
 
     if (!fs) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
@@ -400,7 +405,7 @@ export class FileStructureService {
     }
 
     // update all descendants is_in_bin
-    await this.fileStructureRepository.recursiveUpdateIsInBin(id, true);
+    await this.fsRawQueryRepository.recursiveUpdateIsInBin(id, true);
 
     const nameUUID = uuid();
     const nameWithExt = nameUUID + (fs.fileExstensionRaw ?? '');
@@ -439,9 +444,9 @@ export class FileStructureService {
       const { newParentId } = dto;
 
       const [fs, fsBin, newParentFs] = await Promise.all([
-        this.fileStructureRepository.getByIdForUser(id, authPayload.user.id, tx),
-        this.fileStructureBinService.getById(id, authPayload.user.id, tx),
-        newParentId ? this.fileStructureRepository.getByIdForUser(newParentId, authPayload.user.id, tx) : null,
+        this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id, isInBin: true }, tx),
+        this.fileStructureBinService.getByFsId(id, authPayload.user.id, tx),
+        newParentId ? this.fsRepository.getByIdForUser(newParentId, { userId: authPayload.user.id }, tx) : null,
       ]);
 
       if (!fs) {
@@ -468,15 +473,10 @@ export class FileStructureService {
 
       // here we have verified that fs is in bin and exists as well parent fs exists and not in bin and is not file
       // and fs in bin entity exists
-      const newPath = path.join(...[newParentFs?.path, '/', fs.title, fs.fileExstensionRaw].filter(Boolean));
+      const newPath = path.join(...[newParentFs?.path, '/', fs.title + (fs.fileExstensionRaw ?? '')].filter(Boolean));
 
       // under same parent same folder or file name is disqualified no need to add whether fs is file or not because of path
-      const sameFs = await this.fileStructureRepository.getByPathUnderDir(
-        newParentId,
-        newPath,
-        authPayload.user.id,
-        tx,
-      );
+      const sameFs = await this.fsRepository.getByPathUnderDir(newParentId, newPath, authPayload.user.id, tx);
 
       if (sameFs) {
         throw new BadRequestException(ExceptionMessageCode.FS_SAME_NAME);
@@ -485,7 +485,7 @@ export class FileStructureService {
       // delete from fs bin
       await this.fileStructureBinService.deleteById(fsBin.id, authPayload.user.id, tx);
 
-      const updatedFs = await this.fileStructureRepository.updateById(
+      const updatedFs = await this.fsRepository.updateByIdAndReturn(
         fs.id,
         {
           depth: newParentFs ? newParentFs.depth + 1 : 0,
@@ -494,16 +494,22 @@ export class FileStructureService {
           rootParentId: newParentFs ? newParentFs.rootParentId : null,
           parentId: newParentFs ? newParentFs.id : null,
         },
-        authPayload.user.id,
+        {
+          userId: authPayload.user.id,
+          isInBin: true,
+        },
         tx,
       );
 
       if (!fs.isFile) {
-        const fsChildren = await this.fileStructureRepository.recursiveSelect(
+        // root parent is no longer in bin in this transaction session but not children
+        const fsChildren = await this.fsRawQueryRepository.recursiveSelect(
           {
             userId: authPayload.user.id,
             id: fs.id,
-            inBin: false,
+            inBinRootOnly: false,
+            inBinChildrenOnly: true,
+            notReturnRootItemId: updatedFs.id,
           },
           tx,
         );
@@ -511,15 +517,27 @@ export class FileStructureService {
         const depthDifference = updatedFs.depth - fs.depth; // can be both positive and negative
 
         const promises = fsChildren.map(child => {
-          return this.fileStructureRepository.updateById(
+          const f = newParentFs?.rootParentId ? newParentFs.rootParentId : newParentFs?.id; // null is never for children
+          const finalRootParentId = newParentFs ? f : fs.id;
+
+          // console.log(`depth ${child.depth} -> ${child.depth + depthDifference}`);
+          // console.log(`isInBin ${child.isInBin} -> ${false}`);
+          // console.log(`rootParentId ${child.rootParentId} -> ${finalRootParentId}`);
+          // console.log(`path ${child.path} -> ${child.path.replace(fs.path, newPath)}`);
+          // console.log('='.repeat(20));
+
+          return this.fsRepository.updateById(
             child.id,
             {
               depth: child.depth + depthDifference,
               isInBin: false,
-              rootParentId: newParentFs ? newParentFs.rootParentId : fs.id,
+              rootParentId: finalRootParentId,
               path: child.path.replace(fs.path, newPath), // replace old parent path with new path
             },
-            authPayload.user.id,
+            {
+              userId: authPayload.user.id,
+              isInBin: true,
+            },
             tx,
           );
         });
@@ -548,8 +566,8 @@ export class FileStructureService {
     // if this file has parentId then check if folder exists with this id (refering to parentId)
     if (parentId && rootParentId) {
       [parent, rootParent] = await Promise.all([
-        this.fileStructureRepository.getById(parentId),
-        this.fileStructureRepository.getById(rootParentId),
+        this.fsRepository.getById(parentId),
+        this.fsRepository.getById(rootParentId),
       ]);
 
       if (!parent) {
@@ -578,7 +596,7 @@ export class FileStructureService {
   private async replaceFileStructure(params: ReplaceFileMethodParams): Promise<void> {
     const { path: fileOrFolderPath, userId, userRootContentPath, isFile } = params;
 
-    const sameNameFileStructure = await this.fileStructureRepository.getBy({
+    const sameNameFileStructure = await this.fsRepository.getBy({
       isFile,
       userId,
       path: fileOrFolderPath,
@@ -586,9 +604,9 @@ export class FileStructureService {
 
     if (sameNameFileStructure) {
       if (isFile) {
-        await this.fileStructureRepository.deleteById(sameNameFileStructure.id);
+        await this.fsRepository.deleteById(sameNameFileStructure.id);
       } else {
-        await this.fileStructureRepository.recursiveDelete(sameNameFileStructure.id);
+        await this.fsRawQueryRepository.recursiveDelete(sameNameFileStructure.id);
       }
 
       const absolutePath = path.join(userRootContentPath, sameNameFileStructure.path);
@@ -608,7 +626,7 @@ export class FileStructureService {
   private async increaseFileNameNumber(params: IncreaseFileNameNumberMethodParams): Promise<string> {
     const { title, userId, parent, isFile } = params;
 
-    const sameNameFileStructure = await this.fileStructureRepository.getBy({
+    const sameNameFileStructure = await this.fsRepository.getBy({
       parentId: parent?.id,
       isFile,
       userId,
@@ -625,7 +643,7 @@ export class FileStructureService {
       ? title.split(' ').slice(0, -1).join(' ')
       : title;
 
-    const sameNameFileStructures = await this.fileStructureRepository.getManyBy({
+    const sameNameFileStructures = await this.fsRepository.getManyBy({
       parentId: parent?.id,
       isFile,
       userId,
@@ -651,7 +669,7 @@ export class FileStructureService {
   }
 
   private async checkStorageLimit(userId: number, extraSizeInBytes: number): Promise<void> {
-    const totalFileSizeBeforeModify = await this.fileStructureRepository.getTotalFilesSize(userId);
+    const totalFileSizeBeforeModify = await this.fsRepository.getTotalFilesSize(userId);
 
     if (totalFileSizeBeforeModify + extraSizeInBytes > constants.MAX_STORAGE_PER_USER_IN_BYTES) {
       throw new ForbiddenException('Storage limit exceeds limit');

@@ -1,5 +1,5 @@
-import { IsNumber, IsOptional } from 'class-validator';
-import { TransformNumber } from '../../../decorator/class-transformer.decorator';
+import { IsBoolean, IsNumber, IsOptional } from 'class-validator';
+import { TransformBoolean, TransformNumber } from '../../../decorator/class-transformer.decorator';
 
 /**
  * @description Here focus parent id focuses deeply nested file structure and
@@ -21,4 +21,9 @@ export class GetFileStructureContentQueryDto {
   @TransformNumber()
   @IsNumber()
   focusParentId?: number;
+
+  @IsOptional()
+  @TransformBoolean()
+  @IsBoolean()
+  isFile?: boolean;
 }

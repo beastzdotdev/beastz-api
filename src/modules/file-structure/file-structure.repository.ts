@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FileStructure, Prisma } from '@prisma/client';
-import { plainToInstance } from 'class-transformer';
+import { FileStructure } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import {
@@ -9,7 +8,6 @@ import {
   GetManyByMethodParamsInRepo,
   UpdateFSParams,
 } from './file-structure.type';
-import { FileStructureFromRaw } from './model/file-structure-from-raw';
 
 @Injectable()
 export class FileStructureRepository {
@@ -26,14 +24,19 @@ export class FileStructureRepository {
     });
   }
 
-  async getByIdForUser(id: number, userId: number, tx?: PrismaTx): Promise<FileStructure | null> {
+  async getByIdForUser(
+    id: number,
+    params: { userId: number; isInBin?: boolean },
+    tx?: PrismaTx,
+  ): Promise<FileStructure | null> {
     const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
 
     return db.fileStructure.findFirst({
       where: {
         id,
         userId,
-        isInBin: false,
+        isInBin: isInBin ?? false,
       },
     });
   }
@@ -97,67 +100,6 @@ export class FileStructureRepository {
     });
   }
 
-  async recursiveSelect(
-    params: {
-      userId: number;
-      parentId?: number | null;
-      id?: number;
-      depth?: number;
-      inBin?: boolean;
-    },
-    tx?: PrismaTx,
-  ): Promise<FileStructureFromRaw[]> {
-    const db = tx ?? this.prismaService;
-
-    const { id, userId, depth, parentId, inBin } = params;
-
-    let rootParentIdCheck: Prisma.Sql = Prisma.empty; // parentId null here means null check in db
-
-    // only check for undefined not null
-    if (parentId !== undefined) {
-      rootParentIdCheck =
-        parentId === null ? Prisma.sql` and parent_id is null ` : Prisma.sql` and parent_id = ${parentId} `;
-    }
-
-    let recursiveDepthCheck: Prisma.Sql = Prisma.empty;
-
-    // only check for undefined not null
-    if (depth !== undefined) {
-      recursiveDepthCheck = Prisma.sql` and fs.depth <= ${depth} `;
-    }
-
-    let idCheck: Prisma.Sql = Prisma.empty;
-
-    // only check for undefined not null
-    if (id !== undefined) {
-      idCheck = Prisma.sql` and fs.id = ${id} `;
-    }
-
-    const d = await db.$queryRaw<unknown[]>(Prisma.sql`
-      WITH RECURSIVE AllAncestors AS (
-        SELECT *
-        FROM file_structure
-        WHERE user_id = ${userId}
-        ${inBin ? Prisma.sql` and is_in_bin = true ` : Prisma.sql` and is_in_bin = false `}
-        ${rootParentIdCheck}
-        ${idCheck}
-
-        UNION ALL
-
-        SELECT fs.*
-        FROM file_structure fs
-            JOIN AllAncestors p ON fs.parent_id = p.id
-        where fs.id <> p.id
-          ${inBin ? Prisma.sql` and fs.is_in_bin = true ` : Prisma.sql` and fs.is_in_bin = false `}
-          and fs.user_id = ${userId}
-          ${recursiveDepthCheck}
-      )
-      SELECT distinct * FROM AllAncestors;
-    `);
-
-    return plainToInstance(FileStructureFromRaw, d, { exposeDefaultValues: true });
-  }
-
   async create(params: CreateFileStructureParams, tx?: PrismaTx): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
 
@@ -166,58 +108,39 @@ export class FileStructureRepository {
     });
   }
 
-  async recursiveDelete(id: number, tx?: PrismaTx): Promise<number> {
+  async updateById(
+    id: number,
+    data: UpdateFSParams,
+    params: { userId: number; isInBin?: boolean },
+    tx?: PrismaTx,
+  ): Promise<void> {
     const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
 
-    const d = await db.$executeRaw(Prisma.sql`
-      WITH RECURSIVE AllAncestors AS (
-        SELECT id, parent_id 
-        FROM file_structure 
-        WHERE id = ${id} and is_in_bin = false
-    
-        UNION ALL
-    
-        SELECT fs.id, fs.parent_id 
-        FROM file_structure fs 
-          JOIN AllAncestors p ON fs.parent_id = p.id
-        WHERE fs.id <> p.id and is_in_bin = false
-      )
-        DELETE FROM file_structure WHERE id IN (SELECT id FROM AllAncestors);
-    `);
-
-    return d;
+    await db.fileStructure.updateMany({
+      where: {
+        id,
+        userId,
+        isInBin: isInBin ?? false,
+      },
+      data,
+    });
   }
 
-  async recursiveUpdateIsInBin(id: number, isInBin: boolean, tx?: PrismaTx): Promise<number> {
+  async updateByIdAndReturn(
+    id: number,
+    data: UpdateFSParams,
+    params: { userId: number; isInBin?: boolean },
+    tx?: PrismaTx,
+  ): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
-
-    const d = await db.$executeRaw(Prisma.sql`
-      WITH RECURSIVE AllAncestors AS (
-        SELECT id, parent_id
-        FROM file_structure
-        WHERE id = ${id} and is_in_bin = false
-
-        UNION ALL
-
-        SELECT fs.id, fs.parent_id
-        FROM file_structure fs
-          JOIN AllAncestors p ON fs.parent_id = p.id
-        WHERE fs.id <> p.id and is_in_bin = false
-      )
-        UPDATE file_structure SET is_in_bin = ${isInBin} WHERE id IN (SELECT id FROM AllAncestors);
-    `);
-
-    return d;
-  }
-
-  async updateById(id: number, data: UpdateFSParams, userId: number, tx?: PrismaTx): Promise<FileStructure> {
-    const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
 
     return db.fileStructure.update({
       where: {
         id,
         userId,
-        isInBin: false,
+        isInBin: isInBin ?? false,
       },
       data,
     });

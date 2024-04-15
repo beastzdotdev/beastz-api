@@ -1,3 +1,6 @@
+https://docs.nestjs.com/recipes/swc
+
+
 TODO method validateParentRootParentStructure
   this method can be optimized by only checking existence or adding flags instead of fetching all
 

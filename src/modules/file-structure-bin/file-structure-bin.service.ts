@@ -22,6 +22,16 @@ export class FileStructureBinService {
     return response;
   }
 
+  async getByFsId(fileStructureId: number, userId: number, tx: PrismaTx): Promise<FileStructureBin> {
+    const response = await this.fileStructureBinRepository.getByFsId(fileStructureId, userId, tx);
+
+    if (!response) {
+      throw new Error(ExceptionMessageCode.FILE_STRUCTURE_BIN_NOT_FOUND);
+    }
+
+    return response;
+  }
+
   async getAll(authPayload: AuthPayloadType, queryParams: GetFromBinQueryDto): Promise<Pagination<FileStructureBin>> {
     return this.fileStructureBinRepository.getAll(authPayload, queryParams);
   }

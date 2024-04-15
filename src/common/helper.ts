@@ -184,15 +184,31 @@ export const isMulterFile = (value: unknown): value is Express.Multer.File => {
   );
 };
 
-export const batchPromises = async <T>(promises: Promise<T>[], batchSize: number): Promise<void> => {
+export const batchPromises = async <T>(promises: Promise<T>[], batchSize: number) => {
   if (promises.length <= batchSize) {
     await Promise.all(promises);
+    return;
   }
 
   for (let i = 0; i < promises.length; i += batchSize) {
     const batch = promises.slice(i, i + batchSize);
     await Promise.all(batch);
   }
+};
+
+export const batchPromisesAndResponse = async <T>(promises: Promise<T>[], batchSize: number) => {
+  const response: Awaited<T>[] = [];
+
+  if (promises.length <= batchSize) {
+    response.push(...(await Promise.all(promises)));
+    return response;
+  }
+
+  for (let i = 0; i < promises.length; i += batchSize) {
+    response.push(...(await Promise.all(promises.slice(i, i + batchSize))));
+  }
+
+  return response;
 };
 
 //===================================================
