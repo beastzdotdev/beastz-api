@@ -17,9 +17,20 @@ export class AdminController {
   }
 
   @NoEmailVerifyValidate()
-  @Delete('user/:id')
-  async deleteUserInfo(@Param('id', ParseIntPipe) id: number) {
-    const affected = await this.adminService.deleteUserInfo(id);
+  @Delete('user/:userId')
+  async deleteUserInfo(@Param('userId', ParseIntPipe) userId: number) {
+    const affected = await this.adminService.deleteUserInfo(userId);
+
+    return {
+      msg: 'success',
+      affected,
+    };
+  }
+
+  @NoEmailVerifyValidate()
+  @Delete('user/:userId/fs')
+  async deleteUserFsInfo(@Param('userId', ParseIntPipe) userId: number) {
+    const affected = await this.adminService.deleteUserFsInfo(userId);
 
     return {
       msg: 'success',

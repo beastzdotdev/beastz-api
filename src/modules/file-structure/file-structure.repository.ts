@@ -41,13 +41,14 @@ export class FileStructureRepository {
     });
   }
 
-  async getTotalFilesSize(userId: number, tx?: PrismaTx): Promise<number> {
+  async getTotalFilesSize(userId: number, params: { isInBin?: boolean }, tx?: PrismaTx): Promise<number> {
     const db = tx ?? this.prismaService;
+    const { isInBin } = params;
 
     const response = await db.fileStructure.aggregate({
       where: {
         userId,
-        isInBin: false,
+        isInBin,
       },
       _sum: {
         sizeInBytes: true,

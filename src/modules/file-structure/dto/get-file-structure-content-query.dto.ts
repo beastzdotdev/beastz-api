@@ -15,12 +15,7 @@ export class GetFileStructureContentQueryDto {
   @IsOptional()
   @TransformNumber()
   @IsNumber()
-  rootParentId?: number;
-
-  @IsOptional()
-  @TransformNumber()
-  @IsNumber()
-  focusParentId?: number;
+  focusRootParentId?: number;
 
   @IsOptional()
   @TransformBoolean()

@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../@global/prisma/prisma.service';
+import { getAbsUserBinPath, getAbsUserRootContentPath } from '../file-structure/file-structure.helper';
+import { fsCustom } from '../../common/helper';
 
 @Injectable()
 export class AdminService {
@@ -31,6 +33,35 @@ export class AdminService {
 
       // last
       await tx.user.deleteMany({ where: { id: userId } });
+    });
+  }
+
+  async deleteUserFsInfo(userId: number) {
+    return this.prismaService.$transaction(async tx => {
+      const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+
+      // turn this up code in promise all
+      const [allBinFs, allFs] = await Promise.all([
+        tx.fileStructureBin.findMany({ where: { userId } }),
+        tx.fileStructure.findMany({ where: { userId } }),
+      ]);
+
+      const allBinFsIds = allBinFs.map(e => e.id);
+      const allFsIds = allFs.map(e => e.id);
+
+      await tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } });
+
+      // must be after
+      await tx.fileStructure.deleteMany({ where: { id: { in: allFsIds } } });
+
+      const userRootContentPath = getAbsUserRootContentPath(user.uuid);
+      const userRootBinPath = getAbsUserBinPath(user.uuid);
+
+      await Promise.all([
+        //
+        fsCustom.delete(userRootContentPath),
+        fsCustom.delete(userRootBinPath),
+      ]);
     });
   }
 

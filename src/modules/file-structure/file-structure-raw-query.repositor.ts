@@ -22,13 +22,24 @@ export class FileStructureRawQueryRepository {
       inBinRootOnly?: boolean;
       inBinChildrenOnly?: boolean;
       notReturnRootItemId?: number;
+      notIncludeRootId?: number;
     },
     tx?: PrismaTx,
   ): Promise<FileStructureFromRaw[]> {
     const db = tx ?? this.prismaService;
 
-    const { id, userId, depth, parentId, inBin, isFile, inBinChildrenOnly, inBinRootOnly, notReturnRootItemId } =
-      params;
+    const {
+      id,
+      userId,
+      depth,
+      parentId,
+      inBin,
+      isFile,
+      inBinChildrenOnly,
+      inBinRootOnly,
+      notReturnRootItemId,
+      notIncludeRootId,
+    } = params;
 
     // if inBin is given then other two are not allowed
     if (
@@ -53,6 +64,7 @@ export class FileStructureRawQueryRepository {
     let inBinCheckRecursive: Prisma.Sql = Prisma.empty;
     let inBinRootOnlyCheck: Prisma.Sql = Prisma.empty;
     let inBinChildrenOnlyCheck: Prisma.Sql = Prisma.empty;
+    let notIncludeRootIdCheck: Prisma.Sql = Prisma.empty;
 
     // only check for undefined not null
     // parentId null here means null check in db
@@ -89,6 +101,10 @@ export class FileStructureRawQueryRepository {
         : Prisma.sql` and fs.is_in_bin = false `;
     }
 
+    if (notIncludeRootId !== undefined) {
+      notIncludeRootIdCheck = Prisma.sql` and id != ${notIncludeRootId} `;
+    }
+
     const finalSql = Prisma.sql`
       WITH RECURSIVE AllAncestors AS (
         SELECT *
@@ -99,6 +115,7 @@ export class FileStructureRawQueryRepository {
         ${isFileCheck}
         ${rootParentIdCheck}
         ${idCheck}
+        ${notIncludeRootIdCheck}
 
         UNION ALL
 
@@ -114,6 +131,9 @@ export class FileStructureRawQueryRepository {
       )
       SELECT distinct * FROM AllAncestors;
     `;
+
+    console.log(finalSql.statement);
+    console.log(finalSql.values);
 
     let response = await db.$queryRaw<{ id: number & unknown }[]>(finalSql);
 

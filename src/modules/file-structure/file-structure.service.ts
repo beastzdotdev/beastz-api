@@ -25,7 +25,7 @@ import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-stat
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
-import { batchPromises, batchPromisesAndResponse, fsCustom } from '../../common/helper';
+import { batchPromises, fsCustom } from '../../common/helper';
 import { FileStructureBinService } from '../file-structure-bin/file-structure-bin.service';
 import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
 import { PrismaService } from '../@global/prisma/prisma.service';
@@ -56,7 +56,7 @@ export class FileStructureService {
   ) {}
 
   async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
-    const { parentId, focusParentId, rootParentId, isFile } = queryParams;
+    const { parentId, focusRootParentId, isFile } = queryParams;
 
     let responseDataInDepth2 = await this.fsRawQueryRepository.recursiveSelect({
       userId: authPayload.user.id,
@@ -65,23 +65,17 @@ export class FileStructureService {
       isFile,
       inBin: false,
     });
+
     responseDataInDepth2 = makeTreeMultiple(responseDataInDepth2);
 
-    if (focusParentId) {
-      if (!(focusParentId && rootParentId)) {
-        throw new BadRequestException('focusParentId and rootParentId must be set at the same time');
-      }
+    //TODO return focusedFsId only for two things:
+    //TODO if fetched fs depth exceeds for example do not go after this line
+    //TODO also first just get count for bellow line if fs cound exceeds for example 1000 ignore fetching whole list
 
-      const parentParentId = (await this.getById(authPayload, focusParentId))?.parentId; // get from parent of parentId
-
-      if (!parentParentId) {
-        throw new InternalServerErrorException('Something went wrong');
-      }
-
-      //TODO on focus parent id all parents come but not children of focusParentId.children
+    if (focusRootParentId) {
       const data = await this.fsRawQueryRepository.recursiveSelect({
         userId: authPayload.user.id,
-        parentId: parentParentId,
+        id: focusRootParentId,
         inBin: false,
       });
 
@@ -105,7 +99,7 @@ export class FileStructureService {
   async getGeneralInfo(authPayload: AuthPayloadType, queryParams: GetGeneralInfoQueryDto) {
     const {} = queryParams; // for future use
 
-    const totalSize = await this.fsRepository.getTotalFilesSize(authPayload.user.id);
+    const totalSize = await this.fsRepository.getTotalFilesSize(authPayload.user.id, {});
 
     return {
       totalSize,
@@ -205,6 +199,7 @@ export class FileStructureService {
       }
 
       // this should have no problem
+      //TODO
       await fs.promises
         .writeFile(path.join(userRootContentPath, entityPath), file.buffer, { encoding: 'utf-8' })
         .catch(err => {
@@ -669,7 +664,7 @@ export class FileStructureService {
   }
 
   private async checkStorageLimit(userId: number, extraSizeInBytes: number): Promise<void> {
-    const totalFileSizeBeforeModify = await this.fsRepository.getTotalFilesSize(userId);
+    const totalFileSizeBeforeModify = await this.fsRepository.getTotalFilesSize(userId, {});
 
     if (totalFileSizeBeforeModify + extraSizeInBytes > constants.MAX_STORAGE_PER_USER_IN_BYTES) {
       throw new ForbiddenException('Storage limit exceeds limit');
