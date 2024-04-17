@@ -178,4 +178,16 @@ export class FileStructureRepository {
       },
     });
   }
+
+  async rootParentChildrenCountCheck(rootParentId: number, userId: number, tx?: PrismaTx): Promise<number> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructure.count({
+      where: {
+        userId,
+        rootParentId,
+        isInBin: false,
+      },
+    });
+  }
 }

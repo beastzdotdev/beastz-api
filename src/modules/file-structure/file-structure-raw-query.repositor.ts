@@ -132,8 +132,8 @@ export class FileStructureRawQueryRepository {
       SELECT distinct * FROM AllAncestors;
     `;
 
-    console.log(finalSql.statement);
-    console.log(finalSql.values);
+    // console.log(finalSql.statement);
+    // console.log(finalSql.values);
 
     let response = await db.$queryRaw<{ id: number & unknown }[]>(finalSql);
 

@@ -56,9 +56,20 @@ export class FileStructureService {
   ) {}
 
   async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
-    const { parentId, focusRootParentId, isFile } = queryParams;
+    const { parentId, isFile } = queryParams;
 
-    let responseDataInDepth2 = await this.fsRawQueryRepository.recursiveSelect({
+    if (Object.values(queryParams).length === 0) {
+      const response = await this.fsRawQueryRepository.recursiveSelect({
+        userId: authPayload.user.id,
+        depth: 5,
+        parentId: null,
+        inBin: false,
+      });
+
+      return makeTreeMultiple(response);
+    }
+
+    const response = await this.fsRawQueryRepository.recursiveSelect({
       userId: authPayload.user.id,
       depth: 2,
       parentId: parentId ?? null,
@@ -66,34 +77,7 @@ export class FileStructureService {
       inBin: false,
     });
 
-    responseDataInDepth2 = makeTreeMultiple(responseDataInDepth2);
-
-    //TODO return focusedFsId only for two things:
-    //TODO if fetched fs depth exceeds for example do not go after this line
-    //TODO also first just get count for bellow line if fs cound exceeds for example 1000 ignore fetching whole list
-
-    if (focusRootParentId) {
-      const data = await this.fsRawQueryRepository.recursiveSelect({
-        userId: authPayload.user.id,
-        id: focusRootParentId,
-        inBin: false,
-      });
-
-      const root = data.find(e => e.parentId === null);
-      const index = responseDataInDepth2.findIndex(e => e.id === root?.id);
-
-      if (index !== -1) {
-        const tree = makeTreeSingle(data);
-
-        if (!tree) {
-          throw new BadRequestException('Something went wrong');
-        }
-
-        responseDataInDepth2[index] = tree;
-      }
-    }
-
-    return responseDataInDepth2;
+    return makeTreeMultiple(response);
   }
 
   async getGeneralInfo(authPayload: AuthPayloadType, queryParams: GetGeneralInfoQueryDto) {
