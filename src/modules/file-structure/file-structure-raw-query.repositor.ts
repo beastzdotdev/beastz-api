@@ -129,7 +129,7 @@ export class FileStructureRawQueryRepository {
           ${recursiveDepthCheck}
           ${isFileCheckRecursive}
       )
-      SELECT distinct * FROM AllAncestors;
+      SELECT distinct * FROM AllAncestors ORDER BY is_file ASC;
     `;
 
     // console.log(finalSql.statement);

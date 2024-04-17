@@ -418,7 +418,7 @@ export class FileStructureService {
     return response;
   }
 
-  async restoreFromBin(id: number, dto: RestoreFromBinDto, authPayload: AuthPayloadType) {
+  async restoreFromBin(id: number, dto: RestoreFromBinDto, authPayload: AuthPayloadType): Promise<FileStructure> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { newParentId } = dto;
 
@@ -529,6 +529,8 @@ export class FileStructureService {
         path.join(getAbsUserBinPath(authPayload.user.uuid), fsBin.path), // source path,
         path.join(getAbsUserRootContentPath(authPayload.user.uuid), newPath), // source path
       );
+
+      return updatedFs;
     });
   }
 

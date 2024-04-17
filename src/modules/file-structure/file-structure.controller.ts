@@ -102,7 +102,8 @@ export class FileStructureController {
     @AuthPayload() authPayload: AuthPayloadType,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RestoreFromBinDto,
-  ): Promise<void> {
-    await this.fileStructureService.restoreFromBin(id, dto, authPayload);
+  ): Promise<BasicFileStructureResponseDto> {
+    const response = await this.fileStructureService.restoreFromBin(id, dto, authPayload);
+    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 }
