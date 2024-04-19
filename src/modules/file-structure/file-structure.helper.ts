@@ -66,15 +66,6 @@ export const absUserContentPath = (uuid?: string) => path.join(rooPath, userCont
 export const absUserUploadPath = (uuid?: string) => path.join(rooPath, userUploadFolderName, uuid ?? '');
 export const absUserBinPath = (uuid?: string) => path.join(rooPath, userBinFolderName, uuid ?? '');
 
-console.log(rooPath);
-console.log({
-  absPublicPath: absPublicPath(),
-  absPublicImgPath: absPublicImgPath(),
-  absUserContentPath: absUserContentPath(),
-  absUserUploadPath: absUserUploadPath(),
-  absUserBinPath: absUserBinPath(),
-});
-
 /**
  * @example
  * ```ts

@@ -241,7 +241,6 @@ export class FileStructureService {
       isEncrypted: false,
       isEditable: true,
       isLocked: false,
-      deletedAt: null,
       lastModifiedAt: lastModifiedAt ?? null,
 
       //! important
@@ -344,7 +343,6 @@ export class FileStructureService {
       isEncrypted: false,
       isEditable: true,
       isLocked: false,
-      deletedAt: null,
       lastModifiedAt: new Date(Date.now()),
 
       //! important

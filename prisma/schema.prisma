@@ -292,7 +292,6 @@ model FileStructure {
   isLocked          Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
   lastModifiedAt    DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
-  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz()
   uuid              String        @map("uuid") @db.Uuid // can be used for various reason e.g. unique name for object storage
 
   // recursive properties
