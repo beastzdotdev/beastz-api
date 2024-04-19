@@ -49,5 +49,6 @@ export const constants = Object.freeze({
     userContentFolderName: 'user-content',
     userUploadFolderName: 'user-upload',
     userBinFolderName: 'user-bin',
+    userDeleteForeverFolderName: 'user-deleted-forever',
   },
 });

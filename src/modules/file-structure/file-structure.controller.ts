@@ -106,4 +106,12 @@ export class FileStructureController {
     const response = await this.fileStructureService.restoreFromBin(id, dto, authPayload);
     return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
+
+  @Patch('delete-forever-from-bin/:id')
+  async deleteForeverFromBin(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+    await this.fileStructureService.deleteForeverFromBin(id, authPayload);
+  }
 }

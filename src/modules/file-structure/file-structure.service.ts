@@ -40,6 +40,7 @@ import {
   makeTreeMultiple,
   absUserBinPath,
   absUserContentPath,
+  absUserDeletedForeverPath,
 } from './file-structure.helper';
 
 @Injectable()
@@ -531,6 +532,69 @@ export class FileStructureService {
     });
   }
 
+  async deleteForeverFromBin(id: number, authPayload: AuthPayloadType): Promise<void> {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const [fs, fsBin] = await Promise.all([
+        this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id, isInBin: true }, tx),
+        this.fileStructureBinService.getByFsId(id, authPayload.user.id, tx),
+      ]);
+
+      if (!fs) {
+        throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+      }
+
+      if (!fs.isInBin) {
+        throw new BadRequestException('File is not in bin');
+      }
+
+      // delete from fs bin
+      await this.fileStructureBinService.deleteById(fsBin.id, authPayload.user.id, tx);
+
+      if (!fs.isFile) {
+        // this will delete given fs as well
+        const affectedRows = await this.fsRawQueryRepository.recursiveDelete(
+          {
+            userId: authPayload.user.id,
+            id: fs.id,
+            inBin: true,
+          },
+          tx,
+        );
+        this.logger.debug(`Delete forever folders by fs id of ${fs.id}`);
+        console.log(affectedRows);
+
+        this.logger.debug(`Affected rows ${affectedRows.toString()}`);
+      } else {
+        await this.fsRepository.deleteById(
+          fs.id,
+          {
+            userId: authPayload.user.id,
+            isInBin: true,
+          },
+          tx,
+        );
+        this.logger.debug(`Delete forever file by fs id of ${fs.id}`);
+        this.logger.debug(`Affected rows 0 (was file)`);
+      }
+
+      const sourcePath = path.join(absUserBinPath(authPayload.user.uuid), fsBin.path);
+      const destinationPath = path.join(absUserDeletedForeverPath(authPayload.user.uuid), fsBin.path);
+
+      // if not exists create user uuid folder as well if not exists
+      const folderCreationSuccess = await fsCustom.checkDirOrCreate(destinationPath, {
+        isFile: fs.isFile,
+        createIfNotExists: true,
+      });
+
+      if (!folderCreationSuccess) {
+        this.logger.debug('Folder creation error occured');
+        throw new InternalServerErrorException('Something went wrong');
+      }
+
+      await fsCustom.move(sourcePath, destinationPath);
+    });
+  }
+
   private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }) {
     const { parentId, rootParentId } = params;
 
@@ -582,9 +646,13 @@ export class FileStructureService {
 
     if (sameNameFileStructure) {
       if (isFile) {
-        await this.fsRepository.deleteById(sameNameFileStructure.id);
+        await this.fsRepository.deleteById(sameNameFileStructure.id, { userId });
       } else {
-        await this.fsRawQueryRepository.recursiveDelete(sameNameFileStructure.id);
+        await this.fsRawQueryRepository.recursiveDelete({
+          id: sameNameFileStructure.id,
+          userId,
+          inBin: false,
+        });
       }
 
       const absolutePath = path.join(userRootContentPath, sameNameFileStructure.path);
@@ -596,8 +664,6 @@ export class FileStructureService {
       }
 
       fsCustom.delete(absolutePath);
-
-      // isFile ? await deleteFile(absolutePath) : await deleteFolder(absolutePath);
     }
   }
 

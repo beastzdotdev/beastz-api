@@ -7,8 +7,9 @@
     "**/*spec.ts",
     "backups",
     "public",
-    "use-bin",
+    "user-bin",
     "user-content",
-    "user-upload"
+    "user-upload",
+    "user-deleted-forever"
   ]
 }

@@ -51,3 +51,5 @@ test/unit/coverage
 !/user-bin/readme.md
 /user-upload
 !/user-upload/readme.md
+/user-deleted-forever
+!/user-deleted-forever/readme.md

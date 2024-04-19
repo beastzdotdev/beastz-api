@@ -1,3 +1,5 @@
+TODO move every folder starting with user-* under name of hub or nexus
+
 https://docs.nestjs.com/recipes/swc
 
 

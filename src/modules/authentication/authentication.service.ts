@@ -642,11 +642,14 @@ export class AuthenticationService {
       });
 
       await Promise.all([
+        //TODO same method combine
         this.userIdentityService.updateIsAccVerified(userId, true, tx),
         this.userIdentityService.updateIsLockedById(user.userIdentity.id, false, tx),
         this.accountVerificationService.softDelete(accountVerify.id, tx),
         this.accVerifyAttemptCountService.softDelete(accountVerify.id, tx),
       ]);
+
+      //TODO on success for user create every folder with user {uuid} unser user-content, user-bin, etc ...
 
       // show success page and button for redirecting to front end
       res.render('view/auth-response', <AuthResponseViewJsonParams>{

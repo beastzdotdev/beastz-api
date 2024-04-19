@@ -58,6 +58,7 @@ const {
   userContentFolderName,
   userUploadFolderName,
   userBinFolderName,
+  userDeleteForeverFolderName,
 } = constants.assets;
 
 export const absPublicPath = (extraPath?: string) => path.join(rooPath, publicAssets, extraPath ?? '');
@@ -65,6 +66,7 @@ export const absPublicImgPath = (extraPath?: string) => path.join(rooPath, publi
 export const absUserContentPath = (uuid?: string) => path.join(rooPath, userContentFolderName, uuid ?? '');
 export const absUserUploadPath = (uuid?: string) => path.join(rooPath, userUploadFolderName, uuid ?? '');
 export const absUserBinPath = (uuid?: string) => path.join(rooPath, userBinFolderName, uuid ?? '');
+export const absUserDeletedForeverPath = (uuid?: string) => path.join(rooPath, userDeleteForeverFolderName, uuid ?? '');
 
 /**
  * @example

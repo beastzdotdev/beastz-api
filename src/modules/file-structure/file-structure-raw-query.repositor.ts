@@ -121,7 +121,7 @@ export class FileStructureRawQueryRepository {
 
         SELECT fs.*
         FROM file_structure fs
-            JOIN AllAncestors p ON fs.parent_id = p.id
+          JOIN AllAncestors p ON fs.parent_id = p.id
         where fs.id <> p.id
         and fs.user_id = ${userId}
           ${inBinCheckRecursive}
@@ -132,8 +132,8 @@ export class FileStructureRawQueryRepository {
       SELECT distinct * FROM AllAncestors ORDER BY is_file ASC;
     `;
 
-    console.log(finalSql.statement);
-    console.log(finalSql.values);
+    // console.log(finalSql.statement);
+    // console.log(finalSql.values);
 
     let response = await db.$queryRaw<{ id: number & unknown }[]>(finalSql);
 
@@ -144,26 +144,52 @@ export class FileStructureRawQueryRepository {
     return plainToInstance(FileStructureFromRaw, response, { exposeDefaultValues: true });
   }
 
-  async recursiveDelete(id: number, tx?: PrismaTx): Promise<number> {
+  async recursiveDelete(
+    params: {
+      userId: number;
+      id?: number;
+      inBin?: boolean;
+    },
+    tx?: PrismaTx,
+  ): Promise<number> {
     const db = tx ?? this.prismaService;
+    const { userId, id, inBin } = params;
 
-    const d = await db.$executeRaw(Prisma.sql`
+    let idCheck: Prisma.Sql = Prisma.empty;
+    let inBinCheck: Prisma.Sql = Prisma.empty;
+    let inBinCheckRecursive: Prisma.Sql = Prisma.empty;
+
+    if (id !== undefined) {
+      idCheck = Prisma.sql` and id = ${id} `;
+    }
+
+    if (inBin !== undefined) {
+      inBinCheck = inBin ? Prisma.sql` and is_in_bin = true ` : Prisma.sql` and is_in_bin = false `;
+      inBinCheckRecursive = inBin ? Prisma.sql` and fs.is_in_bin = true ` : Prisma.sql` and fs.is_in_bin = false `;
+    }
+
+    const finalSql = Prisma.sql`
       WITH RECURSIVE AllAncestors AS (
-        SELECT id, parent_id 
-        FROM file_structure 
-        WHERE id = ${id} and is_in_bin = false
-    
-        UNION ALL
-    
-        SELECT fs.id, fs.parent_id 
-        FROM file_structure fs 
-          JOIN AllAncestors p ON fs.parent_id = p.id
-        WHERE fs.id <> p.id and is_in_bin = false
-      )
-        DELETE FROM file_structure WHERE id IN (SELECT id FROM AllAncestors);
-    `);
+        SELECT id
+        FROM file_structure
+        WHERE user_id = ${userId}
+        ${idCheck}
+        ${inBinCheck}
 
-    return d;
+        UNION ALL
+
+        SELECT fs.id
+        FROM file_structure fs
+            JOIN AllAncestors p ON fs.parent_id = p.id
+        WHERE fs.id <> p.id
+        and user_id = ${userId}
+        ${inBinCheckRecursive}
+      )
+      DELETE FROM file_structure WHERE id IN (SELECT DISTINCT id FROM AllAncestors);
+    `;
+
+    const response = await db.$executeRaw(finalSql);
+    return response;
   }
 
   async recursiveUpdateIsInBin(id: number, isInBin: boolean, tx?: PrismaTx): Promise<number> {

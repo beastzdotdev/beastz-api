@@ -147,13 +147,15 @@ export class FileStructureRepository {
     });
   }
 
-  async deleteById(id: number, tx?: PrismaTx): Promise<FileStructure> {
+  async deleteById(id: number, params: { userId: number; isInBin?: boolean }, tx?: PrismaTx): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
 
     return db.fileStructure.delete({
       where: {
         id,
-        isInBin: false,
+        userId,
+        isInBin: isInBin ?? false,
       },
     });
   }
