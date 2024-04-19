@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../@global/prisma/prisma.service';
-import { getAbsUserBinPath, getAbsUserRootContentPath } from '../file-structure/file-structure.helper';
 import { fsCustom } from '../../common/helper';
+import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class AdminService {
@@ -54,8 +54,11 @@ export class AdminService {
       // must be after
       await tx.fileStructure.deleteMany({ where: { id: { in: allFsIds } } });
 
-      const userRootContentPath = getAbsUserRootContentPath(user.uuid);
-      const userRootBinPath = getAbsUserBinPath(user.uuid);
+      const userRootContentPath = absUserContentPath(user.uuid);
+      const userRootBinPath = absUserBinPath(user.uuid);
+
+      console.log(userRootContentPath);
+      console.log(userRootBinPath);
 
       await Promise.all([
         //

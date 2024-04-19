@@ -13,7 +13,7 @@ import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
-import { absolutePublicPath, absoluteUserUploadPath } from './modules/file-structure/file-structure.helper';
+import { absPublicPath, absUserUploadPath } from './modules/file-structure/file-structure.helper';
 
 //TODO - MAIN - remove deletedAt from file structure too much headache
 
@@ -51,8 +51,8 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.use(compression());
   app.setViewEngine('njk');
   app.setBaseViewsDir(assetsPath);
-  app.use('/user-upload', express.static(absoluteUserUploadPath)); // needs security
-  app.use('/public', express.static(absolutePublicPath));
+  app.use('/user-upload', express.static(absUserUploadPath())); // needs security
+  app.use('/public', express.static(absPublicPath()));
 
   await app.listen(envService.get('PORT'));
 

@@ -50,25 +50,30 @@ export const fileStructureHelper = Object.freeze({
   },
 });
 
-const distPath = require.main!.path;
+const rooPath = path.join(require.main!.path, '../..');
 const {
   //
+  publicAssets,
   publicAssetsImage,
   userContentFolderName,
-  publicAssets,
   userUploadFolderName,
   userBinFolderName,
 } = constants.assets;
 
-export const getAbsPublicImgPath = (imgPath: string) => path.join(distPath, '..', publicAssetsImage, imgPath);
-export const getAbsUserRootContentPath = (uuid: string) => path.join(distPath, '..', userContentFolderName, uuid);
-export const getAbsUserUploadPath = (uuid: string) => path.join(distPath, '..', userUploadFolderName, uuid);
-export const getAbsUserBinPath = (uuid: string) => path.join(distPath, '..', userBinFolderName, uuid);
+export const absPublicPath = (extraPath?: string) => path.join(rooPath, publicAssets, extraPath ?? '');
+export const absPublicImgPath = (extraPath?: string) => path.join(rooPath, publicAssetsImage, extraPath ?? '');
+export const absUserContentPath = (uuid?: string) => path.join(rooPath, userContentFolderName, uuid ?? '');
+export const absUserUploadPath = (uuid?: string) => path.join(rooPath, userUploadFolderName, uuid ?? '');
+export const absUserBinPath = (uuid?: string) => path.join(rooPath, userBinFolderName, uuid ?? '');
 
-export const absolutePublicPath = path.join(distPath, '..', publicAssets);
-export const absoluteUserUploadPath = path.join(distPath, '..', userUploadFolderName);
-export const absolutePublicImgPath = path.join(distPath, '..', publicAssetsImage);
-export const absoluteUserBinPath = path.join(distPath, '..', userBinFolderName);
+console.log(rooPath);
+console.log({
+  absPublicPath: absPublicPath(),
+  absPublicImgPath: absPublicImgPath(),
+  absUserContentPath: absUserContentPath(),
+  absUserUploadPath: absUserUploadPath(),
+  absUserBinPath: absUserBinPath(),
+});
 
 /**
  * @example

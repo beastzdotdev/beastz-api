@@ -17,10 +17,10 @@ import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
-import { getAbsUserUploadPath } from '../file-structure/file-structure.helper';
 import { AuthPayloadType } from '../../model/auth.types';
 import { constants } from '../../common/constants';
 import { fsCustom } from '../../common/helper';
+import { absUserUploadPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class UserService {
@@ -121,7 +121,7 @@ export class UserService {
 
     const newFileName = `profile-image${parsedFile.ext}`;
 
-    const filePath = path.join(getAbsUserUploadPath(authPayload.user.uuid), newFileName);
+    const filePath = path.join(absUserUploadPath(authPayload.user.uuid), newFileName);
     const entityPath = path.join('/', constants.assets.userUploadFolderName, authPayload.user.uuid, newFileName);
 
     this.logger.debug(`Created file path and entity path`);

@@ -12,7 +12,7 @@
     "allowJs": true,
     "target": "es2017",
     "sourceMap": true,
-    "outDir": "./dist",
+    "outDir": "./dist/src",
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,

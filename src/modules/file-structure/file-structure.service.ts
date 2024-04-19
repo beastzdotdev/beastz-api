@@ -37,10 +37,9 @@ import {
   extractNumber,
   fileStructureNameDuplicateRegex,
   fileStructureHelper,
-  getAbsUserRootContentPath,
-  makeTreeSingle,
-  getAbsUserBinPath,
   makeTreeMultiple,
+  absUserBinPath,
+  absUserContentPath,
 } from './file-structure.helper';
 
 @Injectable()
@@ -61,7 +60,7 @@ export class FileStructureService {
     if (Object.values(queryParams).length === 0) {
       const response = await this.fsRawQueryRepository.recursiveSelect({
         userId: authPayload.user.id,
-        depth: 5,
+        depth: 4, // 5 level folder structure
         parentId: null,
         inBin: false,
       });
@@ -154,7 +153,7 @@ export class FileStructureService {
     let entityPath: string;
     let entityDepth: number;
 
-    const userRootContentPath = getAbsUserRootContentPath(authPayload.user.uuid);
+    const userRootContentPath = absUserContentPath(authPayload.user.uuid);
 
     // Perform fs operation
     if (isRoot) {
@@ -268,7 +267,7 @@ export class FileStructureService {
 
     const userId = authPayload.user.id;
     const isRoot = !parentId && !rootParentId;
-    const userRootContentPath = getAbsUserRootContentPath(authPayload.user.uuid);
+    const userRootContentPath = absUserContentPath(authPayload.user.uuid);
 
     const title = !keepBoth ? name : await this.increaseFileNameNumber({ title: name, userId, parent, isFile: false });
 
@@ -390,8 +389,8 @@ export class FileStructureService {
     const nameWithExt = nameUUID + (fs.fileExstensionRaw ?? '');
     const relativePath = path.join('/', nameWithExt);
 
-    const sourceContentPath = path.join(getAbsUserRootContentPath(authPayload.user.uuid), fs.path);
-    const destinationBinPath = path.join(getAbsUserBinPath(authPayload.user.uuid), nameWithExt);
+    const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+    const destinationBinPath = path.join(absUserBinPath(authPayload.user.uuid), nameWithExt);
 
     // if not exists create user uuid folder as well if not exists
     const folderCreationSuccess = await fsCustom.checkDirOrCreate(destinationBinPath, {
@@ -526,8 +525,8 @@ export class FileStructureService {
 
       // move from user-bin back to new user-content path
       await fsCustom.move(
-        path.join(getAbsUserBinPath(authPayload.user.uuid), fsBin.path), // source path,
-        path.join(getAbsUserRootContentPath(authPayload.user.uuid), newPath), // source path
+        path.join(absUserBinPath(authPayload.user.uuid), fsBin.path), // source path,
+        path.join(absUserContentPath(authPayload.user.uuid), newPath), // source path
       );
 
       return updatedFs;
