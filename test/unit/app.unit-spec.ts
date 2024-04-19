@@ -1,6 +1,6 @@
 import { json, urlencoded } from 'express';
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from 'testcontainers';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

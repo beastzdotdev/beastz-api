@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { json, urlencoded } from 'express';
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from 'testcontainers';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Test, TestingModule } from '@nestjs/testing';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe } from '@nestjs/common';
@@ -21,7 +21,7 @@ describe('App (e2e)', () => {
   beforeAll(async () => {
     jest.setTimeout(10000); // Set the timeout to 10 seconds
 
-    postgreSqlContainer = await new PostgreSqlContainer().withExposedPorts(5432).start();
+    postgreSqlContainer = await new PostgreSqlContainer().start();
 
     const envValues: Partial<EnvironmentVariables> = {
       DATABASE_URL: postgreSqlContainer.getConnectionUri(),
