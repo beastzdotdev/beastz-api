@@ -1,7 +1,8 @@
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsHexColor, IsOptional, IsString } from 'class-validator';
 
 export class UpdateFolderStructureDto {
   @IsOptional()
-  @IsBoolean()
-  isInBin?: boolean;
+  @IsString()
+  @IsHexColor()
+  color?: string;
 }

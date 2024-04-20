@@ -361,7 +361,7 @@ export class FileStructureService {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
     }
 
-    const response = await this.fsRepository.updateByIdAndReturn(id, dto, { userId: authPayload.user.id });
+    const response = await this.fsRepository.updateByIdAndReturn(id, { userId: authPayload.user.id }, dto);
 
     if (!response) {
       throw new NotFoundException(ExceptionMessageCode.INTERNAL_ERROR);
@@ -465,15 +465,15 @@ export class FileStructureService {
       const updatedFs = await this.fsRepository.updateByIdAndReturn(
         fs.id,
         {
+          userId: authPayload.user.id,
+          isInBin: true,
+        },
+        {
           depth: newParentFs ? newParentFs.depth + 1 : 0,
           isInBin: false,
           path: newPath,
           rootParentId: newParentFs ? newParentFs.rootParentId : null,
           parentId: newParentFs ? newParentFs.id : null,
-        },
-        {
-          userId: authPayload.user.id,
-          isInBin: true,
         },
         tx,
       );

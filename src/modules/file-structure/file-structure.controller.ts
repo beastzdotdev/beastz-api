@@ -82,7 +82,7 @@ export class FileStructureController {
     return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 
-  @Patch('update/:id')
+  @Patch(':id')
   async update(
     @AuthPayload() authPayload: AuthPayloadType,
     @Param('id', ParseIntPipe) id: number,

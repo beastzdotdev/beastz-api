@@ -130,8 +130,8 @@ export class FileStructureRepository {
 
   async updateByIdAndReturn(
     id: number,
-    data: UpdateFSParams,
     params: { userId: number; isInBin?: boolean },
+    data: UpdateFSParams,
     tx?: PrismaTx,
   ): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
