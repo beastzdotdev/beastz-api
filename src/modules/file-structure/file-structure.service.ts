@@ -42,6 +42,7 @@ import {
   absUserContentPath,
   absUserDeletedForeverPath,
 } from './file-structure.helper';
+import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -114,6 +115,35 @@ export class FileStructureService {
         title,
         hasDuplicate: !!fileStructure,
       });
+    }
+
+    return fileStructures;
+  }
+
+  async getDetails(authPayload: AuthPayloadType, queryParams: GetDetailsQueryDto): Promise<FileStructure[]> {
+    const { ids, isInBin } = queryParams;
+
+    const existsByIds = await this.fsRepository.existsByIds(ids, {
+      userId: authPayload.user.id,
+      isInBin,
+    });
+
+    if (!existsByIds.allIdsExist) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND, {
+        description: `ids not found ${existsByIds.notFoundIds}`,
+      });
+    }
+
+    const fileStructures = await this.fsRepository.getByIdsForUser(ids, {
+      userId: authPayload.user.id,
+      isInBin,
+    });
+
+    for (const fs of fileStructures) {
+      if (!fs.isFile) {
+        const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+        fs.sizeInBytes = (await fsCustom.getFolderSize(absPath)) ?? null;
+      }
     }
 
     return fileStructures;

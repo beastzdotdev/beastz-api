@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import fastFolderSize from 'fast-folder-size';
+import { promisify as toPromiseNative } from 'util';
 import { match } from 'ts-pattern';
 import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
 import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
@@ -285,6 +287,17 @@ export const fsCustom = {
       }
 
       return false;
+    }
+  },
+
+  async getFolderSize(path: string): Promise<number | null> {
+    try {
+      const fastFolderSizeAsync = toPromiseNative(fastFolderSize);
+      return (await fastFolderSizeAsync(path)) ?? null;
+    } catch (error) {
+      console.log(error);
+
+      return null;
     }
   },
 };

@@ -4,6 +4,7 @@ import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import {
   CreateFileStructureParams,
+  ExistsByIdsReturnType,
   GetByMethodParamsInRepo,
   GetManyByMethodParamsInRepo,
   UpdateFSParams,
@@ -109,6 +110,34 @@ export class FileStructureRepository {
     });
   }
 
+  async existsByIds(
+    ids: number[],
+    params: { userId: number; isInBin?: boolean },
+    tx?: PrismaTx,
+  ): Promise<ExistsByIdsReturnType> {
+    const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
+
+    const foundIds = await db.fileStructure.findMany({
+      where: {
+        id: { in: ids },
+        userId,
+        isInBin: isInBin ?? false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const foundIDsSet = new Set(foundIds.map(e => e.id));
+    const notFoundIDs = ids.filter(id => !foundIDsSet.has(id));
+
+    return {
+      allIdsExist: notFoundIDs.length === 0,
+      notFoundIds: notFoundIDs,
+    };
+  }
+
   async updateById(
     id: number,
     data: UpdateFSParams,
@@ -189,6 +218,23 @@ export class FileStructureRepository {
         userId,
         rootParentId,
         isInBin: false,
+      },
+    });
+  }
+
+  async getByIdsForUser(
+    ids: number[],
+    params: { userId: number; isInBin?: boolean },
+    tx?: PrismaTx,
+  ): Promise<FileStructure[]> {
+    const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
+
+    return db.fileStructure.findMany({
+      where: {
+        id: { in: ids },
+        userId,
+        isInBin: isInBin ?? false,
       },
     });
   }

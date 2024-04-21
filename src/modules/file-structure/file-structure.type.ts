@@ -35,4 +35,8 @@ export type GetManyByMethodParamsInRepo = {
 };
 
 export type UpdateFSParams = Omit<Prisma.FileStructureUncheckedUpdateInput, 'id' | 'createdAt'>;
-// export type UpdateFSParams = Omit<Prisma.FileStructureUpdateInput, 'createdAt'>;
+
+export type ExistsByIdsReturnType = {
+  allIdsExist: boolean;
+  notFoundIds: number[];
+};

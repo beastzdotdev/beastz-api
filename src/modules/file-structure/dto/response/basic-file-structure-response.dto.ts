@@ -37,6 +37,12 @@ export class BasicFileStructureResponseDto {
   isEditable: boolean | null;
 
   @Expose()
+  isEncrypted: boolean | null;
+
+  @Expose()
+  isLocked: boolean | null;
+
+  @Expose()
   isFile: boolean;
 
   @Expose()

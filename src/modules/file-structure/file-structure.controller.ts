@@ -18,6 +18,7 @@ import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 import { GetGeneralInfoResponseDto } from './dto/response/get-general-info-response.dto';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
+import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -46,6 +47,15 @@ export class FileStructureController {
     @Query() queryParams: GetDuplicateStatusQueryDto,
   ): Promise<GetDuplicateStatusResponseDto[]> {
     return this.fileStructureService.getDuplicateStatus(authPayload, queryParams);
+  }
+
+  @Get('details')
+  async getDetails(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Query() queryParams: GetDetailsQueryDto,
+  ): Promise<BasicFileStructureResponseDto[]> {
+    const response = await this.fileStructureService.getDetails(authPayload, queryParams);
+    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
   }
 
   @Get(':id')
