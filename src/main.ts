@@ -4,16 +4,18 @@ import helmet from 'helmet';
 import nunjucks from 'nunjucks';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-import express from 'express';
+import express, { Request, Response } from 'express';
 
-import { NestFactory } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { UseGuards } from '@nestjs/common';
 import { AppModule } from './modules/app.module';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
-import { absPublicPath, absUserUploadPath } from './modules/file-structure/file-structure.helper';
+import { absPublicPath, absUserContentPath, absUserUploadPath } from './modules/file-structure/file-structure.helper';
+import { AuthGuard } from './modules/authentication/guard/auth.guard';
 
 //@ts-expect-error
 BigInt.prototype.toJSON = function () {
@@ -61,3 +63,15 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 // Cool libraries for future
 // https://nosir.github.io/cleave.js/
 // https://sarcadass.github.io/granim.js/examples.html
+
+function x(a: Request, b: Response, c: any) {
+  // console.log(a, b, c);
+
+  console.log('middleware');
+  console.log(a.signedCookies);
+  console.log(a.body);
+
+  // b.json({ message: 'hello' });
+
+  c();
+}

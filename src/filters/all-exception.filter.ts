@@ -1,13 +1,18 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { Request } from 'express';
+import path from 'path';
 import { AllExceptionBody, ImportantExceptionBody } from '../model/exception.type';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { EnvService } from '../modules/@global/env/env.service';
 import { InjectEnv } from '../modules/@global/env/env.decorator';
 import { getMessageAsExceptionMessageCode } from '../common/helper';
+import { constants } from '../common/constants';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
   constructor(
     @InjectEnv()
     private readonly envService: EnvService,
@@ -19,20 +24,38 @@ export class AllExceptionsFilter implements ExceptionFilter {
       (exception instanceof HttpException && exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR) ||
       !(exception instanceof HttpException)
     ) {
-      console.log(exception);
+      this.logger.debug(exception);
     }
 
-    // In certain situations `httpAdapter` might not be available in the
-    // constructor method, thus we should resolve it here.
-    const { httpAdapter } = this.httpAdapterHost;
-
     const ctx = host.switchToHttp();
-    const path = httpAdapter.getRequestUrl(ctx.getRequest());
+    const url = ctx.getRequest<Request>().url;
+
     const isDev = this.envService.isDev();
 
     let errorBody: AllExceptionBody;
 
-    if (exception instanceof HttpException) {
+    console.log(url);
+
+    //TODO needs some check for example can be moved to hub
+    if (
+      url.startsWith(path.join('/', constants.assets.userContentFolderName)) ||
+      url.startsWith(path.join('/', constants.assets.userUploadFolderName)) ||
+      url.startsWith(path.join('/', constants.assets.userBinFolderName))
+    ) {
+      errorBody = {
+        message: ExceptionMessageCode.ASSET_ERROR,
+        statusCode: HttpStatus.BAD_REQUEST,
+
+        // only on dev
+        ...(isDev && {
+          dev: {
+            path: url,
+            description: 'Invalid url for user content',
+            exception,
+          },
+        }),
+      };
+    } else if (exception instanceof HttpException) {
       const error = exception.getResponse() as ImportantExceptionBody;
 
       errorBody = {
@@ -41,9 +64,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         // only on dev
         ...(isDev && {
-          path,
-          description: error?.description ?? 'error',
-          exception,
+          dev: {
+            path: url,
+            description: error?.description ?? 'error',
+            exception,
+          },
         }),
       };
     } else {
@@ -53,13 +78,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         // only on dev
         ...(isDev && {
-          path,
-          description: 'error',
-          exception,
+          dev: {
+            path: url,
+            description: 'error',
+            exception,
+          },
         }),
       };
     }
 
-    httpAdapter.reply(ctx.getResponse(), errorBody, errorBody.statusCode);
+    // In certain situations `httpAdapter` might not be available in the
+    // constructor method, thus we should resolve it here.
+    this.httpAdapterHost.httpAdapter.reply(ctx.getResponse(), errorBody, errorBody.statusCode);
   }
 }

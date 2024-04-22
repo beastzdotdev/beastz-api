@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PlatformForJwt } from '@prisma/client';
+import { GuardsConsumer } from '@nestjs/core/guards';
+import path from 'path';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { JwtService } from '../modules/jwt/jwt.service';
@@ -43,6 +45,7 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthPayloadAndRequest>();
+
     const { authorizationHeader, platform } = this.validateHeaders(request);
 
     let accessToken: string | undefined;
@@ -107,7 +110,16 @@ export class AuthGuard implements CanActivate {
     const authorizationHeader =
       <string>request.headers[constants.AUTH_HEADER_NAME.toLowerCase()] ||
       <string>request.headers[constants.AUTH_HEADER_NAME];
-    const platformValue = request.headers?.[constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
+    let platformValue = request.headers?.[constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
+
+    //TODO needs some check for example can be moved to hub
+    if (
+      request.url.startsWith(path.join('/', constants.assets.userContentFolderName)) ||
+      request.url.startsWith(path.join('/', constants.assets.userUploadFolderName)) ||
+      request.url.startsWith(path.join('/', constants.assets.userBinFolderName))
+    ) {
+      platformValue = PlatformForJwt.WEB;
+    }
 
     if (!platformValue) {
       throw new BadRequestException(`Header missing "${constants.PLATFORM_HEADER_NAME}"`);

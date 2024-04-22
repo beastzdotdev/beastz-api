@@ -10,7 +10,9 @@ export type AllExceptionBody = {
   statusCode: number;
 
   // only on dev enviroment
-  exception?: unknown;
-  path?: string;
-  description?: string;
+  dev?: {
+    exception?: unknown;
+    path?: string;
+    description?: string;
+  };
 };

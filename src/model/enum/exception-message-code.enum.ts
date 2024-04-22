@@ -65,4 +65,5 @@ export enum ExceptionMessageCode {
 
   //
   TESTING = 'TESTING',
+  ASSET_ERROR = 'ASSET_ERROR',
 }

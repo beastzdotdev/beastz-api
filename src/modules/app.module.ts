@@ -17,6 +17,7 @@ import { MailModule } from './@global/mail/mail.module';
 import { AllExceptionsFilter } from '../filters/all-exception.filter';
 import { FileStructureModule } from './file-structure/file-structure.module';
 import { FileStructureBinModule } from './file-structure-bin/file-structure-bin.module';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FileStructureBinModule } from './file-structure-bin/file-structure-bin.
   ],
   controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
