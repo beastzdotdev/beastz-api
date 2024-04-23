@@ -1,21 +1,19 @@
 import path from 'path';
 import figlet from 'figlet';
-import helmet from 'helmet';
 import nunjucks from 'nunjucks';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-import express, { Request, Response } from 'express';
+import express from 'express';
+import helmet from 'helmet';
 
-import { APP_GUARD, APP_PIPE, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { UseGuards } from '@nestjs/common';
 import { AppModule } from './modules/app.module';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
-import { absPublicPath, absUserContentPath, absUserUploadPath } from './modules/file-structure/file-structure.helper';
-import { AuthGuard } from './modules/authentication/guard/auth.guard';
+import { absPublicPath } from './modules/file-structure/file-structure.helper';
 
 //@ts-expect-error
 BigInt.prototype.toJSON = function () {
@@ -47,11 +45,16 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(cookieParser(envService.get('COOKIE_SECRET')));
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: {
+        policy: 'cross-origin',
+      },
+    }),
+  );
   app.use(compression());
   app.setViewEngine('njk');
   app.setBaseViewsDir(assetsPath);
-  app.use('/user-upload', express.static(absUserUploadPath())); // needs security
   app.use('/public', express.static(absPublicPath()));
 
   await app.listen(envService.get('PORT'));
@@ -63,15 +66,3 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 // Cool libraries for future
 // https://nosir.github.io/cleave.js/
 // https://sarcadass.github.io/granim.js/examples.html
-
-function x(a: Request, b: Response, c: any) {
-  // console.log(a, b, c);
-
-  console.log('middleware');
-  console.log(a.signedCookies);
-  console.log(a.body);
-
-  // b.json({ message: 'hello' });
-
-  c();
-}

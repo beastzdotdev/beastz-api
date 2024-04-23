@@ -10,24 +10,26 @@ export class AppService {
   private readonly logger = new Logger(AppController.name);
 
   async serveStaticProtected(req: Request, res: Response, authPayload: AuthPayloadType, startingAbsPath: string) {
+    const subPath = req.params[0];
+
+    if (!subPath) {
+      throw new Error('Panic');
+    }
+
+    const finalPath = path.join(startingAbsPath, authPayload.user.uuid, subPath);
+
+    const isDotFile = path.basename(finalPath).startsWith('.');
+
     try {
-      const subPath = req.params[0];
-
-      if (!subPath) {
-        throw new Error('Panic');
-      }
-
-      const finalPath = path.join(startingAbsPath, authPayload.user.uuid, subPath);
-
-      console.log(finalPath);
-
       res.sendFile(
         finalPath,
         {
           cacheControl: true,
           index: false,
+          dotfiles: 'allow',
           headers: {
-            'Cache-Control': 'Must-Revalidate',
+            ...(isDotFile && { 'Content-Type': 'text/plain' }),
+            'Cache-Control': 'no-store, must-revalidate',
           },
         },
         error => {
