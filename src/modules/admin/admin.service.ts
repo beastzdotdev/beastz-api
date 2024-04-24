@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { fsCustom } from '../../common/helper';
 import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
+import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
+import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 
 @Injectable()
 export class AdminService {
@@ -72,6 +75,67 @@ export class AdminService {
     return this.prismaService.userIdentity.update({
       where: { userId: id },
       data: { isLocked },
+    });
+  }
+
+  async answerTicket(params: { userId: number; supportId: number; message: string }): Promise<UserSupportMessage> {
+    const { message, supportId, userId } = params;
+
+    return this.prismaService.$transaction(async tx => {
+      const support = await tx.userSupport.findUniqueOrThrow({
+        where: {
+          id: supportId,
+          userId,
+        },
+      });
+
+      if (!support) {
+        throw new Error('Support not found');
+      }
+
+      return tx.userSupportMessage.create({
+        data: {
+          fromAdmin: true,
+          text: message,
+          userId,
+          userSupportId: supportId,
+        },
+      });
+    });
+  }
+
+  async getTickets(params: GetSupportTicketsQueryDto) {
+    const { status, userId, id, getMessages, title, uuid } = params;
+
+    return this.prismaService.userSupport.findMany({
+      where: {
+        id,
+        userId,
+        status: status ?? UserSupportTicketStatus.PENDING,
+        title,
+        uuid,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+
+      ...(getMessages && {
+        include: { userSupportMessages: true, userSupportImages: true },
+      }),
+    });
+  }
+
+  async updateTicket(id: number, dto: UpdateSupportTicketDto) {
+    const { userId, status } = dto;
+
+    return this.prismaService.userSupport.update({
+      where: {
+        id,
+        userId,
+      },
+      data: {
+        status,
+      },
     });
   }
 }
