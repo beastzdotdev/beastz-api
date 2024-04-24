@@ -53,3 +53,8 @@ test/unit/coverage
 !/user-upload/readme.md
 /user-deleted-forever
 !/user-deleted-forever/readme.md
+
+
+/hub
+!/hub/readme.md
+!/hub/user-support/readme.md

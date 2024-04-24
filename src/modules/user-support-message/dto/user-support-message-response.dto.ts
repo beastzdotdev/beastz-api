@@ -1,5 +1,6 @@
 import { UserSupportMessage } from '@prisma/client';
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
+import { UserSupportImageResponseDto } from '../../user-support-image/dto/user-support-image-response.dto';
 
 @Exclude()
 export class UserSupportMessageResponseDto implements Partial<UserSupportMessage> {
@@ -20,4 +21,8 @@ export class UserSupportMessageResponseDto implements Partial<UserSupportMessage
 
   @Expose()
   createdAt: Date;
+
+  @Expose()
+  @Type(() => UserSupportImageResponseDto)
+  userSupportImages: UserSupportImageResponseDto[] = [];
 }

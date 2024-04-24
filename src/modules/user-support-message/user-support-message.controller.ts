@@ -34,7 +34,7 @@ export class UserSupportMessageController {
       const response = await this.userSupportMessageService.getAll(queryParams, authPayload, tx);
 
       return {
-        data: plainToInstance(UserSupportMessageResponseDto, response.data),
+        data: plainToInstance(UserSupportMessageResponseDto, response.data, { exposeDefaultValues: true }),
         total: response.total,
       };
     });
@@ -55,7 +55,7 @@ export class UserSupportMessageController {
   ): Promise<UserSupportMessageResponseDto> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.userSupportMessageService.create(userSupportId, dto, authPayload, tx);
-      return plainToInstance(UserSupportMessageResponseDto, response);
+      return plainToInstance(UserSupportMessageResponseDto, response, { exposeDefaultValues: true });
     });
   }
 

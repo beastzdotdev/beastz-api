@@ -63,16 +63,18 @@ export class UserSupportMessageService {
       tx,
     );
 
-    await this.userSupportImageService.create(
-      file,
-      {
-        userId: authPayload.user.id,
-        userSupportId,
-        userSupportMessageId: response.id,
-      },
-      authPayload,
-      tx,
-    );
+    if (file) {
+      await this.userSupportImageService.create(
+        file,
+        {
+          userId: authPayload.user.id,
+          userSupportId,
+          userSupportMessageId: response.id,
+        },
+        authPayload,
+        tx,
+      );
+    }
 
     return response;
   }

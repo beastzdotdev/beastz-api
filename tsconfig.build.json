@@ -7,6 +7,7 @@
     "**/*spec.ts",
     "backups",
     "public",
+    "hub",
     "user-bin",
     "user-content",
     "user-upload",

@@ -61,6 +61,7 @@ export class UserSupportMessageRepository {
         orderBy: {
           createdAt: 'asc',
         },
+        include: { userSupportImages: true },
       }),
       db.userSupportMessage.count({
         where,
