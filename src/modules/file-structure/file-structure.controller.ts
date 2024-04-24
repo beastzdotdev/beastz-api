@@ -1,5 +1,6 @@
-import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { Response } from 'express';
 import { FileStructureService } from './file-structure.service';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
@@ -65,6 +66,15 @@ export class FileStructureController {
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.getById(authPayload, id);
     return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+  }
+
+  @Get('download/:id')
+  async downloadById(
+    @Res() res: Response,
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.fileStructureService.downloadById(res, authPayload, id);
   }
 
   @Post('upload-file')

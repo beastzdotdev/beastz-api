@@ -37,6 +37,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 
   app.enableCors({
     credentials: true,
+    exposedHeaders: ['Content-Title'],
     origin: [envService.get('FRONTEND_URL')],
   });
 

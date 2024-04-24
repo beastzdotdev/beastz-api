@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs, { createReadStream } from 'fs';
 import path from 'path';
 import { v4 as uuid } from 'uuid';
 import sanitizeHtml from 'sanitize-html';
@@ -13,6 +13,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { Response } from 'express';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
 import { FileStructureRepository } from './file-structure.repository';
@@ -157,6 +158,25 @@ export class FileStructureService {
     }
 
     return fileStructure;
+  }
+
+  async downloadById(res: Response, authPayload: AuthPayloadType, id: number) {
+    const fs = await this.getById(authPayload, id);
+
+    if (!fs.isFile) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
+    }
+
+    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+
+    res.writeHead(200, {
+      ...(fs.mimeTypeRaw && { 'Content-Type': fs.mimeTypeRaw }),
+      ...(fs.sizeInBytes && { 'Content-Length': fs.sizeInBytes }),
+      'Content-Title': fs.title + (fs.fileExstensionRaw ?? ''),
+    });
+
+    const readStream = createReadStream(absPath);
+    return readStream.pipe(res);
   }
 
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType) {
