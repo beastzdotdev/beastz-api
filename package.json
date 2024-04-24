@@ -16,7 +16,6 @@
     "preversion": "npm run use:nvm",
     "prestart": "npm run use:nvm",
     "prebuild": "npm run use:nvm && rimraf dist",
-    "prisma": "prisma",
     "modules:update:check": "npm run use:nvm && npx npm-check-updates",
     "modules:update": "npm run use:nvm && npx npm-check-updates -u",
     "build": "npm run lint && nest build",
@@ -31,7 +30,8 @@
     "test:unit": "jest --config ./test/unit/jest.json --detectOpenHandles --forceExit",
     "test:unit:cov": "jest --config ./test/unit/jest.json --coverage --detectOpenHandles --forceExit",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "migration:prisma:gen": "prisma generate",
+    "prisma": "prisma",
+    "prisma:gen": "prisma generate",
     "migration:gen": "prisma migrate dev --create-only",
     "migration:run": "prisma migrate dev"
   },

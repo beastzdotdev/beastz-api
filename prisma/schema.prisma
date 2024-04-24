@@ -42,6 +42,14 @@ enum LegalDocumentType {
   @@map("legal_document_type")
 }
 
+enum UserSupportTicketStatus {
+  RESOLVED
+  PENDING
+  IGNORED
+
+  @@map("user_support_ticket_status")
+}
+
 /// This enum contains top mimetypes in everywhere
 enum FileMimeType {
   TEXT_PLAIN
@@ -109,6 +117,9 @@ model User {
   fileStructureSharePulicLink     FileStructureSharePulicLink[]
   fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
   fileStructureBin                FileStructureBin[]
+  userSupport                     UserSupport[]
+  userSupportMessages             UserSupportMessages[]
+  userSupportImages               UserSupportImages[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -137,7 +148,7 @@ model RefreshToken {
   iss       String
   platform  PlatformForJwt
   exp       String
-  jti       String         @unique @db.Uuid()
+  jti       String         @unique @db.Uuid
   iat       String
   createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz()
 
@@ -150,7 +161,7 @@ model RefreshToken {
 model AccountVerification {
   id            Int       @id @default(autoincrement())
   securityToken String    @map("security_token")
-  jti           String    @unique @db.Uuid()
+  jti           String    @unique @db.Uuid
   userId        Int       @map("user_id")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
@@ -158,6 +169,7 @@ model AccountVerification {
   acountVerificationAttemptCount AccountVerificationAttemptCount?
   user                           User                             @relation(fields: [userId], references: [id])
 
+  @@index([jti], type: BTree)
   @@map("account_verifications")
 }
 
@@ -180,7 +192,7 @@ model AccountVerificationAttemptCount {
 model RecoverPassword {
   id            Int       @id @default(autoincrement())
   securityToken String    @map("security_token")
-  jti           String    @unique @db.Uuid()
+  jti           String    @unique @db.Uuid
   userId        Int       @map("user_id")
   newPassword   String    @map("new_password") @db.VarChar(255)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
@@ -189,6 +201,7 @@ model RecoverPassword {
   recoverPasswordAttemptCount RecoverPasswordAttemptCount?
   user                        User                         @relation(fields: [userId], references: [id])
 
+  @@index([jti], type: BTree)
   @@map("recover_passwords")
 }
 
@@ -210,7 +223,7 @@ model RecoverPasswordAttemptCount {
 model ResetPassword {
   id            Int       @id @default(autoincrement())
   securityToken String    @map("security_token")
-  jti           String    @unique @db.Uuid()
+  jti           String    @unique @db.Uuid
   userId        Int       @map("user_id")
   newPassword   String    @map("new_password") @db.VarChar(255)
   deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
@@ -219,6 +232,7 @@ model ResetPassword {
   user                      User                       @relation(fields: [userId], references: [id])
   resetPasswordAttemptCount ResetPasswordAttemptCount?
 
+  @@index([jti], type: BTree)
   @@map("reset_passwords")
 }
 
@@ -388,12 +402,66 @@ model FileStructureBin {
   id              Int      @id @default(autoincrement())
   userId          Int      @map("user_id")
   path            String   @db.Text
-  nameUUID        String   @map("name_uuid") @db.Text
+  nameUUID        String   @map("name_uuid") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
   fileStructureId Int      @unique @map("file_structure_id")
 
   user          User          @relation(fields: [userId], references: [id])
   fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
+  @@index([nameUUID], type: BTree)
   @@map("file_structure_bin")
+}
+
+model UserSupport {
+  id          Int                     @id @default(autoincrement())
+  userId      Int                     @map("user_id")
+  uuid        String                  @db.Uuid
+  title       String                  @db.VarChar(255)
+  description String                  @db.Text
+  status      UserSupportTicketStatus
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user                User                  @relation(fields: [userId], references: [id])
+  userSupportMessages UserSupportMessages[]
+  userSupportImages   UserSupportImages[]
+  deletedAt           DateTime?             @map("deleted_at") @db.Timestamptz()
+
+  @@index([uuid], type: BTree)
+  @@map("user_support")
+}
+
+model UserSupportMessages {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  fromAdmin     Boolean  @map("from_admin")
+  text          String   @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  userSupportId Int      @map("user_support_id")
+
+  userSupport       UserSupport         @relation(fields: [userSupportId], references: [id])
+  user              User                @relation(fields: [userId], references: [id])
+  userSupportImages UserSupportImages[]
+
+  @@map("user_support_messages")
+}
+
+model UserSupportImages {
+  id                   Int    @id @default(autoincrement())
+  userId               Int    @map("user_id")
+  userSupportMessageId Int    @map("user_support_message_id")
+  userSupportId        Int    @map("user_support_id")
+  nameUUID             String @map("name_uuid") @db.Uuid
+  path                 String @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  userSupportMessage UserSupportMessages @relation(fields: [userSupportMessageId], references: [id])
+  userSupport        UserSupport         @relation(fields: [userSupportId], references: [id])
+  user               User                @relation(fields: [userId], references: [id])
+
+  @@index([nameUUID], type: BTree)
+  @@map("user_support_images")
 }
