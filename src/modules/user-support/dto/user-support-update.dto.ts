@@ -13,6 +13,6 @@ export class UserSupportUpdateDto implements Partial<UserSupport> {
 
   @IsOptional()
   @IsEnum(UserSupportTicketStatus, { message: enumMessage('status', UserSupportTicketStatus) })
-  @IsIn([UserSupportTicketStatus.PENDING, UserSupportTicketStatus.PENDING])
+  @IsIn([UserSupportTicketStatus.IGNORED, UserSupportTicketStatus.RESOLVED])
   status?: UserSupportTicketStatus;
 }

@@ -84,7 +84,7 @@ export class UserSupportService {
       id,
       authPayload.user.id,
       {
-        deletedAt: moment().toNow(),
+        deletedAt: moment().toDate(),
       },
       tx,
     );
