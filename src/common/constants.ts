@@ -46,6 +46,7 @@ export const constants = Object.freeze({
     publicAssets: 'public',
     publicAssetsImage: 'public/img',
 
+    useSupportFolderName: 'hub/user-support',
     userContentFolderName: 'user-content',
     userUploadFolderName: 'user-upload',
     userBinFolderName: 'user-bin',

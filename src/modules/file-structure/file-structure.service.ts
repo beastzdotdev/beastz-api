@@ -212,16 +212,12 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      // this should have no problem
-      //TODO
-      await fs.promises
-        .writeFile(path.join(userRootContentPath, entityPath), file.buffer, { encoding: 'utf-8' })
-        .catch(err => {
-          this.logger.debug('Error happend in root file creation');
-          this.logger.error(err);
+      await fsCustom.createFile(absolutePath, file.buffer).catch(err => {
+        this.logger.debug('Error happend in root file creation');
+        this.logger.error(err);
 
-          throw new InternalServerErrorException('Something went wrong');
-        });
+        throw new InternalServerErrorException('Something went wrong');
+      });
     } else {
       if (!parent) {
         this.logger.debug(`This should not happen, tempParentFile mus not be null or undefined`);

@@ -1,3 +1,7 @@
+
+
+TODO i think it would be better if all transactions callback moved from services to controllers because some services are used in other services
+
 TODO move every folder starting with user-* under name of hub or nexus
 
 https://docs.nestjs.com/recipes/swc

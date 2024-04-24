@@ -50,6 +50,15 @@ export const fileStructureHelper = Object.freeze({
   },
 });
 
+export const OnlyImgMimetypeRaw = [
+  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
+  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
+  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_GIF,
+  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
+  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
+  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_SVG,
+];
+
 const rooPath = path.join(require.main!.path, '../..');
 const {
   //
@@ -59,6 +68,7 @@ const {
   userUploadFolderName,
   userBinFolderName,
   userDeleteForeverFolderName,
+  useSupportFolderName,
 } = constants.assets;
 
 export const absPublicPath = (extraPath?: string) => path.join(rooPath, publicAssets, extraPath ?? '');
@@ -67,6 +77,7 @@ export const absUserContentPath = (uuid?: string) => path.join(rooPath, userCont
 export const absUserUploadPath = (uuid?: string) => path.join(rooPath, userUploadFolderName, uuid ?? '');
 export const absUserBinPath = (uuid?: string) => path.join(rooPath, userBinFolderName, uuid ?? '');
 export const absUserDeletedForeverPath = (uuid?: string) => path.join(rooPath, userDeleteForeverFolderName, uuid ?? '');
+export const absUserSupportPath = (uuid?: string) => path.join(rooPath, useSupportFolderName, uuid ?? '');
 
 /**
  * @example

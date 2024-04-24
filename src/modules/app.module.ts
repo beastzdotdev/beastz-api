@@ -18,6 +18,8 @@ import { AllExceptionsFilter } from '../filters/all-exception.filter';
 import { FileStructureModule } from './file-structure/file-structure.module';
 import { FileStructureBinModule } from './file-structure-bin/file-structure-bin.module';
 import { AppService } from './app.service';
+import { UserSupportModule } from './user-support/user-support.module';
+import { UserSupportMessageModule } from './user-support-message/user-support-message.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { AppService } from './app.service';
     AdminModule,
     FileStructureModule,
     FileStructureBinModule,
+    UserSupportModule,
+    UserSupportMessageModule,
   ],
   controllers: [AppController],
   providers: [

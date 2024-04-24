@@ -9,13 +9,14 @@ import { UserSupportQueryAllDto } from './dto/user-support-get-all-query.dto';
 import { Pagination } from '../../model/types';
 import { UserSupportCreateDto } from './dto/user-support-create.dto';
 import { UserSupportUpdateDto } from './dto/user-support-update.dto';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserSupportService {
   constructor(private readonly userSupportRepository: UserSupportRepository) {}
 
-  async getById(id: number, authPayload: AuthPayloadType): Promise<UserSupport> {
-    const userSupport = await this.userSupportRepository.getById(id, authPayload.user.id);
+  async getById(id: number, authPayload: AuthPayloadType, tx?: PrismaTx): Promise<UserSupport> {
+    const userSupport = await this.userSupportRepository.getById(id, authPayload.user.id, tx);
 
     if (!userSupport) {
       throw new NotFoundException(ExceptionMessageCode.USER_SUPPORT_NOT_FOUND);
@@ -24,54 +25,94 @@ export class UserSupportService {
     return userSupport;
   }
 
-  async getAll(queryParams: UserSupportQueryAllDto, authPayload: AuthPayloadType): Promise<Pagination<UserSupport>> {
-    const response = await this.userSupportRepository.getAll(authPayload.user.id, queryParams);
+  async getAll(
+    queryParams: UserSupportQueryAllDto,
+    authPayload: AuthPayloadType,
+    tx?: PrismaTx,
+  ): Promise<Pagination<UserSupport>> {
+    const response = await this.userSupportRepository.getAll(authPayload.user.id, queryParams, tx);
     return response;
   }
 
-  async create(dto: UserSupportCreateDto, authPayload: AuthPayloadType): Promise<UserSupport> {
+  async create(dto: UserSupportCreateDto, authPayload: AuthPayloadType, tx?: PrismaTx): Promise<UserSupport> {
     const { description, title } = dto;
 
-    const response = await this.userSupportRepository.create({
-      title,
-      description,
-      uuid: uuid(),
-      status: UserSupportTicketStatus.PENDING,
-      userId: authPayload.user.id,
-      updatedAt: moment().toDate(),
-      deletedAt: null,
-    });
+    const response = await this.userSupportRepository.create(
+      {
+        title,
+        description,
+        uuid: uuid(),
+        status: UserSupportTicketStatus.PENDING,
+        userId: authPayload.user.id,
+        updatedAt: moment().toDate(),
+        deletedAt: null,
+      },
+      tx,
+    );
 
     return response;
   }
 
-  async updateById(id: number, dto: UserSupportUpdateDto, authPayload: AuthPayloadType): Promise<UserSupport> {
+  async updateById(
+    id: number,
+    dto: UserSupportUpdateDto,
+    authPayload: AuthPayloadType,
+    tx?: PrismaTx,
+  ): Promise<UserSupport> {
     const { description, status, title } = dto;
 
-    await this.existsById(id, authPayload.user.id);
+    const response = await this.userSupportRepository.updateById(
+      id,
+      authPayload.user.id,
+      {
+        description,
+        status,
+        title,
+      },
+      tx,
+    );
 
-    const response = await this.userSupportRepository.updateById(id, authPayload.user.id, {
-      description,
-      status,
-      title,
-    });
+    if (response === null) {
+      throw new NotFoundException(ExceptionMessageCode.USER_SUPPORT_NOT_FOUND);
+    }
 
     return response!;
   }
 
-  async deleteById(id: number, authPayload: AuthPayloadType): Promise<void> {
-    await this.existsById(id, authPayload.user.id);
+  async deleteById(id: number, authPayload: AuthPayloadType, tx?: PrismaTx): Promise<void> {
+    const response = await this.userSupportRepository.updateById(
+      id,
+      authPayload.user.id,
+      {
+        deletedAt: moment().toNow(),
+      },
+      tx,
+    );
 
-    await this.userSupportRepository.updateById(id, authPayload.user.id, {
-      deletedAt: moment().toNow(),
-    });
+    if (response === null) {
+      throw new NotFoundException(ExceptionMessageCode.USER_SUPPORT_NOT_FOUND);
+    }
   }
 
-  private async existsById(id: number, userId: number): Promise<void> {
-    const entity = await this.userSupportRepository.existsById(id, userId);
+  async existsById(id: number, userId: number, tx?: PrismaTx): Promise<void> {
+    const entity = await this.userSupportRepository.existsById(id, userId, tx);
 
     if (!entity) {
       throw new NotFoundException(ExceptionMessageCode.USER_SUPPORT_NOT_FOUND);
+    }
+  }
+
+  async existsAndIsNotClosed(id: number, authPayload: AuthPayloadType, tx?: PrismaTx): Promise<void> {
+    const userSupport = await this.getById(id, authPayload, tx);
+
+    if (!userSupport) {
+      throw new NotFoundException(ExceptionMessageCode.USER_SUPPORT_NOT_FOUND);
+    }
+
+    if (userSupport.status !== UserSupportTicketStatus.PENDING) {
+      throw new NotFoundException(ExceptionMessageCode.USER_SUPPORT_NOT_PENDING, {
+        description: 'Cannot create message when user support is not in pending',
+      });
     }
   }
 }

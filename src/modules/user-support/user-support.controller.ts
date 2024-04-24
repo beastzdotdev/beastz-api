@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Logger, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { UserSupportResponseDto } from './dto/user-support-response.dto';
 import { UserSupportService } from './user-support.service';
@@ -8,10 +8,18 @@ import { UserSupportQueryAllDto } from './dto/user-support-get-all-query.dto';
 import { Pagination } from '../../model/types';
 import { UserSupportCreateDto } from './dto/user-support-create.dto';
 import { UserSupportUpdateDto } from './dto/user-support-update.dto';
+import { transaction } from '../../common/transaction';
+import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaService } from '../@global/prisma/prisma.service';
 
-@Controller('user')
-export class SupportController {
-  constructor(private readonly userSupportService: UserSupportService) {}
+@Controller('user-support')
+export class UserSupportController {
+  private readonly logger = new Logger(UserSupportController.name);
+
+  constructor(
+    private readonly userSupportService: UserSupportService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   @Get(':id')
   async getById(
@@ -40,8 +48,10 @@ export class SupportController {
     @Body() dto: UserSupportCreateDto,
     @AuthPayload() authPayload: AuthPayloadType,
   ): Promise<UserSupportResponseDto> {
-    const response = await this.userSupportService.create(dto, authPayload);
-    return plainToInstance(UserSupportResponseDto, response);
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const response = await this.userSupportService.create(dto, authPayload, tx);
+      return plainToInstance(UserSupportResponseDto, response);
+    });
   }
 
   @Patch(':id')
@@ -50,12 +60,16 @@ export class SupportController {
     @Body() dto: UserSupportUpdateDto,
     @AuthPayload() authPayload: AuthPayloadType,
   ): Promise<UserSupportResponseDto> {
-    const response = await this.userSupportService.updateById(id, dto, authPayload);
-    return plainToInstance(UserSupportResponseDto, response);
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const response = await this.userSupportService.updateById(id, dto, authPayload, tx);
+      return plainToInstance(UserSupportResponseDto, response);
+    });
   }
 
   @Delete(':id')
   async deleteById(@Param('id', ParseIntPipe) id: number, @AuthPayload() authPayload: AuthPayloadType): Promise<void> {
-    await this.userSupportService.deleteById(id, authPayload);
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      await this.userSupportService.deleteById(id, authPayload, tx);
+    });
   }
 }

@@ -118,8 +118,8 @@ model User {
   fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
   fileStructureBin                FileStructureBin[]
   userSupport                     UserSupport[]
-  userSupportMessages             UserSupportMessages[]
-  userSupportImages               UserSupportImages[]
+  userSupportMessages             UserSupportMessage[]
+  userSupportImages               UserSupportImage[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -424,31 +424,31 @@ model UserSupport {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-  user                User                  @relation(fields: [userId], references: [id])
-  userSupportMessages UserSupportMessages[]
-  userSupportImages   UserSupportImages[]
-  deletedAt           DateTime?             @map("deleted_at") @db.Timestamptz()
+  user                User                 @relation(fields: [userId], references: [id])
+  userSupportMessages UserSupportMessage[]
+  userSupportImages   UserSupportImage[]
+  deletedAt           DateTime?            @map("deleted_at") @db.Timestamptz()
 
   @@index([uuid], type: BTree)
   @@map("user_support")
 }
 
-model UserSupportMessages {
+model UserSupportMessage {
   id            Int      @id @default(autoincrement())
   userId        Int      @map("user_id")
   fromAdmin     Boolean  @map("from_admin")
-  text          String   @db.Text
+  text          String?  @db.Text /// can be null because what if user uploads only image
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
   userSupportId Int      @map("user_support_id")
 
-  userSupport       UserSupport         @relation(fields: [userSupportId], references: [id])
-  user              User                @relation(fields: [userId], references: [id])
-  userSupportImages UserSupportImages[]
+  userSupport       UserSupport        @relation(fields: [userSupportId], references: [id])
+  user              User               @relation(fields: [userId], references: [id])
+  userSupportImages UserSupportImage[]
 
-  @@map("user_support_messages")
+  @@map("user_support_message")
 }
 
-model UserSupportImages {
+model UserSupportImage {
   id                   Int    @id @default(autoincrement())
   userId               Int    @map("user_id")
   userSupportMessageId Int    @map("user_support_message_id")
@@ -458,10 +458,10 @@ model UserSupportImages {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-  userSupportMessage UserSupportMessages @relation(fields: [userSupportMessageId], references: [id])
-  userSupport        UserSupport         @relation(fields: [userSupportId], references: [id])
-  user               User                @relation(fields: [userId], references: [id])
+  userSupportMessage UserSupportMessage @relation(fields: [userSupportMessageId], references: [id])
+  userSupport        UserSupport        @relation(fields: [userSupportId], references: [id])
+  user               User               @relation(fields: [userId], references: [id])
 
   @@index([nameUUID], type: BTree)
-  @@map("user_support_images")
+  @@map("user_support_image")
 }
