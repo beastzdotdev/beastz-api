@@ -66,6 +66,13 @@ export class UserSupportController {
     });
   }
 
+  @Delete()
+  async deleteAll(@AuthPayload() authPayload: AuthPayloadType): Promise<void> {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      await this.userSupportService.deleteAll(authPayload, tx);
+    });
+  }
+
   @Delete(':id')
   async deleteById(@Param('id', ParseIntPipe) id: number, @AuthPayload() authPayload: AuthPayloadType): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {

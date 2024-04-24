@@ -58,7 +58,7 @@ export class UserSupportRepository {
         take: pageSize,
         skip: (page - 1) * pageSize,
         orderBy: {
-          createdAt: 'asc',
+          createdAt: 'desc',
         },
       }),
       db.userSupport.count({
@@ -90,5 +90,17 @@ export class UserSupportRepository {
     }
 
     return db.userSupport.update({ where, data: params });
+  }
+
+  async updateAll(userId: number, params: UpdateUserSupportParams, tx?: PrismaTx) {
+    const db = tx ?? this.prismaService;
+
+    return db.userSupport.updateMany({
+      where: {
+        userId,
+        deletedAt: null,
+      },
+      data: params,
+    });
   }
 }

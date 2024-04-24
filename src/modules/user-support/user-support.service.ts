@@ -94,6 +94,16 @@ export class UserSupportService {
     }
   }
 
+  async deleteAll(authPayload: AuthPayloadType, tx: PrismaTx) {
+    await this.userSupportRepository.updateAll(
+      authPayload.user.id,
+      {
+        deletedAt: moment().toDate(),
+      },
+      tx,
+    );
+  }
+
   async existsById(id: number, userId: number, tx?: PrismaTx): Promise<void> {
     const entity = await this.userSupportRepository.existsById(id, userId, tx);
 
