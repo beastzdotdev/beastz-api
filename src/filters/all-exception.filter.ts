@@ -34,7 +34,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let errorBody: AllExceptionBody;
 
-    console.log(url);
+    // console.log(url);
 
     //TODO needs some check for example can be moved to hub
     if (

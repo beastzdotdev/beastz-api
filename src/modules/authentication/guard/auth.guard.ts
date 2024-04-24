@@ -116,7 +116,8 @@ export class AuthGuard implements CanActivate {
     if (
       request.url.startsWith(path.join('/', constants.assets.userContentFolderName)) ||
       request.url.startsWith(path.join('/', constants.assets.userUploadFolderName)) ||
-      request.url.startsWith(path.join('/', constants.assets.userBinFolderName))
+      request.url.startsWith(path.join('/', constants.assets.userBinFolderName)) ||
+      request.url.startsWith(path.join('/', constants.assets.hubFolderName))
     ) {
       platformValue = PlatformForJwt.WEB;
     }

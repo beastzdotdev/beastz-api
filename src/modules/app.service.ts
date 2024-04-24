@@ -17,7 +17,6 @@ export class AppService {
     }
 
     const finalPath = path.join(startingAbsPath, authPayload.user.uuid, subPath);
-
     const isDotFile = path.basename(finalPath).startsWith('.');
 
     try {
