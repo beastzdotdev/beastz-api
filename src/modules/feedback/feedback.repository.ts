@@ -38,12 +38,16 @@ export class FeedbackRepository {
       ...(userId && { userId }),
     };
 
-    const total = await this.prismaService.feedback.count({ where });
-    const data = await this.prismaService.feedback.findMany({
-      where,
-      take: pageSize,
-      skip: (page - 1) * pageSize,
-    });
+    const [data, total] = await Promise.all([
+      this.prismaService.feedback.findMany({
+        where,
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+      }),
+      this.prismaService.feedback.count({
+        where,
+      }),
+    ]);
 
     return { total, data };
   }
