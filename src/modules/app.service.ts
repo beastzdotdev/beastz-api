@@ -28,7 +28,7 @@ export class AppService {
           dotfiles: 'allow',
           headers: {
             ...(isDotFile && { 'Content-Type': 'text/plain' }),
-            'Cache-Control': 'no-store, must-revalidate',
+            'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
           },
         },
         error => {

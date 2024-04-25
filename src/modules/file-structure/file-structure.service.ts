@@ -168,7 +168,8 @@ export class FileStructureService {
     const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
     const contentTitle = fs.isFile ? fs.title + (fs.fileExstensionRaw ?? '') : fs.title + '.zip';
 
-    res.writeHead(200, {
+    res.setHeader('Content-Disposition', `attachment; filename=${contentTitle}`);
+    res.writeHead(HttpStatus.OK, {
       ...(fs.mimeTypeRaw && { 'Content-Type': fs.mimeTypeRaw }),
       ...(fs.sizeInBytes && { 'Content-Length': fs.sizeInBytes }),
       'Content-Title': contentTitle,
