@@ -47,6 +47,7 @@ import {
   absUserTempFolderZipPath,
 } from './file-structure.helper';
 import { GetDetailsQueryDto } from './dto/get-details-query.dto';
+import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -153,8 +154,8 @@ export class FileStructureService {
     return fileStructures;
   }
 
-  async getById(authPayload: AuthPayloadType, id: number) {
-    const fileStructure = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
+  async getById(authPayload: AuthPayloadType, id: number, tx?: PrismaTx) {
+    const fileStructure = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id }, tx);
 
     if (!fileStructure) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
@@ -338,6 +339,96 @@ export class FileStructureService {
       path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
       depth: entityDepth, // if root 0 or parent depth + 1
     });
+  }
+
+  async uploadEncryptedFile(dto: UploadEncryptedFileStructureDto, authPayload: AuthPayloadType, tx?: PrismaTx) {
+    const { file: encryptedFile, fileStructureId } = dto;
+    const fs = await this.getById(authPayload, fileStructureId, tx);
+
+    if (!fs.isFile) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
+    }
+
+    if (fs.isEncrypted) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_ALREADY_ENCRYPTED);
+    }
+
+    //1. check storage limit, encrypted file may be bigger
+    const extraSize = encryptedFile.size - (fs?.sizeInBytes ?? 0);
+    await this.checkStorageLimit(authPayload.user.id, extraSize, tx);
+
+    const existingAbsFilePath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+
+    //2. replace last path name and ext with new name and and new ext e.g. .enc
+    // something.jpeg or something.enc -> something
+    const parsedFile = path.parse(fs.path);
+    parsedFile.ext = constants.ENCRYPTED_EXTENSION;
+    parsedFile.base = parsedFile.name + parsedFile.ext; // important
+
+    const newPath = path.format(parsedFile); // same fs path but extension is now .enc
+    const newAbsFilePath = path.join(absUserContentPath(authPayload.user.uuid), newPath);
+
+    //3. check if new encrypted filename with same name exists before creation in actual fs
+    const sameNameFileStructure = await this.fsRepository.getBy(
+      {
+        isFile: true,
+        userId: authPayload.user.id,
+        path: newPath,
+      },
+      tx,
+    );
+
+    if (sameNameFileStructure) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_ALREADY_EXISTS);
+    }
+
+    //4. check if folder exists before creation
+    const folderCreationSuccess = await fsCustom.checkDirOrCreate(newAbsFilePath, {
+      isFile: true,
+      createIfNotExists: false,
+    });
+
+    if (!folderCreationSuccess) {
+      this.logger.debug(`Folder check error ${newAbsFilePath}`);
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    //5. update isEncrypted
+    //6. create new file with .enc extension
+    //7. remove existing file
+    const [newFs] = await Promise.all([
+      this.fsRepository.updateById(
+        fileStructureId,
+        {
+          isEncrypted: true,
+          mimeType: FileMimeType.APPLICATION_OCTET_STREAM,
+          mimeTypeRaw: fileStructureHelper.fileTypeEnumToRawMime[FileMimeType.APPLICATION_OCTET_STREAM],
+          fileExstensionRaw: constants.ENCRYPTED_EXTENSION,
+          lastModifiedAt: moment().toDate(),
+          path: newPath,
+          sizeInBytes: encryptedFile.size,
+        },
+        {
+          userId: authPayload.user.id,
+          isInBin: false,
+        },
+        tx,
+      ),
+      fsCustom.createFile(newAbsFilePath, encryptedFile.buffer).catch(err => {
+        this.logger.debug(`Error happend in file creation ${newAbsFilePath}`);
+        this.logger.error(err);
+
+        throw new InternalServerErrorException('Something went wrong');
+      }),
+      fsCustom.delete(existingAbsFilePath).catch(err => {
+        this.logger.debug(`Error happend in file delete ${existingAbsFilePath}`);
+        this.logger.error(err);
+
+        throw new InternalServerErrorException('Something went wrong');
+      }),
+    ]);
+
+    return newFs;
   }
 
   async createFolder(dto: CreateFolderStructureDto, authPayload: AuthPayloadType) {
@@ -800,8 +891,8 @@ export class FileStructureService {
     return `${titleStartsWith} (${finalNum + 1})`;
   }
 
-  private async checkStorageLimit(userId: number, extraSizeInBytes: number): Promise<void> {
-    const totalFileSizeBeforeModify = await this.fsRepository.getTotalFilesSize(userId, {});
+  private async checkStorageLimit(userId: number, extraSizeInBytes: number, tx?: PrismaTx): Promise<void> {
+    const totalFileSizeBeforeModify = await this.fsRepository.getTotalFilesSize(userId, {}, tx);
 
     if (totalFileSizeBeforeModify + extraSizeInBytes > constants.MAX_STORAGE_PER_USER_IN_BYTES) {
       throw new ForbiddenException('Storage limit exceeds limit');

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res, Logger } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { Response } from 'express';
 import { FileStructureService } from './file-structure.service';
@@ -10,20 +10,26 @@ import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { BasicFileStructureResponseDto } from './dto/response/basic-file-structure-response.dto';
 import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
 import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
-import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
-import { constants } from '../../common/constants';
-import { fileStructureHelper } from './file-structure.helper';
-import { PlainToInstanceInterceptor } from '../../interceptor/plain-to-instance.interceptor';
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
 import { GetGeneralInfoResponseDto } from './dto/response/get-general-info-response.dto';
 import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
 import { GetDetailsQueryDto } from './dto/get-details-query.dto';
+import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
+import { fileInterceptors } from '../../common/helper';
+import { transaction } from '../../common/transaction';
+import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaService } from '../@global/prisma/prisma.service';
 
 @Controller('file-structure')
 export class FileStructureController {
-  constructor(private readonly fileStructureService: FileStructureService) {}
+  private readonly logger = new Logger(FileStructureController.name);
+
+  constructor(
+    private readonly fileStructureService: FileStructureService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   @Get('content')
   async getContent(
@@ -78,19 +84,25 @@ export class FileStructureController {
   }
 
   @Post('upload-file')
-  @FileUploadInterceptor(
-    new PlainToInstanceInterceptor(UploadFileStructureDto),
-    new MulterFileInterceptor({
-      fileTypes: Object.values(fileStructureHelper.fileTypeEnumToRawMime),
-      maxSize: constants.singleFileMaxSize,
-    }),
-  )
+  @FileUploadInterceptor(...fileInterceptors(UploadFileStructureDto))
   async uploadFile(
     @AuthPayload() authPayload: AuthPayloadType,
     @Body() dto: UploadFileStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.uploadFile(dto, authPayload);
     return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+  }
+
+  @Post('upload-encrypted-file')
+  @FileUploadInterceptor(...fileInterceptors(UploadEncryptedFileStructureDto))
+  async uploadEncryptedFile(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Body() dto: UploadEncryptedFileStructureDto,
+  ): Promise<BasicFileStructureResponseDto> {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const response = await this.fileStructureService.uploadEncryptedFile(dto, authPayload, tx);
+      return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    });
   }
 
   @Post('create-folder')

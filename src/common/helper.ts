@@ -5,13 +5,17 @@ import fastFolderSize from 'fast-folder-size';
 import { match } from 'ts-pattern';
 import { promisify as toPromiseNative } from 'util';
 import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
-import { HttpStatus, InternalServerErrorException, Logger } from '@nestjs/common';
+import { HttpStatus, InternalServerErrorException, Logger, NestInterceptor } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
-import { SafeCallResult, ExceptionType, GeneralEnumType, CustomFsResponse } from '../model/types';
+import { SafeCallResult, ExceptionType, GeneralEnumType, CustomFsResponse, GeneralClass } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { ImportantExceptionBody } from '../model/exception.type';
+import { MulterFileInterceptor } from '../interceptor/multer-file.interceptor';
+import { PlainToInstanceInterceptor } from '../interceptor/plain-to-instance.interceptor';
+import { fileStructureHelper } from '../modules/file-structure/file-structure.helper';
+import { constants } from './constants';
 
 const helperLogger = new Logger('Helper logger');
 
@@ -390,4 +394,14 @@ export const fsCustom = {
       }
     });
   },
+};
+
+export const fileInterceptors = (dto: GeneralClass): NestInterceptor[] => {
+  return [
+    new PlainToInstanceInterceptor(dto),
+    new MulterFileInterceptor({
+      fileTypes: Object.values(fileStructureHelper.fileTypeEnumToRawMime),
+      maxSize: constants.singleFileMaxSize,
+    }),
+  ];
 };
