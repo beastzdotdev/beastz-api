@@ -1,6 +1,7 @@
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
 import path from 'path';
+
 import { FileMimeType, FileStructure } from '@prisma/client';
 import { constants } from '../../common/constants';
 import { escapeRegExp } from '../../common/helper';
@@ -69,6 +70,7 @@ const {
   userBinFolderName,
   userDeleteForeverFolderName,
   useSupportFolderName,
+  userTempFolderZipFolerName,
 } = constants.assets;
 
 export const absPublicPath = (extraPath?: string) => path.join(rooPath, publicAssets, extraPath ?? '');
@@ -78,6 +80,7 @@ export const absUserUploadPath = (uuid?: string) => path.join(rooPath, userUploa
 export const absUserBinPath = (uuid?: string) => path.join(rooPath, userBinFolderName, uuid ?? '');
 export const absUserDeletedForeverPath = (uuid?: string) => path.join(rooPath, userDeleteForeverFolderName, uuid ?? '');
 export const absUserSupportPath = (uuid?: string) => path.join(rooPath, useSupportFolderName, uuid ?? '');
+export const absUserTempFolderZipPath = (uuid?: string) => path.join(rooPath, userTempFolderZipFolerName, uuid ?? '');
 
 /**
  * @example

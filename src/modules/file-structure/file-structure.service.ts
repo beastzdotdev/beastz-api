@@ -1,19 +1,21 @@
-import fs, { createReadStream } from 'fs';
 import path from 'path';
-import { v4 as uuid } from 'uuid';
+import moment from 'moment';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
+import { v4 as uuid } from 'uuid';
+import { createReadStream } from 'fs';
+import { Response } from 'express';
 import { FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
 import {
   BadRequestException,
   ForbiddenException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 
-import { Response } from 'express';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
 import { FileStructureRepository } from './file-structure.repository';
@@ -42,6 +44,7 @@ import {
   absUserBinPath,
   absUserContentPath,
   absUserDeletedForeverPath,
+  absUserTempFolderZipPath,
 } from './file-structure.helper';
 import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 
@@ -162,21 +165,60 @@ export class FileStructureService {
 
   async downloadById(res: Response, authPayload: AuthPayloadType, id: number) {
     const fs = await this.getById(authPayload, id);
-
-    if (!fs.isFile) {
-      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
-    }
-
     const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+    const contentTitle = fs.isFile ? fs.title + (fs.fileExstensionRaw ?? '') : fs.title + '.zip';
 
     res.writeHead(200, {
       ...(fs.mimeTypeRaw && { 'Content-Type': fs.mimeTypeRaw }),
       ...(fs.sizeInBytes && { 'Content-Length': fs.sizeInBytes }),
-      'Content-Title': fs.title + (fs.fileExstensionRaw ?? ''),
+      'Content-Title': contentTitle,
     });
 
-    const readStream = createReadStream(absPath);
-    return readStream.pipe(res);
+    if (fs.isFile) {
+      const readStream = createReadStream(absPath);
+      return readStream.pipe(res);
+    } else {
+      // user separation folder does not happen in user temp folder zip folder
+      const tempDestination = absUserTempFolderZipPath();
+      const uniqueName = `${authPayload.user.uuid}-${uuid()}-utc-${moment().toISOString()}`;
+
+      let outputZipPath: string;
+
+      try {
+        const { outputZip, err } = await fsCustom.createZipFromFolder({
+          sourcePath: absPath,
+          destinationPath: tempDestination,
+          uniqueName,
+        });
+
+        if (err) {
+          fsCustom.delete(outputZip);
+          return res
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .json({ message: 'Sorry, something went wrong. Please try again.' });
+        }
+
+        outputZipPath = outputZip;
+      } catch (error) {
+        return res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .json({ message: 'Sorry, something went wrong. Please try again.' });
+      }
+
+      if (outputZipPath) {
+        const readStream = createReadStream(outputZipPath);
+
+        readStream.on('close', () => {
+          fsCustom.delete(outputZipPath);
+        });
+
+        return readStream.pipe(res);
+      } else {
+        return res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .json({ message: 'Sorry, something went wrong. Please try again.' });
+      }
+    }
   }
 
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType) {
@@ -264,8 +306,7 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      // here create only file in existing directory
-      await fs.promises.writeFile(absolutePath, file.buffer, { encoding: 'utf-8' }).catch(err => {
+      await fsCustom.createFile(absolutePath, file.buffer).catch(err => {
         this.logger.debug('Error happend in parent file creation');
         this.logger.error(err);
 

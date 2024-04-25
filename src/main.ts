@@ -5,9 +5,9 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import express from 'express';
 import helmet from 'helmet';
-
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+
 import { AppModule } from './modules/app.module';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';

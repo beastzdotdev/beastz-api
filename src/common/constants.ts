@@ -48,6 +48,8 @@ export const constants = Object.freeze({
 
     hubFolderName: 'hub',
     useSupportFolderName: 'hub/user-support',
+    userTempFolderZipFolerName: 'hub/user-temp-folder-zip',
+
     userContentFolderName: 'user-content',
     userUploadFolderName: 'user-upload',
     userBinFolderName: 'user-bin',

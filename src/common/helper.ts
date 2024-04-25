@@ -1,16 +1,19 @@
 import fs from 'fs';
 import path from 'path';
+import archiver from 'archiver';
 import fastFolderSize from 'fast-folder-size';
-import { promisify as toPromiseNative } from 'util';
 import { match } from 'ts-pattern';
+import { promisify as toPromiseNative } from 'util';
 import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
-import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import { HttpStatus, InternalServerErrorException, Logger } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 import { SafeCallResult, ExceptionType, GeneralEnumType, CustomFsResponse } from '../model/types';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { ImportantExceptionBody } from '../model/exception.type';
+
+const helperLogger = new Logger('Helper logger');
 
 export const helper = Object.freeze({
   url: {
@@ -311,5 +314,80 @@ export const fsCustom = {
 
       return null;
     }
+  },
+
+  /**
+   * @param sourcePath -> /somepath <- folder path
+   * @param destinationPath -> /someotherpath <- folder path
+   * @param uniqueName -> unique name for zip
+   */
+  async createZipFromFolder(params: {
+    sourcePath: string;
+    destinationPath: string;
+    uniqueName: string;
+  }): Promise<{ outputZip: string; err?: Error }> {
+    return new Promise((resolve, reject) => {
+      try {
+        const { sourcePath, destinationPath, uniqueName } = params;
+
+        const zipName = uniqueName + '.zip';
+        const outputZip = path.join(destinationPath, zipName);
+
+        const output = fs
+          .createWriteStream(outputZip, 'utf-8')
+          .on('error', err => {
+            helperLogger.error(`[createZipFromFolder.output.on.error] ${err}`);
+            reject(err);
+          })
+          .on('end', () => {
+            helperLogger.debug(`[createZipFromFolder.output.on.end] Drained log ${JSON.stringify(params, null, 2)}`);
+          })
+          .on('close', () => {
+            if (archive.pointer() === 0) {
+              helperLogger.error('[createZipFromFolder.output.on.close] No files were added to zip');
+              return;
+            }
+
+            const str = JSON.stringify(params, null, 2);
+            helperLogger.debug(
+              `[createZipFromFolder.output.on.close] Data has been finished zipping, total bytes ${archive.pointer()}: ${str}`,
+            );
+
+            resolve({ outputZip });
+          });
+
+        const archive = archiver('zip', {
+          zlib: { level: 9 }, // Sets the compression level.
+        })
+          .on('warning', err => {
+            helperLogger.warn(`[createZipFromFolder.archive.on.warning] ${err}`);
+
+            if (err.code !== 'ENOENT') {
+              reject(err);
+            }
+          })
+          .on('error', err => {
+            helperLogger.warn(`[createZipFromFolder.archive.on.error] ${err}`);
+
+            archive.destroy();
+            reject(err);
+          });
+
+        const baseDirectoryName = path.basename(sourcePath);
+        archive.pipe(output);
+
+        fs.access(sourcePath, fs.constants.F_OK | fs.constants.R_OK, err => {
+          if (err) {
+            resolve({ outputZip, err });
+          } else {
+            archive.directory(sourcePath, baseDirectoryName); // append files from a directory
+            archive.finalize();
+          }
+        });
+      } catch (error) {
+        helperLogger.error(`[createZipFromFolder.catch.error] ${error}`);
+        reject(error);
+      }
+    });
   },
 };
