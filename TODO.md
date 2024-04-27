@@ -81,3 +81,12 @@ TODO sort inside loader folder and specific files
 
 
 TODO i think it would be better to add copy to same name instead of increasing numbers becuase too much overhead happens
+
+TODO rename !!!!
+
+
+
+
+TODO give some limit to how many file inside folder
+
+TODO add absolute path to each BasicFileStructure by using class-transforemr or something

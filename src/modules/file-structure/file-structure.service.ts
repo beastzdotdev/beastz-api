@@ -103,10 +103,12 @@ export class FileStructureService {
     authPayload: AuthPayloadType,
     queryParams: GetDuplicateStatusQueryDto,
   ): Promise<GetDuplicateStatusResponseDto[]> {
-    const { titles, isFile, parentId } = queryParams;
+    const { items, isFile, parentId } = queryParams;
     const fileStructures: GetDuplicateStatusResponseDto[] = [];
 
-    for (const title of titles) {
+    for (const item of items) {
+      const { mimeTypeRaw, title } = item;
+
       if (title !== sanitizeHtml(title) || title !== sanitizeFileName(title)) {
         this.logger.debug(`File name invalid ${title}`);
         throw new BadRequestException('File name invalid');
@@ -118,7 +120,7 @@ export class FileStructureService {
         isFile,
         title: parsedFile.name,
         parentId: parentId ?? null,
-        fileExstensionRaw: parsedFile.ext,
+        mimeTypeRaw,
         userId: authPayload.user.id,
       });
 
@@ -244,8 +246,14 @@ export class FileStructureService {
 
     // /something.jpeg -> something or something (1).jpg -> something (1)
     const parsedFile = path.parse(file.originalname);
+    const rawExt = mime.extension(file.mimetype);
 
-    const ext = parsedFile.ext.trim() || `.${mime.extension(file.mimetype)}`;
+    if (!rawExt) {
+      this.logger.debug(`File has no extension ${rawExt}`);
+      throw new BadRequestException('Sorry, something went wrong. Please try again.');
+    }
+
+    const ext = `.${rawExt}`;
 
     const title = !keepBoth
       ? parsedFile.name
@@ -366,8 +374,8 @@ export class FileStructureService {
     await this.checkStorageLimit(authPayload.user.id, extraSize, tx);
 
     //2. check if extension for given new file is .enc
-    const parsedFile = path.parse(encryptedFile.originalname);
-    const ext = parsedFile.ext.trim() || `.${mime.extension(encryptedFile.mimetype)}`;
+    //! Here we need to get by parse
+    const ext = path.parse(encryptedFile.originalname).ext;
 
     if (ext.trim() !== constants.ENCRYPTED_EXTENSION) {
       this.logger.debug(`Invalid file extension ${ext}`);

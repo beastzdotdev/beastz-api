@@ -62,7 +62,7 @@ export class FileStructureRepository {
   async getBy(params: GetByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure | null> {
     const db = tx ?? this.prismaService;
 
-    const { depth, isFile, title, userId, path, parentId, fileExstensionRaw } = params;
+    const { depth, isFile, title, userId, path, parentId, fileExstensionRaw, mimeTypeRaw } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -73,6 +73,7 @@ export class FileStructureRepository {
         depth,
         isFile,
         userId,
+        mimeTypeRaw,
         title,
         path,
         parentId,

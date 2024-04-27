@@ -25,6 +25,7 @@ export type GetByMethodParamsInRepo = {
   parentId?: number | null;
   isInBin?: boolean;
   fileExstensionRaw?: string;
+  mimeTypeRaw?: string;
 };
 export type GetManyByMethodParamsInRepo = {
   parentId?: number;
