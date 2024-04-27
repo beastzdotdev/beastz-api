@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import moment from 'moment';
 import mime from 'mime';
@@ -7,7 +6,7 @@ import sanitizeFileName from 'sanitize-filename';
 import { v4 as uuid } from 'uuid';
 import { createReadStream } from 'fs';
 import { Response } from 'express';
-import { FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
+import { EncryptionAlgorithm, EncryptionType, FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
 import {
   BadRequestException,
   ForbiddenException,
@@ -50,6 +49,7 @@ import {
 } from './file-structure.helper';
 import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
+import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
 
 @Injectable()
 export class FileStructureService {
@@ -60,7 +60,8 @@ export class FileStructureService {
 
     private readonly fsRepository: FileStructureRepository,
     private readonly fsRawQueryRepository: FileStructureRawQueryRepository,
-    private readonly fileStructureBinService: FileStructureBinService,
+    private readonly fsBinService: FileStructureBinService,
+    private readonly fsEncryptionService: FileStructureEncryptionService,
   ) {}
 
   async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
@@ -111,10 +112,13 @@ export class FileStructureService {
         throw new BadRequestException('File name invalid');
       }
 
+      const parsedFile = path.parse(title);
+
       const fileStructure = await this.fsRepository.getBy({
         isFile,
-        title: path.parse(title).name,
+        title: parsedFile.name,
         parentId: parentId ?? null,
+        fileExstensionRaw: parsedFile.ext,
         userId: authPayload.user.id,
       });
 
@@ -346,7 +350,7 @@ export class FileStructureService {
   }
 
   async uploadEncryptedFile(dto: UploadEncryptedFileStructureDto, authPayload: AuthPayloadType, tx?: PrismaTx) {
-    const { file: encryptedFile, fileStructureId } = dto;
+    const { encryptedFile, fileStructureId } = dto;
     const fs = await this.getById(authPayload, fileStructureId, tx);
 
     if (!fs.isFile) {
@@ -361,18 +365,24 @@ export class FileStructureService {
     const extraSize = encryptedFile.size - (fs?.sizeInBytes ?? 0);
     await this.checkStorageLimit(authPayload.user.id, extraSize, tx);
 
-    const existingAbsFilePath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+    //2. check if extension for given new file is .enc
+    const parsedFile = path.parse(encryptedFile.originalname);
+    const ext = parsedFile.ext.trim() || `.${mime.extension(encryptedFile.mimetype)}`;
 
-    //2. replace last path name and ext with new name and and new ext e.g. .enc
-    // something.jpeg or something.enc -> something
-    const parsedFile = path.parse(fs.path);
-    parsedFile.ext = constants.ENCRYPTED_EXTENSION;
-    parsedFile.base = parsedFile.name + parsedFile.ext; // important
+    if (ext.trim() !== constants.ENCRYPTED_EXTENSION) {
+      this.logger.debug(`Invalid file extension ${ext}`);
+      throw new BadRequestException(ExceptionMessageCode.ONLY_ENCRYPTED_FILES_ALLOWED, {
+        description: 'Invalid file extension',
+      });
+    }
 
-    const newPath = path.format(parsedFile); // same fs path but extension is now .enc
-    const newAbsFilePath = path.join(absUserContentPath(authPayload.user.uuid), newPath);
+    //3. generate new fs path with new extension
+    const existingParsedFile = path.parse(fs.path);
+    existingParsedFile.ext = constants.ENCRYPTED_EXTENSION;
+    existingParsedFile.base = existingParsedFile.name + constants.ENCRYPTED_EXTENSION;
+    const newPath = path.format(existingParsedFile); // same fs path but extension is now .enc
 
-    //3. check if new encrypted filename with same name exists before creation in actual fs
+    //4. check if new encrypted filename with same name exists before creation in actual fs
     const sameNameFileStructure = await this.fsRepository.getBy(
       {
         isFile: true,
@@ -386,7 +396,9 @@ export class FileStructureService {
       throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_ALREADY_EXISTS);
     }
 
-    //4. check if folder exists before creation
+    const newAbsFilePath = path.join(absUserContentPath(authPayload.user.uuid), newPath);
+
+    //5. check if folder exists before creation
     const folderCreationSuccess = await fsCustom.checkDirOrCreate(newAbsFilePath, {
       isFile: true,
       createIfNotExists: false,
@@ -397,9 +409,19 @@ export class FileStructureService {
       throw new InternalServerErrorException('Something went wrong');
     }
 
-    //5. update isEncrypted
-    //6. create new file with .enc extension
-    //7. remove existing file
+    const existingAbsFilePath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+
+    //6. remove existing file before create happens for naming clash
+    fsCustom.delete(existingAbsFilePath).catch(err => {
+      this.logger.debug(`Error happend in file delete ${existingAbsFilePath}`);
+      this.logger.error(err);
+
+      throw new InternalServerErrorException('Something went wrong');
+    });
+
+    //7. update isEncrypted
+    //8. create new fs encryption column
+    //9. create new file with .enc extension
     const [newFs] = await Promise.all([
       this.fsRepository.updateById(
         fileStructureId,
@@ -418,14 +440,17 @@ export class FileStructureService {
         },
         tx,
       ),
+      this.fsEncryptionService.create(
+        {
+          fileStructureId,
+          userId: authPayload.user.id,
+          algorithm: EncryptionAlgorithm.AES_256_GCM,
+          type: EncryptionType.TEXT,
+        },
+        tx,
+      ),
       fsCustom.createFile(newAbsFilePath, encryptedFile.buffer).catch(err => {
         this.logger.debug(`Error happend in file creation ${newAbsFilePath}`);
-        this.logger.error(err);
-
-        throw new InternalServerErrorException('Something went wrong');
-      }),
-      fsCustom.delete(existingAbsFilePath).catch(err => {
-        this.logger.debug(`Error happend in file delete ${existingAbsFilePath}`);
         this.logger.error(err);
 
         throw new InternalServerErrorException('Something went wrong');
@@ -589,7 +614,7 @@ export class FileStructureService {
     await fsCustom.move(sourceContentPath, destinationBinPath);
 
     // add to fs bin
-    const response = await this.fileStructureBinService.create({
+    const response = await this.fsBinService.create({
       userId: fs.userId,
       fileStructureId: fs.id,
       path: relativePath,
@@ -605,7 +630,7 @@ export class FileStructureService {
 
       const [fs, fsBin, newParentFs] = await Promise.all([
         this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id, isInBin: true }, tx),
-        this.fileStructureBinService.getByFsId(id, authPayload.user.id, tx),
+        this.fsBinService.getByFsId(id, authPayload.user.id, tx),
         newParentId ? this.fsRepository.getByIdForUser(newParentId, { userId: authPayload.user.id }, tx) : null,
       ]);
 
@@ -643,7 +668,7 @@ export class FileStructureService {
       }
 
       // delete from fs bin
-      await this.fileStructureBinService.deleteById(fsBin.id, authPayload.user.id, tx);
+      await this.fsBinService.deleteById(fsBin.id, authPayload.user.id, tx);
 
       const updatedFs = await this.fsRepository.updateByIdAndReturn(
         fs.id,
@@ -680,12 +705,6 @@ export class FileStructureService {
           const f = newParentFs?.rootParentId ? newParentFs.rootParentId : newParentFs?.id; // null is never for children
           const finalRootParentId = newParentFs ? f : fs.id;
 
-          // console.log(`depth ${child.depth} -> ${child.depth + depthDifference}`);
-          // console.log(`isInBin ${child.isInBin} -> ${false}`);
-          // console.log(`rootParentId ${child.rootParentId} -> ${finalRootParentId}`);
-          // console.log(`path ${child.path} -> ${child.path.replace(fs.path, newPath)}`);
-          // console.log('='.repeat(20));
-
           return this.fsRepository.updateById(
             child.id,
             {
@@ -719,7 +738,7 @@ export class FileStructureService {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const [fs, fsBin] = await Promise.all([
         this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id, isInBin: true }, tx),
-        this.fileStructureBinService.getByFsId(id, authPayload.user.id, tx),
+        this.fsBinService.getByFsId(id, authPayload.user.id, tx),
       ]);
 
       if (!fs) {
@@ -731,7 +750,7 @@ export class FileStructureService {
       }
 
       // delete from fs bin
-      await this.fileStructureBinService.deleteById(fsBin.id, authPayload.user.id, tx);
+      await this.fsBinService.deleteById(fsBin.id, authPayload.user.id, tx);
 
       if (!fs.isFile) {
         // this will delete given fs as well
@@ -744,8 +763,6 @@ export class FileStructureService {
           tx,
         );
         this.logger.debug(`Delete forever folders by fs id of ${fs.id}`);
-        console.log(affectedRows);
-
         this.logger.debug(`Affected rows ${affectedRows.toString()}`);
       } else {
         await this.fsRepository.deleteById(

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { FileStructureBin } from '@prisma/client';
 import { CreateFileStructureBinParams } from './file-structure-bin.type';
 import { FileStructureBinRepository } from './file-structure-bin.repository';
@@ -16,7 +16,7 @@ export class FileStructureBinService {
     const response = await this.fileStructureBinRepository.getById(id, userId, tx);
 
     if (!response) {
-      throw new Error(ExceptionMessageCode.FILE_STRUCTURE_BIN_NOT_FOUND);
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_BIN_NOT_FOUND);
     }
 
     return response;
@@ -26,7 +26,7 @@ export class FileStructureBinService {
     const response = await this.fileStructureBinRepository.getByFsId(fileStructureId, userId, tx);
 
     if (!response) {
-      throw new Error(ExceptionMessageCode.FILE_STRUCTURE_BIN_NOT_FOUND);
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_BIN_NOT_FOUND);
     }
 
     return response;
@@ -40,7 +40,7 @@ export class FileStructureBinService {
     const fileStructureBin = await this.fileStructureBinRepository.create(params);
 
     if (!fileStructureBin) {
-      throw new Error(ExceptionMessageCode.FILE_STRUCTURE_BIN_CREATION_FAILED);
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_BIN_CREATION_FAILED);
     }
 
     return fileStructureBin;

@@ -60,8 +60,8 @@ export class AdminService {
       const userRootContentPath = absUserContentPath(user.uuid);
       const userRootBinPath = absUserBinPath(user.uuid);
 
-      console.log(userRootContentPath);
-      console.log(userRootBinPath);
+      // console.log(userRootContentPath);
+      // console.log(userRootBinPath);
 
       await Promise.all([
         //

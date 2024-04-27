@@ -3,7 +3,7 @@ import { TransformNumber } from '../../../decorator/class-transformer.decorator'
 
 export class UploadEncryptedFileStructureDto {
   @IsNotEmpty()
-  file: Express.Multer.File;
+  encryptedFile: Express.Multer.File;
 
   @IsNotEmpty()
   @IsNumber()

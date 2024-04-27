@@ -62,7 +62,7 @@ export class FileStructureRepository {
   async getBy(params: GetByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure | null> {
     const db = tx ?? this.prismaService;
 
-    const { depth, isFile, title, userId, path, parentId } = params;
+    const { depth, isFile, title, userId, path, parentId, fileExstensionRaw } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -76,6 +76,7 @@ export class FileStructureRepository {
         title,
         path,
         parentId,
+        fileExstensionRaw,
         isInBin: false,
       },
     });
@@ -143,11 +144,11 @@ export class FileStructureRepository {
     data: UpdateFSParams,
     params: { userId: number; isInBin?: boolean },
     tx?: PrismaTx,
-  ): Promise<void> {
+  ): Promise<FileStructure> {
     const db = tx ?? this.prismaService;
     const { userId, isInBin } = params;
 
-    await db.fileStructure.updateMany({
+    return db.fileStructure.update({
       where: {
         id,
         userId,
