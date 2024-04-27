@@ -90,3 +90,7 @@ TODO rename !!!!
 TODO give some limit to how many file inside folder
 
 TODO add absolute path to each BasicFileStructure by using class-transforemr or something
+
+
+
+TODO account delete
