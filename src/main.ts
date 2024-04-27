@@ -67,3 +67,10 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 // Cool libraries for future
 // https://nosir.github.io/cleave.js/
 // https://sarcadass.github.io/granim.js/examples.html
+
+//!!!!====================================
+//!!!!====================================
+//!!!!====================================
+//!!!!====================================
+//!!!!====================================
+//TODO upload-encrypted-file is missing table row creation in FileStructureEncryption entity

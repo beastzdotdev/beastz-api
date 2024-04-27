@@ -1,5 +1,7 @@
+import fs from 'fs';
 import path from 'path';
 import moment from 'moment';
+import mime from 'mime';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
 import { v4 as uuid } from 'uuid';
@@ -239,11 +241,13 @@ export class FileStructureService {
     // /something.jpeg -> something or something (1).jpg -> something (1)
     const parsedFile = path.parse(file.originalname);
 
+    const ext = parsedFile.ext.trim() || `.${mime.extension(file.mimetype)}`;
+
     const title = !keepBoth
       ? parsedFile.name
       : await this.increaseFileNameNumber({ isFile: true, title: parsedFile.name, userId, parent });
 
-    const fileNameWithExt = title + parsedFile.ext;
+    const fileNameWithExt = title + ext;
 
     let entityPath: string;
     let entityDepth: number;
@@ -321,7 +325,7 @@ export class FileStructureService {
       color: null,
       userId: authPayload.user.id,
       sizeInBytes: file.size,
-      fileExstensionRaw: parsedFile.ext,
+      fileExstensionRaw: ext,
       mimeTypeRaw: file.mimetype,
       mimeType: fileStructureHelper.fileTypeRawMimeToEnum[file.mimetype] ?? FileMimeType.OTHER,
       uuid: uuid(),
