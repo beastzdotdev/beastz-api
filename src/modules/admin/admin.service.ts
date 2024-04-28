@@ -54,6 +54,8 @@ export class AdminService {
 
       await tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } });
 
+      await tx.fileStructureEncryption.deleteMany({ where: { fileStructureId: { in: allFsIds } } });
+
       // must be after
       await tx.fileStructure.deleteMany({ where: { id: { in: allFsIds } } });
 

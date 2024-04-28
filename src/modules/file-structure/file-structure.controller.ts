@@ -1,5 +1,4 @@
 import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res, Logger } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { Response } from 'express';
 import { FileStructureService } from './file-structure.service';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
@@ -21,6 +20,7 @@ import { fileInterceptors } from '../../common/helper';
 import { transaction } from '../../common/transaction';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { PrismaService } from '../@global/prisma/prisma.service';
+import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -37,7 +37,7 @@ export class FileStructureController {
     @Query() queryParams: GetFileStructureContentQueryDto,
   ): Promise<BasicFileStructureResponseDto[]> {
     const response = await this.fileStructureService.getContent(authPayload, queryParams);
-    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    return BasicFileStructureResponseDto.mapArr(response);
   }
 
   @Get('general-info')
@@ -62,7 +62,7 @@ export class FileStructureController {
     @Query() queryParams: GetDetailsQueryDto,
   ): Promise<BasicFileStructureResponseDto[]> {
     const response = await this.fileStructureService.getDetails(authPayload, queryParams);
-    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    return BasicFileStructureResponseDto.mapArr(response);
   }
 
   @Get(':id')
@@ -71,7 +71,7 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.getById(authPayload, id);
-    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    return BasicFileStructureResponseDto.map(response);
   }
 
   @Get('download/:id')
@@ -89,8 +89,10 @@ export class FileStructureController {
     @AuthPayload() authPayload: AuthPayloadType,
     @Body() dto: UploadFileStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
-    const response = await this.fileStructureService.uploadFile(dto, authPayload);
-    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const response = await this.fileStructureService.uploadFile(dto, authPayload, tx);
+      return BasicFileStructureResponseDto.map(response);
+    });
   }
 
   @Post('upload-encrypted-file')
@@ -101,7 +103,7 @@ export class FileStructureController {
   ): Promise<BasicFileStructureResponseDto> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.fileStructureService.uploadEncryptedFile(dto, authPayload, tx);
-      return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+      return BasicFileStructureResponseDto.map(response);
     });
   }
 
@@ -111,7 +113,7 @@ export class FileStructureController {
     @Body() dto: CreateFolderStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.createFolder(dto, authPayload);
-    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    return BasicFileStructureResponseDto.map(response);
   }
 
   @Patch(':id')
@@ -121,7 +123,17 @@ export class FileStructureController {
     @Body() dto: UpdateFolderStructureDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.update(id, dto, authPayload);
-    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    return BasicFileStructureResponseDto.map(response);
+  }
+
+  @Patch('replace-text/:id')
+  async replaceText(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReplaceTextFileStructure,
+  ): Promise<BasicFileStructureResponseDto> {
+    const response = await this.fileStructureService.replaceText(id, dto, authPayload);
+    return BasicFileStructureResponseDto.map(response);
   }
 
   @Patch('move-to-bin/:id')
@@ -136,7 +148,7 @@ export class FileStructureController {
     @Body() dto: RestoreFromBinDto,
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.restoreFromBin(id, dto, authPayload);
-    return plainToInstance(BasicFileStructureResponseDto, response, { exposeDefaultValues: true });
+    return BasicFileStructureResponseDto.map(response);
   }
 
   @Patch('delete-forever-from-bin/:id')

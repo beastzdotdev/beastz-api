@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FileStructureBin, Prisma } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
-import { CreateFileStructureBinParams } from './file-structure-bin.type';
+import { CreateFileStructureBinParams, FileStructureBinWithRelation } from './file-structure-bin.type';
 import { AuthPayloadType } from '../../model/auth.types';
 import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto';
 import { Pagination } from '../../model/types';
@@ -11,7 +11,10 @@ import { PrismaTx } from '../@global/prisma/prisma.type';
 export class FileStructureBinRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getAll(authPayload: AuthPayloadType, queryParams: GetFromBinQueryDto): Promise<Pagination<FileStructureBin>> {
+  async getAll(
+    authPayload: AuthPayloadType,
+    queryParams: GetFromBinQueryDto,
+  ): Promise<Pagination<FileStructureBinWithRelation>> {
     const { page, pageSize, parentId } = queryParams;
 
     const where: Prisma.FileStructureBinWhereInput = {

@@ -244,7 +244,7 @@ export const fsCustom = {
     });
   },
 
-  async createFile(fsPath: string, data: NodeJS.ArrayBufferView): Promise<void> {
+  async writeFile(fsPath: string, data: string | NodeJS.ArrayBufferView): Promise<void> {
     return new Promise((resolve, reject) => {
       return fs.writeFile(fsPath, data, { encoding: 'utf-8' }, err => {
         if (err) {
@@ -258,7 +258,7 @@ export const fsCustom = {
 
   async access(fsPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      return fs.access(fsPath, fs.constants.F_OK | fs.constants.R_OK | fs.constants.W_OK | fs.constants.X_OK, err => {
+      return fs.access(fsPath, fs.constants.F_OK | fs.constants.R_OK | fs.constants.W_OK, err => {
         if (err) {
           reject(err);
         } else {

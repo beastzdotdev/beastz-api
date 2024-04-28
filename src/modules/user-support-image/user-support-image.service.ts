@@ -44,7 +44,7 @@ export class UserSupportImageService {
       throw new InternalServerErrorException('Something went wrong');
     }
 
-    await fsCustom.createFile(absolutePath, file.buffer).catch(err => {
+    await fsCustom.writeFile(absolutePath, file.buffer).catch(err => {
       this.logger.debug('Error happend in root file creation');
       this.logger.error(err);
 

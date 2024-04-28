@@ -1,6 +1,4 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { FileStructureBin } from '@prisma/client';
-import { plainToInstance } from 'class-transformer';
 import { FileStructureBinService } from './file-structure-bin.service';
 import { AuthPayloadType } from '../../model/auth.types';
 import { Pagination } from '../../model/types';
@@ -16,11 +14,11 @@ export class FileStructureBinController {
   async getAll(
     @AuthPayload() authPayload: AuthPayloadType,
     @Query() queryParams: GetFromBinQueryDto,
-  ): Promise<Pagination<FileStructureBin>> {
+  ): Promise<Pagination<BasicFileStructureBinResponseDto>> {
     const response = await this.fileStructureBinService.getAll(authPayload, queryParams);
 
     return {
-      data: plainToInstance(BasicFileStructureBinResponseDto, response.data, { exposeDefaultValues: true }),
+      data: BasicFileStructureBinResponseDto.mapArr(response.data),
       total: response.total,
     };
   }

@@ -23,3 +23,5 @@ export class EnvService {
     return this.get('DEBUG') === EnvironmentType.DEV;
   }
 }
+
+export const envService = new EnvService(new ConfigService<EnvironmentVariables>());

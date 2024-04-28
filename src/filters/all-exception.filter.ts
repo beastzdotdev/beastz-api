@@ -20,6 +20,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
+    // console.log(exception);
+
     if (
       (exception instanceof HttpException && exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR) ||
       !(exception instanceof HttpException)

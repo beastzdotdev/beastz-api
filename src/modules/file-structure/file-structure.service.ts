@@ -50,6 +50,7 @@ import {
 import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
 import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
+import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 
 @Injectable()
 export class FileStructureService {
@@ -231,18 +232,21 @@ export class FileStructureService {
     }
   }
 
-  async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType) {
+  async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType, tx?: PrismaTx) {
     const { file, parentId, rootParentId, keepBoth, lastModifiedAt } = dto;
 
-    const { parent } = await this.validateParentRootParentStructure({
-      parentId,
-      rootParentId,
-    });
+    const { parent } = await this.validateParentRootParentStructure(
+      {
+        parentId,
+        rootParentId,
+      },
+      tx,
+    );
 
     const userId = authPayload.user.id;
     const isRoot = !parentId && !rootParentId;
 
-    await this.checkStorageLimit(userId, file.size);
+    await this.checkStorageLimit(userId, file.size, tx);
 
     // /something.jpeg -> something or something (1).jpg -> something (1)
     const parsedFile = path.parse(file.originalname);
@@ -257,7 +261,7 @@ export class FileStructureService {
 
     const title = !keepBoth
       ? parsedFile.name
-      : await this.increaseFileNameNumber({ isFile: true, title: parsedFile.name, userId, parent });
+      : await this.increaseFileNameNumber({ isFile: true, title: parsedFile.name, userId, parent }, tx);
 
     const fileNameWithExt = title + ext;
 
@@ -273,7 +277,7 @@ export class FileStructureService {
       entityDepth = 0;
 
       if (!keepBoth) {
-        await this.replaceFileStructure({ path: entityPath, userId, userRootContentPath, isFile: true });
+        await this.replaceFileStructure({ path: entityPath, userId, userRootContentPath, isFile: true }, tx);
       }
 
       //! Must be after assigning entityPath
@@ -292,7 +296,7 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      await fsCustom.createFile(absolutePath, file.buffer).catch(err => {
+      await fsCustom.writeFile(absolutePath, file.buffer).catch(err => {
         this.logger.debug('Error happend in root file creation');
         this.logger.error(err);
 
@@ -309,7 +313,7 @@ export class FileStructureService {
       entityDepth = parent.depth + 1;
 
       if (!keepBoth) {
-        await this.replaceFileStructure({ path: entityPath, userId, userRootContentPath, isFile: true });
+        await this.replaceFileStructure({ path: entityPath, userId, userRootContentPath, isFile: true }, tx);
       }
 
       //! Must be after assigning entityPath
@@ -324,7 +328,7 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      await fsCustom.createFile(absolutePath, file.buffer).catch(err => {
+      await fsCustom.writeFile(absolutePath, file.buffer).catch(err => {
         this.logger.debug('Error happend in parent file creation');
         this.logger.error(err);
 
@@ -332,29 +336,32 @@ export class FileStructureService {
       });
     }
 
-    return this.fsRepository.create({
-      title,
-      color: null,
-      userId: authPayload.user.id,
-      sizeInBytes: file.size,
-      fileExstensionRaw: ext,
-      mimeTypeRaw: file.mimetype,
-      mimeType: fileStructureHelper.fileTypeRawMimeToEnum[file.mimetype] ?? FileMimeType.OTHER,
-      uuid: uuid(),
-      isFile: true,
-      isShortcut: false,
-      isInBin: false,
-      isEncrypted: false,
-      isEditable: true,
-      isLocked: false,
-      lastModifiedAt: lastModifiedAt ?? null,
+    return this.fsRepository.create(
+      {
+        title,
+        color: null,
+        userId: authPayload.user.id,
+        sizeInBytes: file.size,
+        fileExstensionRaw: ext,
+        mimeTypeRaw: file.mimetype,
+        mimeType: fileStructureHelper.fileTypeRawMimeToEnum[file.mimetype] ?? FileMimeType.OTHER,
+        uuid: uuid(),
+        isFile: true,
+        isShortcut: false,
+        isInBin: false,
+        isEncrypted: false,
+        isEditable: true,
+        isLocked: false,
+        lastModifiedAt: lastModifiedAt ?? null,
 
-      //! important
-      rootParentId: rootParentId ?? null,
-      parentId: parentId ?? null,
-      path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
-      depth: entityDepth, // if root 0 or parent depth + 1
-    });
+        //! important
+        rootParentId: rootParentId ?? null,
+        parentId: parentId ?? null,
+        path: entityPath, // path from /user-content/{user uuid}/{ -> This is path (full path after uuid) <- }
+        depth: entityDepth, // if root 0 or parent depth + 1
+      },
+      tx,
+    );
   }
 
   async uploadEncryptedFile(dto: UploadEncryptedFileStructureDto, authPayload: AuthPayloadType, tx?: PrismaTx) {
@@ -457,7 +464,7 @@ export class FileStructureService {
         },
         tx,
       ),
-      fsCustom.createFile(newAbsFilePath, encryptedFile.buffer).catch(err => {
+      fsCustom.writeFile(newAbsFilePath, encryptedFile.buffer).catch(err => {
         this.logger.debug(`Error happend in file creation ${newAbsFilePath}`);
         this.logger.error(err);
 
@@ -584,6 +591,44 @@ export class FileStructureService {
     }
 
     return response;
+  }
+
+  async replaceText(id: number, dto: ReplaceTextFileStructure, authPayload: AuthPayloadType): Promise<FileStructure> {
+    const { text } = dto;
+    const fs = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
+
+    if (!fs) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    if (!fs.isFile) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
+    }
+
+    if (fs.mimeType !== FileMimeType.TEXT_PLAIN) {
+      throw new NotFoundException(ExceptionMessageCode.FS_MUST_BE_TEXT_PLAIN);
+    }
+
+    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+
+    await fsCustom.access(absPath).catch(e => {
+      this.logger.debug(e);
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    });
+
+    const [updatedFs] = await Promise.all([
+      this.fsRepository.updateByIdAndReturn(
+        id,
+        { userId: authPayload.user.id, isInBin: false },
+        { lastModifiedAt: moment().toDate() },
+      ),
+      fsCustom.writeFile(absPath, text).catch(e => {
+        this.logger.debug(e);
+        throw new InternalServerErrorException(ExceptionMessageCode.INTERNAL_ERROR);
+      }),
+    ]);
+
+    return updatedFs;
   }
 
   async moveToBin(id: number, authPayload: AuthPayloadType): Promise<FileStructureBin> {
@@ -742,7 +787,7 @@ export class FileStructureService {
     });
   }
 
-  async deleteForeverFromBin(id: number, authPayload: AuthPayloadType): Promise<void> {
+  async deleteForeverFromBin(id: number, authPayload: AuthPayloadType, tx?: PrismaTx): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const [fs, fsBin] = await Promise.all([
         this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id, isInBin: true }, tx),
@@ -803,7 +848,7 @@ export class FileStructureService {
     });
   }
 
-  private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }) {
+  private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }, tx?: PrismaTx) {
     const { parentId, rootParentId } = params;
 
     if ((parentId && !rootParentId) || (!parentId && rootParentId)) {
@@ -816,8 +861,8 @@ export class FileStructureService {
     // if this file has parentId then check if folder exists with this id (refering to parentId)
     if (parentId && rootParentId) {
       [parent, rootParent] = await Promise.all([
-        this.fsRepository.getById(parentId),
-        this.fsRepository.getById(rootParentId),
+        this.fsRepository.getById(parentId, tx),
+        this.fsRepository.getById(rootParentId, tx),
       ]);
 
       if (!parent) {
@@ -843,24 +888,30 @@ export class FileStructureService {
     };
   }
 
-  private async replaceFileStructure(params: ReplaceFileMethodParams): Promise<void> {
+  private async replaceFileStructure(params: ReplaceFileMethodParams, tx?: PrismaTx): Promise<void> {
     const { path: fileOrFolderPath, userId, userRootContentPath, isFile } = params;
 
-    const sameNameFileStructure = await this.fsRepository.getBy({
-      isFile,
-      userId,
-      path: fileOrFolderPath,
-    });
+    const sameNameFileStructure = await this.fsRepository.getBy(
+      {
+        isFile,
+        userId,
+        path: fileOrFolderPath,
+      },
+      tx,
+    );
 
     if (sameNameFileStructure) {
       if (isFile) {
-        await this.fsRepository.deleteById(sameNameFileStructure.id, { userId });
+        await this.fsRepository.deleteById(sameNameFileStructure.id, { userId }, tx);
       } else {
-        await this.fsRawQueryRepository.recursiveDelete({
-          id: sameNameFileStructure.id,
-          userId,
-          inBin: false,
-        });
+        await this.fsRawQueryRepository.recursiveDelete(
+          {
+            id: sameNameFileStructure.id,
+            userId,
+            inBin: false,
+          },
+          tx,
+        );
       }
 
       const absolutePath = path.join(userRootContentPath, sameNameFileStructure.path);
@@ -871,20 +922,23 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      fsCustom.delete(absolutePath);
+      await fsCustom.delete(absolutePath);
     }
   }
 
-  private async increaseFileNameNumber(params: IncreaseFileNameNumberMethodParams): Promise<string> {
+  private async increaseFileNameNumber(params: IncreaseFileNameNumberMethodParams, tx?: PrismaTx): Promise<string> {
     const { title, userId, parent, isFile } = params;
 
-    const sameNameFileStructure = await this.fsRepository.getBy({
-      parentId: parent?.id,
-      isFile,
-      userId,
-      //
-      title, // we need exact match first
-    });
+    const sameNameFileStructure = await this.fsRepository.getBy(
+      {
+        parentId: parent?.id,
+        isFile,
+        userId,
+        //
+        title, // we need exact match first
+      },
+      tx,
+    );
 
     if (!sameNameFileStructure) {
       return title;
@@ -895,13 +949,16 @@ export class FileStructureService {
       ? title.split(' ').slice(0, -1).join(' ')
       : title;
 
-    const sameNameFileStructures = await this.fsRepository.getManyBy({
-      parentId: parent?.id,
-      isFile,
-      userId,
-      //
-      titleStartsWith,
-    });
+    const sameNameFileStructures = await this.fsRepository.getManyBy(
+      {
+        parentId: parent?.id,
+        isFile,
+        userId,
+        //
+        titleStartsWith,
+      },
+      tx,
+    );
 
     let finalNum = 0;
     const fileStructureNameNumber = extractNumber(title);

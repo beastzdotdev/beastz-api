@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { FileStructureBin } from '@prisma/client';
-import { CreateFileStructureBinParams } from './file-structure-bin.type';
+import { CreateFileStructureBinParams, FileStructureBinWithRelation } from './file-structure-bin.type';
 import { FileStructureBinRepository } from './file-structure-bin.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { AuthPayloadType } from '../../model/auth.types';
@@ -32,7 +32,10 @@ export class FileStructureBinService {
     return response;
   }
 
-  async getAll(authPayload: AuthPayloadType, queryParams: GetFromBinQueryDto): Promise<Pagination<FileStructureBin>> {
+  async getAll(
+    authPayload: AuthPayloadType,
+    queryParams: GetFromBinQueryDto,
+  ): Promise<Pagination<FileStructureBinWithRelation>> {
     return this.fileStructureBinRepository.getAll(authPayload, queryParams);
   }
 

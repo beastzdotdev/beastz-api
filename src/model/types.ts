@@ -35,6 +35,10 @@ export type CustomFsResponse = {
   err: NodeJS.ErrnoException | null;
 };
 
+export type TransformFlags = {
+  isInBin?: boolean;
+};
+
 // For view rendering in nunjucks
 export type BaseViewJsonParams = {
   pageTabTitle: string;
