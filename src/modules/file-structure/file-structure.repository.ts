@@ -14,6 +14,31 @@ import {
 export class FileStructureRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
+  async search(search: string, params: { userId: number }) {
+    const { userId } = params;
+
+    const response = await this.prismaService.fileStructure.findMany({
+      where: {
+        userId,
+        isInBin: false,
+        OR: [
+          {
+            OR: [
+              { title: { contains: search } }, // Search titles for "t" or "x"
+              { title: { equals: search } }, // Handle exact title matches (optional)
+            ],
+          },
+          {
+            fileExstensionRaw: { endsWith: search },
+          },
+        ],
+      },
+      take: 15,
+    });
+
+    return response;
+  }
+
   async getById(id: number, tx?: PrismaTx): Promise<FileStructure | null> {
     const db = tx ?? this.prismaService;
 

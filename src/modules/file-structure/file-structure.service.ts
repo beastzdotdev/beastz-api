@@ -51,6 +51,7 @@ import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
 import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
 import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
+import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -64,6 +65,10 @@ export class FileStructureService {
     private readonly fsBinService: FileStructureBinService,
     private readonly fsEncryptionService: FileStructureEncryptionService,
   ) {}
+
+  async search(authPayload: AuthPayloadType, queryParams: SearchFileStructureQueryDto) {
+    return this.fsRepository.search(queryParams.search, { userId: authPayload.user.id });
+  }
 
   async getContent(authPayload: AuthPayloadType, queryParams: GetFileStructureContentQueryDto) {
     const { parentId, isFile } = queryParams;

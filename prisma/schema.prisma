@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["relationJoins", "nativeDistinct"]
+  previewFeatures = ["relationJoins", "nativeDistinct", "fullTextSearch"]
 }
 
 datasource db {
