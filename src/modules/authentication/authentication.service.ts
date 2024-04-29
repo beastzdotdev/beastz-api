@@ -4,6 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { Response } from 'express';
 import {
   ForbiddenException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -34,12 +35,13 @@ import { RecoverPasswordAttemptCountService } from './modules/recover-password-a
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
 import { GenTokensAndSendResponseParams, RefreshParams, SignInParams } from './authentication.types';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
-import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignUpBodyDto } from './dto';
+import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignInBodyDto, SignUpBodyDto } from './dto';
 import { AuthenticationMailService } from './mail/authenctication-mail.service';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { transaction } from '../../common/transaction';
 import { AuthResponseViewJsonParams } from '../../model/types';
+import { AuthPayloadType } from '../../model/auth.types';
 
 @Injectable()
 export class AuthenticationService {
@@ -128,13 +130,49 @@ export class AuthenticationService {
     });
   }
 
+  async signOut(res: Response, authPayload: AuthPayloadType, refreshToken: string): Promise<Response> {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      // Decrypt is session is enabled
+      const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+      const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+
+      const refreshTokenString = isEncryptionSessionActive
+        ? await encryption.aes256gcm.decrypt(refreshToken, key).catch(() => {
+            this.logger.error('Failed to decrypt refresh token');
+            return null;
+          })
+        : refreshToken;
+
+      if (!refreshTokenString) {
+        throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
+      }
+
+      const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshTokenString);
+
+      // delete refresh token from db
+      await this.refreshTokenService.deleteByJTI(refreshTokenPayload.jti, tx);
+
+      if (authPayload.platform.isWeb()) {
+        this.cookieService.clearCookie(res);
+
+        return res.sendStatus(HttpStatus.OK);
+      }
+
+      if (authPayload.platform.isMobile()) {
+        return res.sendStatus(HttpStatus.OK);
+      }
+
+      return res.json({ msg: 'Something went wrong' }).status(500);
+    });
+  }
+
   async refreshToken(res: Response, params: RefreshParams, platform: PlatformWrapper): Promise<Response> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { oldRefreshTokenString } = params;
 
       // Decrypt is session is enabled
       const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-      const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+      const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
 
       const finalOldRefreshTokenString = isEncryptionSessionActive
         ? await encryption.aes256gcm.decrypt(oldRefreshTokenString, key)
@@ -743,7 +781,7 @@ export class AuthenticationService {
     const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
 
     const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+    const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
 
     const [finalAccessToken, finalRefreshToken] = await Promise.all([
       isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(accessToken, key) : accessToken,

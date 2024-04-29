@@ -64,7 +64,7 @@ export class AuthGuard implements CanActivate {
 
     // Decrypt is session is enabled
     const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_ACCESS_JWT_ENCRYPTION_KEY');
+    const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
 
     const finalAccessToken = isEncryptionSessionActive
       ? await encryption.aes256gcm.decrypt(accessToken, key)

@@ -23,4 +23,8 @@ export class RefreshTokenService {
   async deleteById(id: number, tx?: PrismaTx): Promise<void> {
     await this.refreshTokenRepository.deleteById(id, tx);
   }
+
+  async deleteByJTI(jti: string, tx?: PrismaTx): Promise<RefreshToken> {
+    return this.refreshTokenRepository.deleteByJTI(jti, tx);
+  }
 }

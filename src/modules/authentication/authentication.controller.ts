@@ -60,6 +60,25 @@ export class AuthenticationController {
     return this.authenticationService.signInWithToken(res, body, platform);
   }
 
+  @HttpCode(HttpStatus.OK)
+  @Post('sign-out')
+  async signOut(
+    @Res() res: Response,
+    @AuthPayload() authPayload: AuthPayloadType,
+    @CookieStrict({
+      cookieName: constants.COOKIE_REFRESH_NAME,
+      cls: UnauthorizedException,
+      message: 'Missing refresh token',
+    })
+    refreshToken?: string,
+  ): Promise<Response> {
+    if (!refreshToken) {
+      throw new UnauthorizedException(ExceptionMessageCode.MISSING_TOKEN);
+    }
+
+    return this.authenticationService.signOut(res, authPayload, refreshToken);
+  }
+
   @NoAuth()
   @HttpCode(HttpStatus.OK)
   @Post('refresh')

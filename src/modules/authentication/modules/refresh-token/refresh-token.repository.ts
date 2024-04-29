@@ -39,4 +39,9 @@ export class RefreshTokenRepository {
     const db = tx ?? this.prismaService;
     await db.refreshToken.deleteMany({ where: { userId } });
   }
+
+  async deleteByJTI(jti: string, tx?: PrismaTx): Promise<RefreshToken> {
+    const db = tx ?? this.prismaService;
+    return db.refreshToken.delete({ where: { jti } });
+  }
 }

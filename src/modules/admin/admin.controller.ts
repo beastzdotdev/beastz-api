@@ -88,4 +88,6 @@ export class AdminController {
       };
     });
   }
+
+  //TODO create demo user
 }

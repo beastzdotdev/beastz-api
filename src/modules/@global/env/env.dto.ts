@@ -118,5 +118,5 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
-  SESSION_ACCESS_JWT_ENCRYPTION_KEY: string;
+  SESSION_JWT_ENCRYPTION_KEY: string;
 }
