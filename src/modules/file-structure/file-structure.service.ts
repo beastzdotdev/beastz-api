@@ -52,6 +52,7 @@ import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-str
 import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
 import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
+import { ImportantExceptionBody } from '../../model/exception.type';
 
 @Injectable()
 export class FileStructureService {
@@ -184,15 +185,32 @@ export class FileStructureService {
     const contentTitle = fs.isFile ? fs.title + (fs.fileExstensionRaw ?? '') : fs.title + '.zip';
 
     res.setHeader('Content-Disposition', `attachment; filename=${contentTitle}`);
-    res.writeHead(HttpStatus.OK, {
-      ...(fs.mimeTypeRaw && { 'Content-Type': fs.mimeTypeRaw }),
-      ...(fs.sizeInBytes && { 'Content-Length': fs.sizeInBytes }),
-      'Content-Title': contentTitle,
-    });
+    res.setHeader('Content-Title', contentTitle);
+
+    if (fs.mimeTypeRaw) {
+      res.setHeader('Content-Type', fs.mimeTypeRaw);
+    }
+
+    if (fs.sizeInBytes) {
+      res.setHeader('Content-Length', fs.sizeInBytes);
+    }
 
     if (fs.isFile) {
       const readStream = createReadStream(absPath);
-      return readStream.pipe(res);
+      readStream.pipe(res);
+      readStream.on('error', err => {
+        this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+        this.logger.debug('Error in stream download');
+        this.logger.debug(err);
+
+        return res
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .json(<ImportantExceptionBody>{
+            message: ExceptionMessageCode.DOWNLOAD_ERROR,
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          })
+          .end();
+      });
     } else {
       // user separation folder does not happen in user temp folder zip folder
       const tempDestination = absUserTempFolderZipPath();
@@ -208,31 +226,53 @@ export class FileStructureService {
         });
 
         if (err) {
-          fsCustom.delete(outputZip);
-          return res
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .json({ message: 'Sorry, something went wrong. Please try again.' });
+          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+          this.logger.debug(err);
+
+          fsCustom.delete(outputZip).catch(err => {
+            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+            this.logger.debug(err);
+          });
+
+          return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(<ImportantExceptionBody>{
+            message: ExceptionMessageCode.DOWNLOAD_ERROR,
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          });
         }
 
         outputZipPath = outputZip;
       } catch (error) {
-        return res
-          .status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .json({ message: 'Sorry, something went wrong. Please try again.' });
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(<ImportantExceptionBody>{
+          message: ExceptionMessageCode.DOWNLOAD_ERROR,
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        });
       }
 
       if (outputZipPath) {
         const readStream = createReadStream(outputZipPath);
 
         readStream.on('close', () => {
-          fsCustom.delete(outputZipPath);
+          fsCustom.delete(outputZipPath).catch(err => {
+            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+            this.logger.debug(err);
+          });
+        });
+
+        readStream.on('error', err => {
+          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+          this.logger.debug('Error in stream download');
+          this.logger.debug(err);
+
+          return res
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .json(<ImportantExceptionBody>{
+              message: ExceptionMessageCode.DOWNLOAD_ERROR,
+              statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            })
+            .end();
         });
 
         return readStream.pipe(res);
-      } else {
-        return res
-          .status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .json({ message: 'Sorry, something went wrong. Please try again.' });
       }
     }
   }
