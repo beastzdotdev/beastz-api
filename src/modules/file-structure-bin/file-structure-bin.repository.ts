@@ -67,4 +67,9 @@ export class FileStructureBinRepository {
 
     return db.fileStructureBin.delete({ where: { id, userId } });
   }
+  async deleteMany(userId: number, tx: PrismaTx): Promise<Prisma.BatchPayload> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructureBin.deleteMany({ where: { userId } });
+  }
 }

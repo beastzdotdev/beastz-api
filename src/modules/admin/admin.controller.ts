@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   ParseBoolPipe,
   ParseIntPipe,
@@ -16,11 +17,19 @@ import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { CreateSupportTicketsDto } from './dto/create-support-ticket.dto';
+import { PrismaService } from '../@global/prisma/prisma.service';
+import { transaction } from '../../common/transaction';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 //TODO admin roles
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  private readonly logger = new Logger(AdminController.name);
+
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   @Get('user-support-ticket')
   async getSupportTickets(@Query() queryParams: GetSupportTicketsQueryDto) {
@@ -70,11 +79,13 @@ export class AdminController {
   @NoEmailVerifyValidate()
   @Delete('user/:userId/fs')
   async deleteUserFsInfo(@Param('userId', ParseIntPipe) userId: number) {
-    const affected = await this.adminService.deleteUserFsInfo(userId);
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const affected = await this.adminService.deleteUserFsInfo(userId, tx);
 
-    return {
-      msg: 'success',
-      affected,
-    };
+      return {
+        msg: 'success',
+        affected,
+      };
+    });
   }
 }

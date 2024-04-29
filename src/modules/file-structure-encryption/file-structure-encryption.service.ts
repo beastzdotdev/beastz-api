@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { FileStructureEncryption } from '@prisma/client';
+import { FileStructureEncryption, Prisma } from '@prisma/client';
 import { FileStructureEncryptionParams } from './file-structure-encryption.type';
 import { FileStructureEncryptionRepository } from './file-structure-encryption.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
@@ -31,5 +31,9 @@ export class FileStructureEncryptionService {
 
   async deleteById(id: number, userId: number, tx?: PrismaTx): Promise<FileStructureEncryption> {
     return this.fileStructureEncryptionRepository.deleteById(id, userId, tx);
+  }
+
+  async deleteMany(userId: number, tx?: PrismaTx): Promise<Prisma.BatchPayload> {
+    return this.fileStructureEncryptionRepository.deleteMany(userId, tx);
   }
 }

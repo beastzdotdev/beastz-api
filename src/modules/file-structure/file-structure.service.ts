@@ -792,65 +792,88 @@ export class FileStructureService {
     });
   }
 
-  async deleteForeverFromBin(id: number, authPayload: AuthPayloadType, tx?: PrismaTx): Promise<void> {
-    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
-      const [fs, fsBin] = await Promise.all([
-        this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id, isInBin: true }, tx),
-        this.fsBinService.getByFsId(id, authPayload.user.id, tx),
-      ]);
+  async cleanUpSpace(authPayload: AuthPayloadType, tx: PrismaTx): Promise<void> {
+    const [binDelResponse, encDelResponse] = await Promise.all([
+      this.fsBinService.deleteMany(authPayload.user.id, tx),
+      this.fsEncryptionService.deleteMany(authPayload.user.id, tx),
+    ]);
 
-      if (!fs) {
-        throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
-      }
+    // delete content last
+    const contentDelResponse = await this.fsRepository.deleteMany({ userId: authPayload.user.id }, tx);
 
-      if (!fs.isInBin) {
-        throw new BadRequestException('File is not in bin');
-      }
+    const userRootContentPath = absUserContentPath(authPayload.user.uuid);
+    const userRootBinPath = absUserBinPath(authPayload.user.uuid);
 
-      // delete from fs bin
-      await this.fsBinService.deleteById(fsBin.id, authPayload.user.id, tx);
-
-      if (!fs.isFile) {
-        // this will delete given fs as well
-        const affectedRows = await this.fsRawQueryRepository.recursiveDelete(
-          {
-            userId: authPayload.user.id,
-            id: fs.id,
-            inBin: true,
-          },
-          tx,
-        );
-        this.logger.debug(`Delete forever folders by fs id of ${fs.id}`);
-        this.logger.debug(`Affected rows ${affectedRows.toString()}`);
-      } else {
-        await this.fsRepository.deleteById(
-          fs.id,
-          {
-            userId: authPayload.user.id,
-            isInBin: true,
-          },
-          tx,
-        );
-        this.logger.debug(`Delete forever file by fs id of ${fs.id}`);
-        this.logger.debug(`Affected rows 0 (was file)`);
-      }
-
-      const sourcePath = path.join(absUserBinPath(authPayload.user.uuid), fsBin.path);
-      const destinationPath = path.join(absUserDeletedForeverPath(authPayload.user.uuid), fsBin.path);
-
-      // if not exists create user uuid folder as well if not exists
-      const folderCreationSuccess = await fsCustom.checkDirOrCreate(destinationPath, {
-        isFile: fs.isFile,
-        createIfNotExists: true,
-      });
-
-      if (!folderCreationSuccess) {
-        this.logger.debug('Folder creation error occured');
-        throw new InternalServerErrorException('Something went wrong');
-      }
-
-      await fsCustom.move(sourcePath, destinationPath);
+    this.logger.debug(`Delete responses userId: ${authPayload.user.id}`);
+    this.logger.debug({
+      contentDelResponse,
+      binDelResponse,
+      encDelResponse,
+      userRootContentPath,
+      userRootBinPath,
     });
+
+    // fnally delete user folders
+    await Promise.all([fsCustom.delete(userRootContentPath), fsCustom.delete(userRootBinPath)]);
+  }
+
+  async deleteForeverFromBin(id: number, authPayload: AuthPayloadType, tx: PrismaTx): Promise<void> {
+    const [fs, fsBin] = await Promise.all([
+      this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id, isInBin: true }, tx),
+      this.fsBinService.getByFsId(id, authPayload.user.id, tx),
+    ]);
+
+    if (!fs) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    if (!fs.isInBin) {
+      throw new BadRequestException('File is not in bin');
+    }
+
+    // delete from fs bin
+    await this.fsBinService.deleteById(fsBin.id, authPayload.user.id, tx);
+
+    if (!fs.isFile) {
+      // this will delete given fs as well
+      const affectedRows = await this.fsRawQueryRepository.recursiveDelete(
+        {
+          userId: authPayload.user.id,
+          id: fs.id,
+          inBin: true,
+        },
+        tx,
+      );
+      this.logger.debug(`Delete forever folders by fs id of ${fs.id}`);
+      this.logger.debug(`Affected rows ${affectedRows.toString()}`);
+    } else {
+      await this.fsRepository.deleteById(
+        fs.id,
+        {
+          userId: authPayload.user.id,
+          isInBin: true,
+        },
+        tx,
+      );
+      this.logger.debug(`Delete forever file by fs id of ${fs.id}`);
+      this.logger.debug(`Affected rows 0 (was file)`);
+    }
+
+    const sourcePath = path.join(absUserBinPath(authPayload.user.uuid), fsBin.path);
+    const destinationPath = path.join(absUserDeletedForeverPath(authPayload.user.uuid), fsBin.path);
+
+    // if not exists create user uuid folder as well if not exists
+    const folderCreationSuccess = await fsCustom.checkDirOrCreate(destinationPath, {
+      isFile: fs.isFile,
+      createIfNotExists: true,
+    });
+
+    if (!folderCreationSuccess) {
+      this.logger.debug('Folder creation error occured');
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    await fsCustom.move(sourcePath, destinationPath);
   }
 
   private async validateParentRootParentStructure(params: { parentId?: number; rootParentId?: number }, tx?: PrismaTx) {

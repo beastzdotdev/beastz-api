@@ -5,6 +5,7 @@ import { fsCustom } from '../../common/helper';
 import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class AdminService {
@@ -39,38 +40,33 @@ export class AdminService {
     });
   }
 
-  async deleteUserFsInfo(userId: number) {
-    return this.prismaService.$transaction(async tx => {
-      const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+  async deleteUserFsInfo(userId: number, tx: PrismaTx) {
+    const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
 
-      // turn this up code in promise all
-      const [allBinFs, allFs] = await Promise.all([
-        tx.fileStructureBin.findMany({ where: { userId } }),
-        tx.fileStructure.findMany({ where: { userId } }),
-      ]);
+    // turn this up code in promise all
+    const [allBinFs, allFs] = await Promise.all([
+      tx.fileStructureBin.findMany({ where: { userId } }),
+      tx.fileStructure.findMany({ where: { userId } }),
+    ]);
 
-      const allBinFsIds = allBinFs.map(e => e.id);
-      const allFsIds = allFs.map(e => e.id);
+    const allBinFsIds = allBinFs.map(e => e.id);
+    const allFsIds = allFs.map(e => e.id);
 
-      await tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } });
+    await tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } });
 
-      await tx.fileStructureEncryption.deleteMany({ where: { fileStructureId: { in: allFsIds } } });
+    await tx.fileStructureEncryption.deleteMany({ where: { fileStructureId: { in: allFsIds } } });
 
-      // must be after
-      await tx.fileStructure.deleteMany({ where: { id: { in: allFsIds } } });
+    // must be after
+    await tx.fileStructure.deleteMany({ where: { id: { in: allFsIds } } });
 
-      const userRootContentPath = absUserContentPath(user.uuid);
-      const userRootBinPath = absUserBinPath(user.uuid);
+    const userRootContentPath = absUserContentPath(user.uuid);
+    const userRootBinPath = absUserBinPath(user.uuid);
 
-      // console.log(userRootContentPath);
-      // console.log(userRootBinPath);
-
-      await Promise.all([
-        //
-        fsCustom.delete(userRootContentPath),
-        fsCustom.delete(userRootBinPath),
-      ]);
-    });
+    await Promise.all([
+      //
+      fsCustom.delete(userRootContentPath),
+      fsCustom.delete(userRootBinPath),
+    ]);
   }
 
   async blacklistUser(id: number, isLocked: boolean) {

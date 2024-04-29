@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { FileStructureBin } from '@prisma/client';
+import { FileStructureBin, Prisma } from '@prisma/client';
 import { CreateFileStructureBinParams, FileStructureBinWithRelation } from './file-structure-bin.type';
 import { FileStructureBinRepository } from './file-structure-bin.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
@@ -51,5 +51,9 @@ export class FileStructureBinService {
 
   async deleteById(id: number, userId: number, tx: PrismaTx): Promise<FileStructureBin> {
     return this.fileStructureBinRepository.deleteById(id, userId, tx);
+  }
+
+  async deleteMany(userId: number, tx: PrismaTx): Promise<Prisma.BatchPayload> {
+    return this.fileStructureBinRepository.deleteMany(userId, tx);
   }
 }

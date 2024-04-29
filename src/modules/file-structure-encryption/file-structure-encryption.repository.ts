@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FileStructureEncryption } from '@prisma/client';
+import { FileStructureEncryption, Prisma } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { FileStructureEncryptionParams } from './file-structure-encryption.type';
 import { PrismaTx } from '../@global/prisma/prisma.type';
@@ -24,5 +24,15 @@ export class FileStructureEncryptionRepository {
     const db = tx ?? this.prismaService;
 
     return db.fileStructureEncryption.delete({ where: { id, userId } });
+  }
+
+  async deleteMany(userId: number, tx?: PrismaTx): Promise<Prisma.BatchPayload> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructureEncryption.deleteMany({
+      where: {
+        userId,
+      },
+    });
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res, Logger } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res, Logger, Delete } from '@nestjs/common';
 import { Response } from 'express';
 import { FileStructureService } from './file-structure.service';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
@@ -161,11 +161,20 @@ export class FileStructureController {
     return BasicFileStructureResponseDto.map(response);
   }
 
-  @Patch('delete-forever-from-bin/:id')
+  @Delete('clean-up-space')
+  async cleanUpSpace(@AuthPayload() authPayload: AuthPayloadType): Promise<void> {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      return this.fileStructureService.cleanUpSpace(authPayload, tx);
+    });
+  }
+
+  @Delete('delete-forever-from-bin/:id')
   async deleteForeverFromBin(
     @AuthPayload() authPayload: AuthPayloadType,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<void> {
-    await this.fileStructureService.deleteForeverFromBin(id, authPayload);
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      await this.fileStructureService.deleteForeverFromBin(id, authPayload, tx);
+    });
   }
 }

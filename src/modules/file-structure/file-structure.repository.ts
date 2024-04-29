@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FileStructure } from '@prisma/client';
+import { FileStructure, Prisma } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import {
@@ -262,6 +262,18 @@ export class FileStructureRepository {
         id: { in: ids },
         userId,
         isInBin: isInBin ?? false,
+      },
+    });
+  }
+
+  async deleteMany(params: { userId: number; isInBin?: boolean }, tx?: PrismaTx): Promise<Prisma.BatchPayload> {
+    const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
+
+    return db.fileStructure.deleteMany({
+      where: {
+        userId,
+        isInBin,
       },
     });
   }
