@@ -1,5 +1,8 @@
-import { Gender } from '@prisma/client';
-import { Exclude, Expose } from 'class-transformer';
+import { Gender, User } from '@prisma/client';
+import { Exclude, Expose, plainToInstance } from 'class-transformer';
+import path from 'path';
+import { envService } from '../../@global/env/env.service';
+import { constants } from '../../../common/constants';
 
 @Exclude()
 export class UserResponseDto {
@@ -22,5 +25,27 @@ export class UserResponseDto {
   createdAt: Date;
 
   @Expose()
-  profileImagePath: Date;
+  profileImagePath: string | null;
+
+  @Expose()
+  profileFullImagePath: string | null;
+
+  static map(data: User): UserResponseDto {
+    const response = plainToInstance(UserResponseDto, data);
+
+    response.setAbsFullImgPath();
+
+    return response;
+  }
+
+  setAbsFullImgPath() {
+    if (this.profileImagePath) {
+      const url = new URL(envService.get('BACKEND_URL'));
+      url.pathname = path.join(constants.assets.userUploadFolderName, this.profileImagePath);
+      this.profileFullImagePath = url.toString();
+      return;
+    }
+
+    this.profileFullImagePath = null;
+  }
 }

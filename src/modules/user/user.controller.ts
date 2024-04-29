@@ -1,5 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
+import { Body, Controller, Get, Logger, Param, ParseIntPipe, Patch } from '@nestjs/common';
 import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
@@ -7,24 +6,29 @@ import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
-import { constants } from '../../common/constants';
-import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
-import { fileStructureHelper } from '../file-structure/file-structure.helper';
+import { imageInterceptor } from '../../common/helper';
+import { PrismaService } from '../@global/prisma/prisma.service';
+import { transaction } from '../../common/transaction';
+import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  private readonly logger = new Logger(UserController.name);
+  constructor(
+    private readonly userService: UserService,
+    private readonly prismaService: PrismaService,
+  ) {}
 
   @Get('current')
   async getAuthUser(@AuthPayload() authPayload: AuthPayloadType): Promise<UserResponseDto> {
     const user = await this.userService.getById(authPayload.user.id);
-    return plainToInstance(UserResponseDto, user);
+    return UserResponseDto.map(user);
   }
 
   @Get(':id')
   async getUserById(@Param('id', ParseIntPipe) id: number) {
     const user = await this.userService.getById(id);
-    return plainToInstance(UserResponseDto, user);
+    return UserResponseDto.map(user);
   }
 
   @Patch('current')
@@ -33,26 +37,18 @@ export class UserController {
     @AuthPayload() authPayload: AuthPayloadType,
   ): Promise<UserResponseDto | null> {
     const user = await this.userService.update(authPayload.user.id, body);
-    return plainToInstance(UserResponseDto, user);
+    return UserResponseDto.map(user);
   }
 
   @Patch('current/image')
-  @FileUploadInterceptor(
-    new MulterFileInterceptor({
-      fileTypes: Object.values([
-        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
-        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
-        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
-        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
-      ]),
-      maxSize: constants.singleFileMaxSize,
-    }),
-  )
+  @FileUploadInterceptor(...imageInterceptor(UpdateUserProfileImageDto))
   async getUserProfileImage(
     @Body() body: UpdateUserProfileImageDto,
     @AuthPayload() authPayload: AuthPayloadType,
   ): Promise<UserResponseDto | null> {
-    const user = await this.userService.updateUserProfile(authPayload, body);
-    return plainToInstance(UserResponseDto, user);
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const user = await this.userService.updateUserProfile(authPayload, body, tx);
+      return UserResponseDto.map(user);
+    });
   }
 }

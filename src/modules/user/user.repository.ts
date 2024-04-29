@@ -79,6 +79,7 @@ export class UserRepository {
         email: true,
         createdAt: true,
         uuid: true,
+        profileImagePath: true,
         userIdentity: {
           select: {
             id: true,
@@ -126,14 +127,15 @@ export class UserRepository {
     return count > 0;
   }
 
-  async updateById(id: number, params: UpdateUserParams): Promise<User | null> {
-    const entity = await this.prismaService.user.findUnique({ where: { id } });
+  async updateById(id: number, params: UpdateUserParams, tx?: PrismaTx): Promise<User | null> {
+    const db = tx ?? this.prismaService;
+    const entity = await db.user.findUnique({ where: { id } });
 
     if (!entity) {
       return null;
     }
 
-    return this.prismaService.user.update({
+    return db.user.update({
       where: { id },
       data: {
         ...entity,

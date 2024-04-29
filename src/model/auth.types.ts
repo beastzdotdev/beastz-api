@@ -14,6 +14,7 @@ export type AuthPayloadType = {
     email: string;
     createdAt: Date;
     uuid: string;
+    profileImagePath?: string | null;
     userIdentity: {
       id: number;
       isAccountVerified: boolean;

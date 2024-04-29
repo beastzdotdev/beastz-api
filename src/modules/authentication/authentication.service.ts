@@ -1,4 +1,3 @@
-import path from 'path';
 import bcrypt from 'bcrypt';
 import moment from 'moment';
 import { v4 as uuid } from 'uuid';
@@ -77,7 +76,7 @@ export class AuthenticationService {
       const user = await this.userService.create(
         {
           ...otherParams,
-          profileImagePath: path.join('/', constants.assets.publicAssetsImage, 'profile-default.svg'),
+          profileImagePath: null,
           uuid: uuid(),
         },
         tx,

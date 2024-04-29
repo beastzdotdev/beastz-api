@@ -405,3 +405,18 @@ export const fileInterceptors = (dto: GeneralClass): NestInterceptor[] => {
     }),
   ];
 };
+
+export const imageInterceptor = (dto: GeneralClass): NestInterceptor[] => {
+  return [
+    new PlainToInstanceInterceptor(dto),
+    new MulterFileInterceptor({
+      fileTypes: Object.values([
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
+      ]),
+      maxSize: constants.singleFileMaxSize,
+    }),
+  ];
+};

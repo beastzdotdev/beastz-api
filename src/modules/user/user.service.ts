@@ -1,5 +1,6 @@
-import fs from 'fs';
+import { v4 as uuid } from 'uuid';
 import path from 'path';
+import mime from 'mime';
 import {
   Logger,
   ForbiddenException,
@@ -8,6 +9,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+
 import { CreateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
@@ -113,20 +115,21 @@ export class UserService {
     return user;
   }
 
-  async updateUserProfile(authPayload: AuthPayloadType, params: UpdateUserProfileImageDto): Promise<UserWithRelations> {
+  async updateUserProfile(
+    authPayload: AuthPayloadType,
+    params: UpdateUserProfileImageDto,
+    tx: PrismaTx,
+  ): Promise<UserWithRelations> {
     const { profileImageFile } = params;
 
-    // /something.jpeg -> something or something (1).jpg -> something (1)
-    const parsedFile = path.parse(profileImageFile.originalname);
+    const rawExt = mime.extension(profileImageFile.mimetype);
+    const ext = `.${rawExt}`;
 
-    const newFileName = `profile-image${parsedFile.ext}`;
-
-    const filePath = path.join(absUserUploadPath(authPayload.user.uuid), newFileName);
-    const entityPath = path.join('/', constants.assets.userUploadFolderName, authPayload.user.uuid, newFileName);
+    const fileNameWithExt = 'profile-image-' + uuid() + ext;
+    const filePath = path.join(absUserUploadPath(authPayload.user.uuid), fileNameWithExt);
 
     this.logger.debug(`Created file path and entity path`);
     this.logger.debug(filePath);
-    this.logger.debug(entityPath);
 
     // if not exists create user uuid folder as well if not exists
     const folderCreationSuccess = await fsCustom.checkDirOrCreate(filePath, {
@@ -139,20 +142,48 @@ export class UserService {
       throw new InternalServerErrorException('Something went wrong');
     }
 
-    // this should have no problem
-    await fs.promises.writeFile(filePath, profileImageFile.buffer, { encoding: 'utf-8' }).catch(err => {
+    await fsCustom.writeFile(filePath, profileImageFile.buffer).catch(err => {
       this.logger.debug('Error happend');
       this.logger.error(err);
 
       throw new InternalServerErrorException('Something went wrong');
     });
 
-    const user = await this.userRepository.updateById(authPayload.user.id, {
-      profileImagePath: entityPath,
-    });
+    const entityRelativePath = path.join('/', fileNameWithExt);
+
+    this.logger.debug(entityRelativePath);
+
+    const user = await this.userRepository.updateById(
+      authPayload.user.id,
+      {
+        profileImagePath: entityRelativePath,
+      },
+      tx,
+    );
 
     if (!user) {
       throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
+    }
+
+    // del existing profile img if exists
+    const existingPath = authPayload.user.profileImagePath;
+
+    if (existingPath) {
+      const existingAbsPath = path.join(absUserUploadPath(authPayload.user.uuid), existingPath);
+
+      await fsCustom.access(existingAbsPath).catch(e => {
+        this.logger.debug('Error happend');
+        this.logger.error(e);
+
+        throw new InternalServerErrorException('Something went wrong');
+      });
+
+      await fsCustom.delete(existingAbsPath).catch(e => {
+        this.logger.debug('Error happend');
+        this.logger.error(e);
+
+        throw new InternalServerErrorException('Something went wrong');
+      });
     }
 
     return user;

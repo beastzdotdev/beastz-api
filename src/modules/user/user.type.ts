@@ -39,5 +39,6 @@ export type UserIncludeIdentity<T extends { includesPassword: boolean }> = {
   uuid: string;
   email: string;
   createdAt: Date;
+  profileImagePath?: string | null;
 };
 //  & (T extends true ? { password: string } : { password?: never });
