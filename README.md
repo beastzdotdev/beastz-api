@@ -1,6 +1,6 @@
-# 🦍 Gorilla Vault API
+# 🦍 Beastz API
 
-The power of secure file storage and sharing with Gorilla Vault API – ultimate solution inspired by the simplicity of Google Drive, fortified with advanced encryption features akin to ProtectText.com.
+The power of secure file storage and sharing with Beastz API – ultimate solution inspired by the simplicity of Google Drive, fortified with advanced encryption features akin to ProtectText.com.
 
 🔒 State-of-the-Art Encryption: Safeguard your files with end-to-end encryption, seamlessly integrated into your browser for effortless security.
 

@@ -1,7 +1,7 @@
 {
-  "name": "gorilla-vault-api",
+  "name": "beastz-vault-api",
   "version": "0.0.1",
-  "description": "This is gorilla vault secure storage solution backend service",
+  "description": "This is beastz vault secure storage solution backend service",
   "author": "Giorgi Kumelashvili",
   "private": "false",
   "license": "MIT",
