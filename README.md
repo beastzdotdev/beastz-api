@@ -1,4 +1,4 @@
-# 🦍 Beastz API
+# Beastz API
 
 The power of secure file storage and sharing with Beastz API – ultimate solution inspired by the simplicity of Google Drive, fortified with advanced encryption features akin to ProtectText.com.
 
