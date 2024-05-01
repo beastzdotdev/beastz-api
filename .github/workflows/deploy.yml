@@ -11,10 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: shut down the image
-        run: docker-compose down
+        run: docker compose down
       - name: remove dangling images
         run: docker image prune --all --force
       - name: rebuild the image
-        run: docker-compose build --no-cache
+        run: docker compose build --no-cache
       - name: run the image
-        run: docker-compose up -d
+        run: docker compose up -d
