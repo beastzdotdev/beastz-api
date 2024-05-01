@@ -1,0 +1,85 @@
+version: '3'
+
+volumes:
+  local_postgres_data:
+
+services:
+  beastz:
+    build: ./
+    ports:
+      - '4000:4000'
+    environment:
+      # main
+      - DEBUG=DEV
+      - PORT=4000
+      - PRISMA_ENGINE_PROTOCOL=json
+      - MAX_FEEDBACK_PER_DAY_COUNT=4
+      - FRONTEND_URL=http://localhost:5173
+      - BACKEND_URL=http://localhost:4000
+      - ENABLE_SESSION_ACCESS_JWT_ENCRYPTION=false
+
+      # db prisma
+      - DATABASE_URL=postgresql://postgres:A08X5fh4A5Y@db:5432/beastz?schema=public
+      - DATABASE_LOG_QUERY=false
+
+      # mailgun
+      - MAIL_URL="https://api.eu.mailgun.net"
+      - MAIL_DOMAIN="mail.maindoge.site"
+      - MAIL_API_KEY="036f68981e57c7007e5f1b5ec692cd9e-5465e583-8f0d9493"
+      - MAIL_USERNAME="auth@mail.maindoge.site"
+      - MAIL_FROM="Gorrila Vault <mailgun@mail.maindoge.site>"
+
+      # cookie
+      - COOKIE_SECRET="~ypw{xV"Qx:SZx%pUv/V*Odv~t3C7{12c?}K;HT*"
+
+      # 15 min (60 * 15) = 900
+      - ACCESS_TOKEN_EXPIRATION_IN_SEC=90000000
+
+      # 30 day (3600 * 24 * 30) = 2592000
+      - REFRESH_TOKEN_EXPIRATION_IN_SEC=2592000
+
+      # 15 min (60 * 15) = 900
+      - RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC=900
+
+      # 15 min (60 * 15) = 900
+      - RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC=900
+
+      # 15 min (60 * 15) = 900
+      - ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC=900
+
+      # access token secret
+      - ACCESS_TOKEN_SECRET="~ypw{V"Q:SZ%pU/V*Ov~tC7{c?}K;HT*"
+
+      # refresh token secret
+      - REFRESH_TOKEN_SECRET="~ypw{V"Q:SZ%pU/V*Ov~tC7{c?}K;HT*"
+
+      # used for both token encryption for extra security
+      - SESSION_JWT_ENCRYPTION_KEY="123~ypw{V"Q:SZ%pU/V*Ov~tC7{c?}K;HT*"
+
+      # account verification secret
+      - ACCOUNT_VERIFY_TOKEN_SECRET="~ypw{xV"Qx:SZx%pUv/V*Odv~t3C7{12c?}K;HT*"
+
+      # recovery password secret
+      - RECOVER_PASSWORD_TOKEN_SECRET="~xpw{xV"Qx:SZx%pUv/V*Odv~t3C7{12c?}K;HT*"
+
+      # reset password secret
+      - RESET_PASSWORD_TOKEN_SECRET="~xpw{xV"Qx:SZx%pUv/V*Odv~t3C7{12c?}K;HT*"
+    depends_on:
+      - db
+    volumes:
+      - /beastz-data/hub:/app/hub
+      - /beastz-data/user-bin:/app/user-bin
+      - /beastz-data/user-content:/app/user-content
+      - /beastz-data/user-upload:/app/user-upload
+      - /beastz-data/user-deleted-forever:/app/user-deleted-forever
+
+  db:
+    image: postgres:14.5-alpine
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_PASSWORD: A08X5fh4A5Y
+      POSTGRES_USERNAME: postgres
+      POSTGRES_DB: beastz
+    volumes:
+      - local_postgres_data:/var/lib/postgresql/data
