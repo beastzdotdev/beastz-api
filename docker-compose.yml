@@ -60,5 +60,5 @@ services:
       - local_postgres_data:/var/lib/postgresql/data
 
 secrets:
-  DEBUG:
-    file: /run/secrets/DEBUG
+  PORT:
+    file: /run/secrets/PORT
