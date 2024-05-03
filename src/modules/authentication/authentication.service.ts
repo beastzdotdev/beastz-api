@@ -3,6 +3,7 @@ import moment from 'moment';
 import { v4 as uuid } from 'uuid';
 import { Response } from 'express';
 import {
+  BadRequestException,
   ForbiddenException,
   HttpStatus,
   Injectable,
@@ -12,7 +13,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
-import { helper } from '../../common/helper';
+import { helper, prismaSafeCall } from '../../common/helper';
 import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { encryption } from '../../common/encryption';
@@ -75,14 +76,20 @@ export class AuthenticationService {
       const { password, ...otherParams } = params;
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = await this.userService.create(
-        {
-          ...otherParams,
-          profileImagePath: null,
-          uuid: uuid(),
-        },
-        tx,
+      const { data: user, error } = await prismaSafeCall(() =>
+        this.userService.create(
+          {
+            ...otherParams,
+            profileImagePath: null,
+            uuid: uuid(),
+          },
+          tx,
+        ),
       );
+
+      if (error || !user) {
+        throw new BadRequestException(error);
+      }
 
       await this.userIdentityService.create(
         {

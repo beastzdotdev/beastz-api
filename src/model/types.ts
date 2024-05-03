@@ -17,7 +17,7 @@ export type ExceptionType = keyof typeof PrismaExceptionCode;
 export type SafeCallResult<T> = {
   success: boolean;
   error: ExceptionType | null;
-  data: T | null;
+  data: Awaited<T | null>;
 };
 
 // Pagination
