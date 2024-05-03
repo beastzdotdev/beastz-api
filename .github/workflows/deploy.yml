@@ -43,7 +43,7 @@ jobs:
           echo "overridden variable : $OVERRIDE_VAR"
           echo "variable from shell environment : $env_var"
           echo "variable from shell environment : $PORT"
-          echo API_KEY=${{ secrets.PORT }}
+          echo API_KEY=${{ vars.PORT }}
         env:
           REPOSITORY_VAR: ${{ vars.DEBUG }}
           ORGANIZATION_VAR: ${{ vars.PORT }}
