@@ -1,10 +1,8 @@
-name: CD
+# name: CD
 
 on:
   push:
     branches: ['master']
-
-# DATABASE_URL: ${{secrets.DATABASE_URL}}
 
 env:
   DEBUG: ${{vars.DEBUG}}
@@ -35,11 +33,10 @@ env:
   POSTGRES_PASSWORD: ${{vars.POSTGRES_PASSWORD}}
   POSTGRES_USERNAME: ${{vars.POSTGRES_USERNAME}}
   POSTGRES_DB: ${{vars.POSTGRES_DB}}
+  DATABASE_URL: postgresql://postgres:A08X5fh4A5YKDS@db:5432/beastz?schema=public
 
 jobs:
   build:
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     runs-on: self-hosted
     environment: Prod
     steps:
@@ -49,12 +46,13 @@ jobs:
       - name: remove dangling images
         run: docker image prune --all --force
       - name: rebuild the image
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }} #! This is important to be in repository secrets instead of environment secrets, prisma stuff
         run: docker compose build --no-cache
       - name: run the image
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }} #! This is important to be in repository secrets instead of environment secrets, prisma stuff
         run: docker compose up -d
+#
+# env:
+#   DATABASE_URL: ${{ secrets.DATABASE_URL }} #! This is important to be in repository secrets instead of environment secrets, prisma stuff
+# env:
+#   DATABASE_URL: ${{ secrets.DATABASE_URL }} #! This is important to be in repository secrets instead of environment secrets, prisma stuff
 #
 # https://github.com/prisma/prisma/issues/10204
