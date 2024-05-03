@@ -12,16 +12,6 @@ export class SignUpBodyDto {
 
   @IsNotEmpty()
   @IsString()
-  @MaxLength(255)
-  firstName: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(255)
-  lastName: string;
-
-  @IsNotEmpty()
-  @IsString()
   @IsEmailCustom()
   @MaxLength(255)
   email: string;
