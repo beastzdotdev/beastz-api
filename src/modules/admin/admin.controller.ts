@@ -31,6 +31,11 @@ export class AdminController {
     private readonly prismaService: PrismaService,
   ) {}
 
+  @Get('test-envs')
+  async testEnvs() {
+    return this.adminService.testEnvs();
+  }
+
   @Get('user-support-ticket')
   async getSupportTickets(@Query() queryParams: GetSupportTicketsQueryDto) {
     return this.adminService.getTickets(queryParams);

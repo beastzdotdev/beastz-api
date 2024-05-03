@@ -6,10 +6,48 @@ import { absUserBinPath, absUserContentPath } from '../file-structure/file-struc
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { PrismaTx } from '../@global/prisma/prisma.type';
+import { InjectEnv } from '../@global/env/env.decorator';
+import { EnvService } from '../@global/env/env.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @InjectEnv() private readonly envService: EnvService,
+  ) {}
+
+  testEnvs() {
+    console.log(this.envService.getInstance());
+
+    return {
+      DEBUG: this.envService.get('DEBUG'),
+      PORT: this.envService.get('PORT'),
+      DATABASE_LOG_QUERY: this.envService.get('DATABASE_LOG_QUERY'),
+      ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION'),
+      FRONTEND_URL: this.envService.get('FRONTEND_URL'),
+      BACKEND_URL: this.envService.get('BACKEND_URL'),
+      COOKIE_SECRET: this.envService.get('COOKIE_SECRET'),
+      MAIL_DOMAIN: this.envService.get('MAIL_DOMAIN'),
+      MAIL_API_KEY: this.envService.get('MAIL_API_KEY'),
+      MAIL_URL: this.envService.get('MAIL_URL'),
+      MAIL_USERNAME: this.envService.get('MAIL_USERNAME'),
+      MAIL_FROM: this.envService.get('MAIL_FROM'),
+      DATABASE_URL: this.envService.get('DATABASE_URL'),
+      ACCESS_TOKEN_SECRET: this.envService.get('ACCESS_TOKEN_SECRET'),
+      REFRESH_TOKEN_SECRET: this.envService.get('REFRESH_TOKEN_SECRET'),
+      ACCESS_TOKEN_EXPIRATION_IN_SEC: this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'),
+      REFRESH_TOKEN_EXPIRATION_IN_SEC: this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'),
+      RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC: this.envService.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
+      RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC: this.envService.get('RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
+      ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: this.envService.get('ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC'),
+      MAX_FEEDBACK_PER_DAY_COUNT: this.envService.get('MAX_FEEDBACK_PER_DAY_COUNT'),
+      PRISMA_ENGINE_PROTOCOL: this.envService.get('PRISMA_ENGINE_PROTOCOL'),
+      ACCOUNT_VERIFY_TOKEN_SECRET: this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET'),
+      RECOVER_PASSWORD_TOKEN_SECRET: this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET'),
+      RESET_PASSWORD_TOKEN_SECRET: this.envService.get('RESET_PASSWORD_TOKEN_SECRET'),
+      SESSION_JWT_ENCRYPTION_KEY: this.envService.get('SESSION_JWT_ENCRYPTION_KEY'),
+    };
+  }
 
   async deleteUserInfo(userId: number) {
     return this.prismaService.$transaction(async tx => {

@@ -1,5 +1,3 @@
-# name: CD
-
 on:
   push:
     branches: ['master']
@@ -27,10 +25,7 @@ jobs:
       BACKEND_URL: ${{vars.BACKEND_URL}}
       ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: ${{vars.ENABLE_SESSION_ACCESS_JWT_ENCRYPTION}}
       DATABASE_LOG_QUERY: ${{vars.DATABASE_LOG_QUERY}}
-      #
       DATABASE_URL: ${{vars.DATABASE_URL}}
-      PRISMA_DATABASE_URL: ${{vars.PRISMA_DATABASE_URL}}
-      #
       MAIL_URL: ${{vars.MAIL_URL}}
       MAIL_DOMAIN: ${{vars.MAIL_DOMAIN}}
       MAIL_API_KEY: ${{vars.MAIL_API_KEY}}
@@ -51,4 +46,6 @@ jobs:
       POSTGRES_PASSWORD: ${{vars.POSTGRES_PASSWORD}}
       POSTGRES_USERNAME: ${{vars.POSTGRES_USERNAME}}
       POSTGRES_DB: ${{vars.POSTGRES_DB}}
+#
 # https://github.com/prisma/prisma/issues/10204
+# https://stackoverflow.com/questions/72004347/github-actions-build-docker-image-with-a-secret-json-file-and-env-file
