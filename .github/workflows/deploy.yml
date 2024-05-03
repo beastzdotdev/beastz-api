@@ -42,6 +42,7 @@ jobs:
           echo "organization variable : $ORGANIZATION_VAR"
           echo "overridden variable : $OVERRIDE_VAR"
           echo "variable from shell environment : $env_var"
+          echo "variable from shell environment : $PORT"
         env:
           REPOSITORY_VAR: ${{ vars.DEBUG }}
           ORGANIZATION_VAR: ${{ vars.PORT }}
