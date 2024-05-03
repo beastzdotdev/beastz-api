@@ -10,7 +10,7 @@ services:
       - '4000:4000'
     environment:
       DEBUG: /run/secrets/DEBUG
-      PORT: /run/secrets/PORT
+      PORT: ${PORT}
       PRISMA_ENGINE_PROTOCOL: /run/secrets/PRISMA_ENGINE_PROTOCOL
       MAX_FEEDBACK_PER_DAY_COUNT: /run/secrets/MAX_FEEDBACK_PER_DAY_COUNT
       FRONTEND_URL: /run/secrets/FRONTEND_URL
