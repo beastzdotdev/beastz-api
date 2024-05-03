@@ -26,6 +26,8 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
 
   console.log('='.repeat(20));
+  console.log(process.env);
+  console.log('='.repeat(20));
   console.log(process.env.BACKEND_URL);
   console.log(envService.get('BACKEND_URL'));
   console.log('='.repeat(20));
