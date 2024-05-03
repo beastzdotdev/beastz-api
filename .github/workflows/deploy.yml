@@ -27,6 +27,10 @@ jobs:
       BACKEND_URL: ${{vars.BACKEND_URL}}
       ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: ${{vars.ENABLE_SESSION_ACCESS_JWT_ENCRYPTION}}
       DATABASE_LOG_QUERY: ${{vars.DATABASE_LOG_QUERY}}
+      #
+      DATABASE_URL: ${{vars.DATABASE_URL}}
+      PRISMA_DATABASE_URL: ${{vars.PRISMA_DATABASE_URL}}
+      #
       MAIL_URL: ${{vars.MAIL_URL}}
       MAIL_DOMAIN: ${{vars.MAIL_DOMAIN}}
       MAIL_API_KEY: ${{vars.MAIL_API_KEY}}
@@ -47,11 +51,4 @@ jobs:
       POSTGRES_PASSWORD: ${{vars.POSTGRES_PASSWORD}}
       POSTGRES_USERNAME: ${{vars.POSTGRES_USERNAME}}
       POSTGRES_DB: ${{vars.POSTGRES_DB}}
-      # DATABASE_URL: postgresql://postgres:A08X5fh4A5YKDS@db:5432/beastz?schema=public
-#
-# env:
-#   DATABASE_URL: ${{ secrets.DATABASE_URL }} #! This is important to be in repository secrets instead of environment secrets, prisma stuff
-# env:
-#   DATABASE_URL: ${{ secrets.DATABASE_URL }} #! This is important to be in repository secrets instead of environment secrets, prisma stuff
-#
 # https://github.com/prisma/prisma/issues/10204

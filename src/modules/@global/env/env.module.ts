@@ -34,6 +34,7 @@ export class EnvModule {
           isGlobal: true,
           ignoreEnvVars: true, // predefined/system environment variables will not be validated
           validate: (configuration: Record<keyof EnvironmentVariables, string | null | unknown>) => {
+            //TODO: check here {configuration} from github action
             const finalConfig = plainToClass(EnvironmentVariables, configuration, {
               exposeDefaultValues: true,
             });
