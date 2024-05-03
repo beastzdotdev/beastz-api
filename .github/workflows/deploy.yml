@@ -35,6 +35,7 @@ env:
 jobs:
   display-variables:
     runs-on: self-hosted
+    environment: Prod
     steps:
       - name: Use variables
         run: |
