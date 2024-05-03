@@ -33,34 +33,17 @@ env:
   RESET_PASSWORD_TOKEN_SECRET: ${{vars.RESET_PASSWORD_TOKEN_SECRET}}
 
 jobs:
-  display-variables:
+  build:
     runs-on: self-hosted
-    environment: Prod
     steps:
-      - name: Use variables
-        run: |
-          echo "repository variable : $REPOSITORY_VAR"
-          echo "organization variable : $ORGANIZATION_VAR"
-          echo "overridden variable : $OVERRIDE_VAR"
-          echo "variable from shell environment : $env_var"
-          echo "variable from shell environment : $PORT"
-          echo API_KEY=${{ vars.PORT }}
-        env:
-          REPOSITORY_VAR: ${{ vars.DEBUG }}
-          ORGANIZATION_VAR: ${{ vars.PORT }}
-          OVERRIDE_VAR: ${{ vars.MAIL_URL }}
-
-  # build:
-  #   runs-on: self-hosted
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: shut down the image
-  #       run: docker compose down
-  #     - name: remove dangling images
-  #       run: docker image prune --all --force
-  #     - name: rebuild the image
-  #       run: docker compose build --no-cache
-  #     - name: run the image
-  #       run: docker compose up -d
+      - uses: actions/checkout@v3
+      - name: shut down the image
+        run: docker compose down
+      - name: remove dangling images
+        run: docker image prune --all --force
+      - name: rebuild the image
+        run: docker compose build --no-cache
+      - name: run the image
+        run: docker compose up -d
 #
 # https://stackoverflow.com/questions/60176044/how-do-i-use-an-env-file-with-github-actions

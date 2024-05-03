@@ -25,6 +25,11 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
 
+  console.log('='.repeat(20));
+  console.log(process.env.BACKEND_URL);
+  console.log(envService.get('BACKEND_URL'));
+  console.log('='.repeat(20));
+
   const nunjuckMainRenderer = nunjucks.configure(assetsPath, {
     express: app,
     autoescape: true,
