@@ -20,6 +20,7 @@ import { CreateSupportTicketsDto } from './dto/create-support-ticket.dto';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
 import { PrismaTx } from '../@global/prisma/prisma.type';
+import { NoAuth } from '../../decorator/no-auth.decorator';
 
 //TODO admin roles
 @Controller('admin')
@@ -31,6 +32,7 @@ export class AdminController {
     private readonly prismaService: PrismaService,
   ) {}
 
+  @NoAuth()
   @Get('test-envs')
   async testEnvs() {
     return this.adminService.testEnvs();
