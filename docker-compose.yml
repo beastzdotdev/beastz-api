@@ -49,9 +49,9 @@ services:
     ports:
       - '5433:5432'
     environment:
-      POSTGRES_PASSWORD: '${{ secrets.POSTGRES_PASSWORD }}'
-      POSTGRES_USERNAME: '${{ secrets.POSTGRES_USERNAME }}'
-      POSTGRES_DB: '${{ secrets.POSTGRES_DB }}'
+      POSTGRES_PASSWORD: /run/secrets/POSTGRES_PASSWORD
+      POSTGRES_USERNAME: /run/secrets/POSTGRES_USERNAME
+      POSTGRES_DB: /run/secrets/POSTGRES_DB
 
       # POSTGRES_PASSWORD: A08X5fh4A5YKDS
       # POSTGRES_USERNAME: postgres
