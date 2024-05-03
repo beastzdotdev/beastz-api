@@ -44,8 +44,6 @@ services:
       - /beastz-data/user-content:/app/user-content
       - /beastz-data/user-upload:/app/user-upload
       - /beastz-data/user-deleted-forever:/app/user-deleted-forever
-    secrets:
-      - PORT
 
   db:
     image: postgres:14.5-alpine
@@ -58,7 +56,3 @@ services:
 
     volumes:
       - local_postgres_data:/var/lib/postgresql/data
-
-secrets:
-  PORT:
-    file: /run/secrets/PORT
