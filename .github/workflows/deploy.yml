@@ -33,7 +33,7 @@ env:
   POSTGRES_PASSWORD: ${{vars.POSTGRES_PASSWORD}}
   POSTGRES_USERNAME: ${{vars.POSTGRES_USERNAME}}
   POSTGRES_DB: ${{vars.POSTGRES_DB}}
-  DATABASE_URL: postgresql://postgres:A08X5fh4A5YKDS@db:5432/beastz?schema=public
+  # DATABASE_URL: postgresql://postgres:A08X5fh4A5YKDS@db:5432/beastz?schema=public
 
 jobs:
   build:
