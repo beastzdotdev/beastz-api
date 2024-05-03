@@ -38,6 +38,8 @@ env:
 
 jobs:
   build:
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     runs-on: self-hosted
     environment: Prod
     steps:
@@ -55,4 +57,4 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }} #! This is important to be in repository secrets instead of environment secrets, prisma stuff
         run: docker compose up -d
 #
-# https://stackoverflow.com/questions/60176044/how-do-i-use-an-env-file-with-github-actions
+# https://github.com/prisma/prisma/issues/10204
