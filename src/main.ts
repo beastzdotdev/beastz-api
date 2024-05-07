@@ -20,9 +20,7 @@ import { absPublicPath } from './modules/file-structure/file-structure.helper';
 // https://sarcadass.github.io/granim.js/examples.html
 
 // process.on('uncaughtException', err => {
-//   console.log(123);
 //   console.log(err);
-
 //   throw new InternalServerErrorException('Something went wrong');
 // });
 
