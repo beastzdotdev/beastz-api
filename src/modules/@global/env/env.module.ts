@@ -32,7 +32,7 @@ export class EnvModule {
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
-          ignoreEnvVars: true, // predefined/system environment variables will not be validated
+          ignoreEnvVars: false, // predefined/system environment variables will not be validated
           validate: (configuration: Record<keyof EnvironmentVariables, string | null | unknown>) => {
             console.log('='.repeat(20) + 1);
             console.log(process.env);
