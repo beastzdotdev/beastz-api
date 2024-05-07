@@ -24,6 +24,7 @@
     "test:unit": "jest --config ./test/unit/jest.json --detectOpenHandles --forceExit",
     "test:unit:cov": "jest --config ./test/unit/jest.json --coverage --detectOpenHandles --forceExit",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "use:nvm": "source ~/.nvm/nvm.sh && nvm use",
     "prisma": "prisma",
     "prisma:gen": "prisma generate",
     "migration:gen": "prisma migrate dev --create-only",
