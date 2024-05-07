@@ -1,0 +1,6 @@
+name: Metadata
+description: Generate metadata for the action
+
+runs:
+  using: 'node20'
+  main: 'main.js'
