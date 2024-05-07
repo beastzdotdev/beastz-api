@@ -8,13 +8,23 @@ import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
-import { InternalServerErrorException } from '@nestjs/common';
 import { AppModule } from './modules/app.module';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { cyanLog } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
 import { absPublicPath } from './modules/file-structure/file-structure.helper';
+
+// Cool libraries for future
+// https://nosir.github.io/cleave.js/
+// https://sarcadass.github.io/granim.js/examples.html
+
+// process.on('uncaughtException', err => {
+//   console.log(123);
+//   console.log(err);
+
+//   throw new InternalServerErrorException('Something went wrong');
+// });
 
 //@ts-expect-error
 BigInt.prototype.toJSON = function () {
@@ -24,13 +34,6 @@ BigInt.prototype.toJSON = function () {
 NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
-
-  console.log('='.repeat(20));
-  console.log(process.env);
-  console.log('='.repeat(20));
-  console.log(process.env.BACKEND_URL);
-  console.log(envService.get('BACKEND_URL'));
-  console.log('='.repeat(20));
 
   const nunjuckMainRenderer = nunjucks.configure(assetsPath, {
     express: app,
@@ -71,21 +74,3 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   // log misc stuff
   cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
 });
-
-// Cool libraries for future
-// https://nosir.github.io/cleave.js/
-// https://sarcadass.github.io/granim.js/examples.html
-
-//!!!!====================================
-//!!!!====================================
-//!!!!====================================
-//!!!!====================================
-//!!!!====================================
-//TODO upload-encrypted-file is missing table row creation in FileStructureEncryption entity
-
-// process.on('uncaughtException', err => {
-//   console.log(123);
-//   console.log(err);
-
-//   throw new InternalServerErrorException('Something went wrong');
-// });

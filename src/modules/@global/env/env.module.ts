@@ -34,19 +34,27 @@ export class EnvModule {
           isGlobal: true,
           ignoreEnvVars: true, // predefined/system environment variables will not be validated
           validate: (configuration: Record<keyof EnvironmentVariables, string | null | unknown>) => {
-            //TODO: check here {configuration} from github action
-            console.log(123);
+            console.log('='.repeat(20) + 1);
+            console.log(process.env);
+            console.log('='.repeat(20) + 2);
             console.log(configuration);
 
             const finalConfig = plainToClass(EnvironmentVariables, configuration, {
               exposeDefaultValues: true,
+              enableImplicitConversion: false,
             });
 
+            console.log(finalConfig);
+            console.log(JSON.stringify(finalConfig));
+
             const errors = validateSync(finalConfig, {
-              forbidNonWhitelisted: true,
-              forbidUnknownValues: true,
+              forbidNonWhitelisted: false,
+              forbidUnknownValues: false,
               whitelist: true,
+              enableDebugMessages: true,
             });
+            console.log(errors);
+            console.log('='.repeat(20));
 
             if (errors.length > 0) {
               const errorConstraints = getAllErrorConstraints(errors);
