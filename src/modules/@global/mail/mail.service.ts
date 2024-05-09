@@ -37,32 +37,32 @@ export class MailService implements OnModuleInit {
       ignoreTLS: true,
     });
 
-    this.logger.verbose('Verifying mail connection...');
+    // this.logger.verbose('Verifying mail connection...');
 
-    console.log('='.repeat(20));
-    console.log(this.envService.getInstance());
-    console.log(this.isSandbox);
-    console.log({
-      host: this.envService.get('MAIL_URL'),
-      port: 465,
-      secure: true,
-      auth: {
-        user: this.envService.get('MAIL_USERNAME'),
-        pass: this.envService.get('MAIL_PASSWORD'),
-      },
-      ignoreTLS: true,
-    });
-    console.log('='.repeat(20));
+    // console.log('='.repeat(20));
+    // console.log(this.envService.getInstance());
+    // console.log(this.isSandbox);
+    // console.log({
+    //   host: this.envService.get('MAIL_URL'),
+    //   port: 465,
+    //   secure: true,
+    //   auth: {
+    //     user: this.envService.get('MAIL_USERNAME'),
+    //     pass: this.envService.get('MAIL_PASSWORD'),
+    //   },
+    //   ignoreTLS: true,
+    // });
+    // console.log('='.repeat(20));
 
-    const isVerified = await this.transporter.verify();
+    // const isVerified = await this.transporter.verify();
 
-    this.logger.verbose(
-      JSON.stringify({
-        isVerified,
-        name: this.transporter.transporter.name,
-        host: this.envService.get('MAIL_URL'),
-      }),
-    );
+    // this.logger.verbose(
+    //   JSON.stringify({
+    //     isVerified,
+    //     name: this.transporter.transporter.name,
+    //     host: this.envService.get('MAIL_URL'),
+    //   }),
+    // );
   }
 
   async send(data: SendSimpleParams): Promise<SMTPTransport.SentMessageInfo> {
