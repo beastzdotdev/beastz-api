@@ -11,6 +11,7 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
@@ -21,8 +22,11 @@ import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { NoAuth } from '../../decorator/no-auth.decorator';
+import { SendMailDto } from './dto/send-mail-admin.dto';
+import { AdminBasicGuard } from './admin-basic-guard';
 
-//TODO admin roles
+@NoAuth()
+@UseGuards(AdminBasicGuard)
 @Controller('admin')
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
@@ -32,7 +36,6 @@ export class AdminController {
     private readonly prismaService: PrismaService,
   ) {}
 
-  @NoAuth()
   @Get('test-envs')
   async testEnvs() {
     return this.adminService.testEnvs();
@@ -41,6 +44,11 @@ export class AdminController {
   @Get('user-support-ticket')
   async getSupportTickets(@Query() queryParams: GetSupportTicketsQueryDto) {
     return this.adminService.getTickets(queryParams);
+  }
+
+  @Post('send-mail')
+  async senMail(@Body() dto: SendMailDto) {
+    return this.adminService.sendMail(dto);
   }
 
   @Post('user-support-ticket/answer-ticket')

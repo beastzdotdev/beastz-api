@@ -5,6 +5,7 @@ export const constants = Object.freeze({
 
   PLATFORM_HEADER_NAME: 'platform',
   AUTH_HEADER_NAME: 'Authorization',
+  ADMIN_BASIC_PASS_HEADER_NAME: 'admin-pass',
   COOKIE_ACCESS_NAME: 'access_token',
   COOKIE_REFRESH_NAME: 'refresh_token',
 

@@ -23,6 +23,11 @@ export class EnvironmentVariables {
   @TransformBoolean()
   ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: boolean = false;
 
+  @IsOptional()
+  @IsExactBoolean()
+  @TransformBoolean()
+  ENABLE_MAIL_SANDBOX: boolean = false;
+
   @IsNotEmpty()
   @IsString()
   @IsUrl()
@@ -35,15 +40,11 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
+  ADMIN_BASIC_PASSWORD: string;
+
+  @IsNotEmpty()
+  @IsString()
   COOKIE_SECRET: string;
-
-  @IsNotEmpty()
-  @IsString()
-  MAIL_DOMAIN: string;
-
-  @IsNotEmpty()
-  @IsString()
-  MAIL_API_KEY: string;
 
   @IsUrl()
   @IsNotEmpty()
@@ -53,6 +54,10 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   MAIL_USERNAME: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAIL_PASSWORD: string;
 
   @IsNotEmpty()
   @IsString()

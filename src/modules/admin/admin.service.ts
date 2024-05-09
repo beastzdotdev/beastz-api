@@ -8,17 +8,24 @@ import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { InjectEnv } from '../@global/env/env.decorator';
 import { EnvService } from '../@global/env/env.service';
+import { MailService } from '../@global/mail/mail.service';
+import { SendMailDto } from './dto/send-mail-admin.dto';
 
 @Injectable()
 export class AdminService {
   constructor(
+    @InjectEnv()
+    private readonly envService: EnvService,
+
     private readonly prismaService: PrismaService,
-    @InjectEnv() private readonly envService: EnvService,
+    private readonly mailService: MailService,
   ) {}
 
-  testEnvs() {
-    console.log(this.envService.getInstance());
+  async sendMail(data: SendMailDto) {
+    await this.mailService.send(data);
+  }
 
+  async testEnvs() {
     return {
       DEBUG: this.envService.get('DEBUG'),
       PORT: this.envService.get('PORT'),
@@ -27,8 +34,6 @@ export class AdminService {
       FRONTEND_URL: this.envService.get('FRONTEND_URL'),
       BACKEND_URL: this.envService.get('BACKEND_URL'),
       COOKIE_SECRET: this.envService.get('COOKIE_SECRET'),
-      MAIL_DOMAIN: this.envService.get('MAIL_DOMAIN'),
-      MAIL_API_KEY: this.envService.get('MAIL_API_KEY'),
       MAIL_URL: this.envService.get('MAIL_URL'),
       MAIL_USERNAME: this.envService.get('MAIL_USERNAME'),
       MAIL_FROM: this.envService.get('MAIL_FROM'),

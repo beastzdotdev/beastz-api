@@ -70,5 +70,11 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   await app.listen(envService.get('PORT'));
 
   // log misc stuff
-  cyanLog(figlet.textSync('Running api : 4000', { font: 'Rectangles', width: 80, whitespaceBreak: true }));
+  cyanLog(
+    figlet.textSync(`Running api : ${envService.get('PORT')}`, {
+      font: 'Rectangles',
+      width: 80,
+      whitespaceBreak: true,
+    }),
+  );
 });
