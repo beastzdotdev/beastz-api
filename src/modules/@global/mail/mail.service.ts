@@ -39,6 +39,21 @@ export class MailService implements OnModuleInit {
 
     this.logger.verbose('Verifying mail connection...');
 
+    console.log('='.repeat(20));
+    console.log(this.envService.getInstance());
+    console.log(this.isSandbox);
+    console.log({
+      host: this.envService.get('MAIL_URL'),
+      port: 465,
+      secure: true,
+      auth: {
+        user: this.envService.get('MAIL_USERNAME'),
+        pass: this.envService.get('MAIL_PASSWORD'),
+      },
+      ignoreTLS: true,
+    });
+    console.log('='.repeat(20));
+
     const isVerified = await this.transporter.verify();
 
     this.logger.verbose(
