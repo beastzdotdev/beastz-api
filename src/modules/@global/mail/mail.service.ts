@@ -56,6 +56,19 @@ export class MailService implements OnModuleInit {
 
     const isVerified = await this.transporter.verify();
 
+    await new Promise((resolve, reject) => {
+      // verify connection configuration
+      this.transporter.verify((error, success) => {
+        if (error) {
+          console.log(error);
+          reject(error);
+        } else {
+          console.log('Server is ready to take our messages');
+          resolve(success);
+        }
+      });
+    });
+
     this.logger.verbose(
       JSON.stringify({
         isVerified,
