@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { InjectEnv } from '../env/env.decorator';
 import { EnvService } from '../env/env.service';
@@ -54,17 +54,16 @@ export class MailService implements OnModuleInit {
     });
     console.log('='.repeat(20));
 
-    const isVerified = await this.transporter.verify();
-
-    await new Promise((resolve, reject) => {
-      // verify connection configuration
-      this.transporter.verify((error, success) => {
+    const isVerified = await new Promise<{ data: boolean | null; error: Error | null }>(resolve => {
+      this.transporter.verify((error, _success) => {
         if (error) {
+          console.log('='.repeat(20));
           console.log(error);
-          reject(error);
+          resolve({ data: null, error });
         } else {
+          console.log('='.repeat(20));
           console.log('Server is ready to take our messages');
-          resolve(success);
+          resolve({ data: true, error: null });
         }
       });
     });
@@ -82,12 +81,42 @@ export class MailService implements OnModuleInit {
     this.logger.debug('Sending mail...');
     this.logger.debug(JSON.stringify(data, null, 2));
 
-    const info = await this.transporter.sendMail({
-      from: this.from,
-      to: data.to,
-      subject: data.subject,
-      text: data.text,
+    const { data: info, error } = await new Promise<{
+      data: SMTPTransport.SentMessageInfo | null;
+      error: Error | null;
+    }>(resolve => {
+      // send mail
+      this.transporter.sendMail(
+        {
+          from: this.from,
+          to: data.to,
+          subject: data.subject,
+          text: data.text,
+        },
+        (error, info) => {
+          if (error) {
+            console.log('='.repeat(20));
+            console.log(error);
+            resolve({ data: null, error });
+          } else {
+            console.log('='.repeat(20));
+            console.log('Mail sent');
+            resolve({ data: info, error: null });
+          }
+        },
+      );
     });
+
+    if (error || !data) {
+      throw new BadRequestException('Error sending email');
+    }
+
+    // const info = await this.transporter.sendMail({
+    //   from: this.from,
+    //   to: data.to,
+    //   subject: data.subject,
+    //   text: data.text,
+    // });
 
     this.logger.debug('Finished sending mail...');
     this.logger.debug(JSON.stringify(info, null, 2));
