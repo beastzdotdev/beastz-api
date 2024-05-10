@@ -39,7 +39,7 @@ export class CookieService {
       cookieOptions.httpOnly = true;
       cookieOptions.sameSite = true;
       cookieOptions.secure = true;
-      cookieOptions.domain = this.envService.get('FRONTEND_URL');
+      cookieOptions.domain = this.envService.get('COOKIE_DOMAIN');
     }
 
     const expires = moment().add(10, 'year').toDate();

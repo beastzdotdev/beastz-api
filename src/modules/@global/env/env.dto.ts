@@ -44,6 +44,10 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
+  COOKIE_DOMAIN: string;
+
+  @IsNotEmpty()
+  @IsString()
   COOKIE_SECRET: string;
 
   @IsUrl()
