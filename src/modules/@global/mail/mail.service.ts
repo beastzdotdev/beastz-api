@@ -17,6 +17,7 @@ export class MailService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    this.from = this.envService.get('MAIL_FROM');
     this.resend = new Resend(this.envService.get('MAIL_PASSWORD'));
   }
 
