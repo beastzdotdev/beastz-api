@@ -26,7 +26,8 @@ export class MailService implements OnModuleInit {
     }
 
     this.from = this.envService.get('MAIL_FROM');
-    this.transporter = nodemailer.createTransport(<SMTPTransport.Options>{
+
+    const transportOptions = <SMTPTransport.Options>{
       host: this.envService.get('MAIL_URL'),
       port: 465,
       secure: true,
@@ -34,24 +35,17 @@ export class MailService implements OnModuleInit {
         user: this.envService.get('MAIL_USERNAME'),
         pass: this.envService.get('MAIL_PASSWORD'),
       },
-      ignoreTLS: true,
-    });
+      // ignoreTLS: true,
+    };
+
+    this.transporter = nodemailer.createTransport(transportOptions);
 
     this.logger.verbose('Verifying mail connection...');
 
     console.log('='.repeat(20));
     console.log(this.envService.getInstance());
-    console.log(this.isSandbox);
-    console.log({
-      host: this.envService.get('MAIL_URL'),
-      port: 465,
-      secure: true,
-      auth: {
-        user: this.envService.get('MAIL_USERNAME'),
-        pass: this.envService.get('MAIL_PASSWORD'),
-      },
-      ignoreTLS: true,
-    });
+    console.log({ sandbox: this.isSandbox });
+    console.log(transportOptions);
     console.log('='.repeat(20));
 
     const isVerified = await new Promise<{ data: boolean | null; error: Error | null }>(resolve => {
