@@ -2,11 +2,11 @@ import { IsArray, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 
 import { SendSimpleParams } from '../../@global/mail/mail.type';
 
 export class SendMailDto implements SendSimpleParams {
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @MinLength(1)
   @MaxLength(500)
-  subject?: string;
+  subject: string;
 
   @IsNotEmpty({ each: true })
   @IsString({ each: true })

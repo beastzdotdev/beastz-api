@@ -1,5 +1,5 @@
 export type SendSimpleParams = {
   to: string[];
-  subject?: string | undefined;
+  subject: string;
   text: string;
 };

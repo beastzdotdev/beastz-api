@@ -28,8 +28,7 @@ export class MailService implements OnModuleInit {
     const info = await this.resend.emails.send({
       from: this.from,
       to: data.to,
-      subject: 'test',
-      // subject: data.subject,
+      subject: data.subject,
       text: data.text,
     });
 

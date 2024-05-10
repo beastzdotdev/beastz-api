@@ -27,6 +27,7 @@ export class AdminService {
 
   async testEnvs() {
     return {
+      instance: this.envService.getInstance(),
       DEBUG: this.envService.get('DEBUG'),
       PORT: this.envService.get('PORT'),
       DATABASE_LOG_QUERY: this.envService.get('DATABASE_LOG_QUERY'),
