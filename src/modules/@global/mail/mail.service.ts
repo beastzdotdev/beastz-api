@@ -107,7 +107,7 @@ export class MailService implements OnModuleInit {
       );
     });
 
-    if (error || !data) {
+    if (error || !info) {
       throw new BadRequestException('Error sending email');
     }
 
