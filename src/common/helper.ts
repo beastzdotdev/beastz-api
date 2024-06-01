@@ -268,17 +268,49 @@ export const fsCustom = {
     });
   },
 
-  async move(fsSourcePath: string, fsDesinationPath: string): Promise<CustomFsResponse> {
+  async move(fsSourcePath: string, fsDestinationPath: string): Promise<CustomFsResponse> {
     return new Promise((resolve, reject) => {
-      return fs.rename(fsSourcePath, fsDesinationPath, err => {
+      return fs.rename(fsSourcePath, fsDestinationPath, err => {
         if (err) {
-          reject({ success: false, err });
+          if (err.code === 'EXDEV') {
+            const readStream = fs.createReadStream(fsSourcePath);
+            const writeStream = fs.createWriteStream(fsDestinationPath);
+
+            readStream.on('error', reject);
+            writeStream.on('error', reject);
+
+            writeStream.on('close', () => {
+              fs.unlink(fsSourcePath, unlinkErr => {
+                if (unlinkErr) {
+                  reject({ success: false, err: unlinkErr });
+                } else {
+                  resolve({ success: true, err: null });
+                }
+              });
+            });
+
+            readStream.pipe(writeStream);
+          } else {
+            reject({ success: false, err });
+          }
         } else {
           resolve({ success: true, err: null });
         }
       });
     });
   },
+  //TODO: after moving every file under hub uncomment this part and remove uppper solution
+  // async move(fsSourcePath: string, fsDesinationPath: string): Promise<CustomFsResponse> {
+  //   return new Promise((resolve, reject) => {
+  //     return fs.rename(fsSourcePath, fsDesinationPath, err => {
+  //       if (err) {
+  //         reject({ success: false, err });
+  //       } else {
+  //         resolve({ success: true, err: null });
+  //       }
+  //     });
+  //   });
+  // },
 
   async delete(fsPath: string): Promise<CustomFsResponse> {
     return new Promise((resolve, reject) => {

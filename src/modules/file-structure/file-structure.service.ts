@@ -214,7 +214,19 @@ export class FileStructureService {
     } else {
       // user separation folder does not happen in user temp folder zip folder
       const tempDestination = absUserTempFolderZipPath();
-      const uniqueName = `${authPayload.user.uuid}-${uuid()}-utc-${moment().toISOString()}`;
+
+      // create user-temp-folder-zip if not exists
+      const folderCreationSuccess = await fsCustom.checkDirOrCreate(tempDestination, {
+        isFile: false,
+        createIfNotExists: true,
+      });
+
+      if (!folderCreationSuccess) {
+        this.logger.debug(`Folder creation error ${tempDestination}`);
+        throw new InternalServerErrorException('Something went wrong');
+      }
+
+      const uniqueName = `userid-${authPayload.user.uuid}-ruuid-${uuid()}-timestamp-${moment().toISOString()}`;
 
       let outputZipPath: string;
 
