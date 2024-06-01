@@ -24,7 +24,7 @@ import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { IncreaseFileNameNumberMethodParams, ReplaceFileMethodParams } from './file-structure.type';
-import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
+import { GetDuplicateStatusDto } from './dto/get-duplicate-status-query.dto';
 import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
@@ -108,9 +108,9 @@ export class FileStructureService {
 
   async getDuplicateStatus(
     authPayload: AuthPayloadType,
-    queryParams: GetDuplicateStatusQueryDto,
+    dto: GetDuplicateStatusDto,
   ): Promise<GetDuplicateStatusResponseDto[]> {
-    const { items, isFile, parentId } = queryParams;
+    const { items, isFile, parentId } = dto;
     const fileStructures: GetDuplicateStatusResponseDto[] = [];
 
     for (const item of items) {

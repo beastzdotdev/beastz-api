@@ -1,28 +1,27 @@
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransformBoolean, TransformNumber } from '../../../decorator/class-transformer.decorator';
 
-export class GetDuplicateStatusQueryDto {
+export class GetDuplicateStatusDto {
   @IsNotEmpty({ each: true })
   @IsArray()
   @Type(() => DuplChecker)
   items: DuplChecker[];
 
   @IsNotEmpty()
-  @TransformBoolean()
   @IsBoolean()
   isFile: boolean;
 
   @IsOptional()
-  @TransformNumber()
   @IsNumber()
   parentId?: number;
 }
 
 export class DuplChecker {
   @IsNotEmpty()
+  @IsString()
   title: string;
 
   @IsOptional()
+  @IsString()
   mimeTypeRaw?: string;
 }

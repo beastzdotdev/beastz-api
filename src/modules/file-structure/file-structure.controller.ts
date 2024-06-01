@@ -7,7 +7,7 @@ import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { CreateFolderStructureDto } from './dto/create-folder-structure.dto';
 import { BasicFileStructureResponseDto } from './dto/response/basic-file-structure-response.dto';
-import { GetDuplicateStatusQueryDto } from './dto/get-duplicate-status-query.dto';
+import { GetDuplicateStatusDto } from './dto/get-duplicate-status-query.dto';
 import { GetDuplicateStatusResponseDto } from './dto/response/get-duplicate-status-response.dto';
 import { GetFileStructureContentQueryDto } from './dto/get-file-structure-content-query.dto';
 import { GetGeneralInfoQueryDto } from './dto/get-general-info-query.dto';
@@ -58,14 +58,6 @@ export class FileStructureController {
     return this.fileStructureService.getGeneralInfo(authPayload, queryParams);
   }
 
-  @Get('duplicate-status')
-  async getDuplicateStatus(
-    @AuthPayload() authPayload: AuthPayloadType,
-    @Query() queryParams: GetDuplicateStatusQueryDto,
-  ): Promise<GetDuplicateStatusResponseDto[]> {
-    return this.fileStructureService.getDuplicateStatus(authPayload, queryParams);
-  }
-
   @Get('details')
   async getDetails(
     @AuthPayload() authPayload: AuthPayloadType,
@@ -91,6 +83,14 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.fileStructureService.downloadById(res, authPayload, id);
+  }
+
+  @Post('duplicate-status')
+  async getDuplicateStatus(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Body() dto: GetDuplicateStatusDto,
+  ): Promise<GetDuplicateStatusResponseDto[]> {
+    return this.fileStructureService.getDuplicateStatus(authPayload, dto);
   }
 
   @Post('upload-file')
