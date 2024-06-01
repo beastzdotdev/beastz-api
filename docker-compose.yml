@@ -41,11 +41,13 @@ services:
     depends_on:
       - db
     volumes:
-      - /beastz-data/hub:/app/hub
-      - /beastz-data/user-bin:/app/user-bin
-      - /beastz-data/user-content:/app/user-content
-      - /beastz-data/user-upload:/app/user-upload
-      - /beastz-data/user-deleted-forever:/app/user-deleted-forever
+      - /beastz-data:/app
+
+      # - /beastz-data/hub:/app/hub
+      # - /beastz-data/user-bin:/app/user-bin
+      # - /beastz-data/user-content:/app/user-content
+      # - /beastz-data/user-upload:/app/user-upload
+      # - /beastz-data/user-deleted-forever:/app/user-deleted-forever
 
   db:
     image: postgres:14.5-alpine
