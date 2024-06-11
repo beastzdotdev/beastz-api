@@ -6,21 +6,32 @@ export class MultiFormFileToBodyParserInterceptor implements NestInterceptor {
   async intercept(context: ExecutionContext, next: CallHandler) {
     const request: Request = context.switchToHttp().getRequest<Request>();
 
-    if (request.body && request.file?.fieldname) {
-      const fieldname = request.file?.fieldname;
-
-      if (!request.body[fieldname]) {
-        request.body[fieldname] = request.file;
-      }
+    if (!request.body) {
+      return next.handle();
     }
 
-    if (request.body && Array.isArray(request.files) && request.files?.length) {
-      for (const file of request.files) {
-        const fieldname = file?.fieldname;
+    if (request.file && !request.body[request.file.fieldname]) {
+      request.body[request.file.fieldname] = request.file;
+    }
 
-        if (!request.body[fieldname]) {
-          request.body[fieldname] = file;
+    const files = request.files as Express.Multer.File[];
+
+    if (!files || !files.length) {
+      return next.handle();
+    }
+
+    if (files.length === 1) {
+      if (!request.body[files[0].fieldname]) {
+        request.body[files[0].fieldname] = files[0];
+      }
+    } else {
+      for (const file of files) {
+        if (!request.body[file.fieldname]) {
+          request.body[file.fieldname] = [file];
+          continue;
         }
+
+        request.body[file.fieldname].push(file);
       }
     }
 
