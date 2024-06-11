@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { v4 as uuid } from 'uuid';
+import crypto from 'crypto';
 import { isObject } from '@nestjs/class-validator';
 import { PlatformForJwt } from '@prisma/client';
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -219,7 +219,7 @@ export class JwtService {
         algorithm: 'HS256',
         issuer: constants.JWT_ISSUER,
         subject: params.email,
-        jwtid: uuid(),
+        jwtid: crypto.randomUUID(),
       }),
     );
   }

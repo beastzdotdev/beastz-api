@@ -3,7 +3,7 @@ import moment from 'moment';
 import mime from 'mime';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
-import { v4 as uuid } from 'uuid';
+import crypto from 'crypto';
 import { createReadStream } from 'fs';
 import { Response } from 'express';
 import { EncryptionAlgorithm, EncryptionType, FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
@@ -226,7 +226,9 @@ export class FileStructureService {
         throw new InternalServerErrorException('Something went wrong');
       }
 
-      const uniqueName = `userid-${authPayload.user.uuid}-ruuid-${uuid()}-timestamp-${moment().toISOString()}`;
+      const uniqueName = `userid-${
+        authPayload.user.uuid
+      }-ruuid-${crypto.randomUUID()}-timestamp-${moment().toISOString()}`;
 
       let outputZipPath: string;
 
@@ -402,7 +404,7 @@ export class FileStructureService {
         fileExstensionRaw: ext,
         mimeTypeRaw: file.mimetype,
         mimeType: fileStructureHelper.fileTypeRawMimeToEnum[file.mimetype] ?? FileMimeType.OTHER,
-        uuid: uuid(),
+        uuid: crypto.randomUUID(),
         isFile: true,
         isShortcut: false,
         isInBin: false,
@@ -617,7 +619,7 @@ export class FileStructureService {
       fileExstensionRaw: null,
       mimeTypeRaw: null,
       mimeType: null,
-      uuid: uuid(),
+      uuid: crypto.randomUUID(),
       isFile: false,
       isShortcut: false,
       isInBin: false,
@@ -702,7 +704,7 @@ export class FileStructureService {
     // update all descendants is_in_bin
     await this.fsRawQueryRepository.recursiveUpdateIsInBin(id, true);
 
-    const nameUUID = uuid();
+    const nameUUID = crypto.randomUUID();
     const nameWithExt = nameUUID + (fs.fileExstensionRaw ?? '');
     const relativePath = path.join('/', nameWithExt);
 

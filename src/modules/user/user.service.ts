@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid';
+import crypto from 'crypto';
 import path from 'path';
 import mime from 'mime';
 import {
@@ -125,7 +125,7 @@ export class UserService {
     const rawExt = mime.extension(profileImageFile.mimetype);
     const ext = `.${rawExt}`;
 
-    const fileNameWithExt = 'profile-image-' + uuid() + ext;
+    const fileNameWithExt = 'profile-image-' + crypto.randomUUID() + ext;
     const filePath = path.join(absUserUploadPath(authPayload.user.uuid), fileNameWithExt);
 
     this.logger.debug(`Created file path and entity path`);

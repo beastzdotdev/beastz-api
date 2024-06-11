@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { v4 as uuid } from 'uuid';
+import crypto from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserSupport, UserSupportTicketStatus } from '@prisma/client';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
@@ -41,7 +41,7 @@ export class UserSupportService {
       {
         title,
         description,
-        uuid: uuid(),
+        uuid: crypto.randomUUID(),
         status: UserSupportTicketStatus.PENDING,
         userId: authPayload.user.id,
         updatedAt: moment().toDate(),

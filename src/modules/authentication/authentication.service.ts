@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import moment from 'moment';
-import { v4 as uuid } from 'uuid';
+import crypto from 'crypto';
 import { Response } from 'express';
 import {
   BadRequestException,
@@ -36,7 +36,7 @@ import { RecoverPasswordAttemptCountService } from './modules/recover-password-a
 import { AccountVerificationAttemptCountService } from './modules/account-verification-attempt-count/account-verification-attempt-count.service';
 import { GenTokensAndSendResponseParams, RefreshParams, SignInParams } from './authentication.types';
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
-import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignInBodyDto, SignUpBodyDto } from './dto';
+import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignUpBodyDto } from './dto';
 import { AuthenticationMailService } from './mail/authenctication-mail.service';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
@@ -81,7 +81,7 @@ export class AuthenticationService {
           {
             ...otherParams,
             profileImagePath: null,
-            uuid: uuid(),
+            uuid: crypto.randomUUID(),
           },
           tx,
         ),
@@ -267,7 +267,7 @@ export class AuthenticationService {
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
       const { email } = user;
-      const jti = uuid();
+      const jti = crypto.randomUUID();
       const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
       const newPasswordHashed = await bcrypt.hash(newPassword, 10);
 
@@ -355,7 +355,7 @@ export class AuthenticationService {
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
       const { id: userId } = user;
-      const jti = uuid();
+      const jti = crypto.randomUUID();
       const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, jti });
 
       // 4 lowercase, 1 int, 1 symbol
@@ -709,7 +709,7 @@ export class AuthenticationService {
     this.userService.validateUser(user, { showIsVerifiedErr: true });
 
     const { id: userId } = user;
-    const jti = uuid();
+    const jti = crypto.randomUUID();
     const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
 
     let accountVerify = await this.accountVerificationService.getByUserId(userId, outsideTransaction);

@@ -1,5 +1,5 @@
 import path from 'path';
-import { v4 as uuid } from 'uuid';
+import crypto from 'crypto';
 import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { UserSupportImage } from '@prisma/client';
 import { UserSupportImageRepository } from './user-support-image.repository';
@@ -28,7 +28,7 @@ export class UserSupportImageService {
   ): Promise<UserSupportImage> {
     const { userId, userSupportId, userSupportMessageId } = params;
 
-    const nameUUID = uuid();
+    const nameUUID = crypto.randomUUID();
     const fullName = `${nameUUID}${path.extname(file.originalname) ?? ''}`;
 
     const absolutePath = path.join(absUserSupportPath(authPayload.user.uuid), fullName);
