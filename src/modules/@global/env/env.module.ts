@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import { DynamicModule, Global, Logger, Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { plainToClass } from 'class-transformer';
@@ -21,6 +22,8 @@ export class EnvModule {
    *
    */
   public static forRoot(options?: EnvModuleOptions): DynamicModule {
+    const time = performance.now();
+
     this.envLogger.verbose('Started initializing enviroment variables');
 
     const provider: Provider = {
@@ -34,6 +37,7 @@ export class EnvModule {
           isGlobal: true,
           ignoreEnvVars: false, // predefined/system environment variables will not be validated
           validate: (configuration: Record<keyof EnvironmentVariables, string | null | unknown>) => {
+            this.envLogger.verbose('Started validating enviroment variables');
             const finalConfig = plainToClass(EnvironmentVariables, configuration, {
               exposeDefaultValues: true,
               enableImplicitConversion: false,
@@ -50,8 +54,11 @@ export class EnvModule {
               const errorConstraints = getAllErrorConstraints(errors);
               errorConstraints.forEach(e => this.envLogger.error(e));
             } else {
-              this.envLogger.verbose('Enviroment initialized');
+              this.envLogger.verbose('Enviroment all variable is valid');
             }
+
+            const totalTimeInMs = (performance.now() - time).toFixed(3) + 'ms';
+            this.envLogger.verbose(`Enviroment initialization completed (${totalTimeInMs})`);
 
             return finalConfig;
           },

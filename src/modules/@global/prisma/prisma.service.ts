@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { EnvService } from '../env/env.service';
@@ -47,11 +48,13 @@ export class PrismaService
   }
 
   async onModuleInit() {
+    const time = performance.now();
     //TODO save this logs in database
 
     await this.$connect().then(async () => {
-      this.logger.verbose('Database connection successfull');
       this.logger.verbose('Database log query enabled: ' + this.envService.get('DATABASE_LOG_QUERY'));
+      const totalTimeInMs = (performance.now() - time).toFixed(3) + 'ms';
+      this.logger.verbose(`Database connection successfull (${totalTimeInMs})`);
     });
 
     this.$on('info', e => {

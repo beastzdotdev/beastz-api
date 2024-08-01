@@ -20,10 +20,12 @@ import { FileStructureBinModule } from './file-structure-bin/file-structure-bin.
 import { AppService } from './app.service';
 import { UserSupportModule } from './user-support/user-support.module';
 import { UserSupportMessageModule } from './user-support-message/user-support-message.module';
+import { SocketModule } from './@global/socket/socket.module';
 
 @Module({
   imports: [
     EnvModule.forRoot(),
+    SocketModule,
     PrismaModule,
     CookieModule,
     JwtModule,

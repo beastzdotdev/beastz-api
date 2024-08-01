@@ -5,9 +5,11 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import express from 'express';
 import helmet from 'helmet';
-import { NestFactory } from '@nestjs/core';
+import { performance } from 'node:perf_hooks';
+import { NestApplication, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
+import { Logger } from '@nestjs/common';
 import { AppModule } from './modules/app.module';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
@@ -30,6 +32,9 @@ BigInt.prototype.toJSON = function () {
 };
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
+  const logger = new Logger(NestApplication.name);
+
+  const startingTime = performance.now();
   const assetsPath = path.join(__dirname, './assets');
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
 
@@ -47,7 +52,9 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.enableCors({
     credentials: true,
     exposedHeaders: ['Content-Title'],
+    //! asd
     origin: [envService.get('FRONTEND_URL')],
+    // origin: [envService.get('FRONTEND_URL'), 'http://localhost:3000'],
   });
 
   app.enableShutdownHooks();
@@ -68,6 +75,10 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.use('/public', express.static(absPublicPath()));
 
   await app.listen(envService.get('PORT'));
+
+  // measure startup time
+  const totalTimeInMs = (performance.now() - startingTime).toFixed(3) + ' ms';
+  logger.log(`Nest application initialized in ${totalTimeInMs}`);
 
   // log misc stuff
   cyanLog(
