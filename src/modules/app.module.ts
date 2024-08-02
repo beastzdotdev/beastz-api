@@ -25,6 +25,7 @@ import { UserSupportMessageModule } from './user-support-message/user-support-me
 import { SocketModule } from './@global/socket/socket.module';
 import { ENV_SERVICE_TOKEN } from './@global/env/env.constants';
 import { EnvService } from './@global/env/env.service';
+import { FileStructurePublicShareModule } from './file-structure-public-share/file-structure-public-share.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { EnvService } from './@global/env/env.service';
     FileStructureBinModule,
     UserSupportModule,
     UserSupportMessageModule,
+    FileStructurePublicShareModule,
   ],
   controllers: [AppController],
   providers: [
