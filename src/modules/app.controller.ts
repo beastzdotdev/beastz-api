@@ -1,9 +1,12 @@
 import { Controller, Get, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { HealthCheck, HealthCheckService, PrismaHealthIndicator } from '@nestjs/terminus';
+import { RedisHealthIndicator } from '@nestjs-modules/ioredis';
 import { NoAuth } from '../decorator/no-auth.decorator';
 import { AuthPayload } from '../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../model/auth.types';
 import { AppService } from './app.service';
+import { PrismaService } from './@global/prisma/prisma.service';
 import {
   absUserContentPath,
   absUserUploadPath,
@@ -18,12 +21,23 @@ export class AppController {
   private readonly cachedAbsUserBinPath: string = absUserBinPath();
   private readonly cachedAbsUserSupportPath: string = absUserSupportPath();
 
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly prismaService: PrismaService,
+
+    private readonly health: HealthCheckService,
+    private readonly prismaHealth: PrismaHealthIndicator,
+    private readonly redisHealth: RedisHealthIndicator,
+  ) {}
 
   @NoAuth()
   @Get('health')
+  @HealthCheck()
   healthCheck() {
-    return 'ok';
+    return this.health.check([
+      () => this.prismaHealth.pingCheck('database', this.prismaService),
+      () => this.redisHealth.isHealthy('redis'),
+    ]);
   }
 
   @Get('health/secure')

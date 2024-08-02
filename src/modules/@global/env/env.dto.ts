@@ -73,6 +73,10 @@ export class EnvironmentVariables {
 
   @IsNotEmpty()
   @IsString()
+  REDIS_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
   ACCESS_TOKEN_SECRET: string;
 
   @IsNotEmpty()

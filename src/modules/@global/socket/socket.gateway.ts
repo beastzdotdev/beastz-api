@@ -23,7 +23,8 @@ type PushUpdateBody = {
   }[];
 };
 
-@WebSocketGateway({ transports: ['websocket'] })
+//TODO guard for auth
+@WebSocketGateway({ transports: ['websocket'], namespace: 'doc-edit' })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   private time = performance.now();
   private readonly logger = new Logger(SocketGateway.name);
@@ -44,6 +45,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect, 
 
   public async handleConnection(@ConnectedSocket() client: Socket) {
     console.log('Connected ' + client.id);
+    // make do locked
   }
 
   public async handleDisconnect(@ConnectedSocket() client: Socket) {

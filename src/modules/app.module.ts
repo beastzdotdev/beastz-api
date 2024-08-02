@@ -1,5 +1,7 @@
 import { APP_PIPE, APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { Module, ValidationPipe } from '@nestjs/common';
+import { RedisHealthModule, RedisModule } from '@nestjs-modules/ioredis';
+import { TerminusModule } from '@nestjs/terminus';
 import { EnvModule } from './@global/env/env.module';
 import { PrismaModule } from './@global/prisma/prisma.module';
 import { CookieModule } from './@global/cookie/cookie.module';
@@ -21,10 +23,21 @@ import { AppService } from './app.service';
 import { UserSupportModule } from './user-support/user-support.module';
 import { UserSupportMessageModule } from './user-support-message/user-support-message.module';
 import { SocketModule } from './@global/socket/socket.module';
+import { ENV_SERVICE_TOKEN } from './@global/env/env.constants';
+import { EnvService } from './@global/env/env.service';
 
 @Module({
   imports: [
+    RedisModule.forRootAsync({
+      useFactory: (envService: EnvService) => ({
+        type: 'single',
+        url: envService.get('REDIS_URL'),
+      }),
+      inject: [ENV_SERVICE_TOKEN],
+    }),
     EnvModule.forRoot(),
+    TerminusModule,
+    RedisHealthModule,
     SocketModule,
     PrismaModule,
     CookieModule,
