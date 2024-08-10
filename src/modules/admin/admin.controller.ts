@@ -51,6 +51,19 @@ export class AdminController {
     return this.adminService.sendMail(dto);
   }
 
+  @NoEmailVerifyValidate()
+  @Post('user-demo-create')
+  createDemoUser() {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const affected = await this.adminService.createDemoUser(tx);
+
+      return {
+        msg: 'success',
+        affected,
+      };
+    });
+  }
+
   @Post('user-support-ticket/answer-ticket')
   async answerTicket(@Body() dto: CreateSupportTicketsDto) {
     const response = await this.adminService.answerTicket(dto);

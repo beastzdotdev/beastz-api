@@ -1,18 +1,21 @@
 import type { Update } from '@codemirror/collab';
 import { performance } from 'node:perf_hooks';
 import { Logger } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Socket, Namespace } from 'socket.io';
 import { ChangeSet, StateEffect, Text } from '@codemirror/state';
 import {
   WebSocketGateway,
-  WebSocketServer,
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
   SubscribeMessage,
   MessageBody,
+  WebSocketServer,
 } from '@nestjs/websockets';
+import Redis from 'ioredis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { DocumentSocketMiddleware } from './document-socket.middleware';
 
 type PushUpdateBody = {
   version: number;
@@ -23,29 +26,56 @@ type PushUpdateBody = {
   }[];
 };
 
-//TODO guard for auth
-@WebSocketGateway({ transports: ['websocket'], namespace: 'doc-edit' })
-export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
-  private time = performance.now();
-  private readonly logger = new Logger(SocketGateway.name);
+/**
+ * @description
+ *
+ * this.wss <- basically namespace instance of socket
+ * this.wss.server <- this is root socket instance
+ *
+ * this.wss.use <- works only on this namespace
+ * this.wss.server.use <- works on all socket instance
+ *
+ * ! Extra configurations are in adapter
+ */
+@WebSocketGateway({
+  namespace: 'doc-edit',
+  allowEIO3: false,
+  transports: ['websocket'],
+  cors: { origin: ['http://localhost:3000'], credentials: true },
+})
+export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+  private readonly time = performance.now();
+  private readonly logger = new Logger(DocumentSocketGateway.name);
 
-  //TODO: Temp properties
+  //TODO: Temp properties, move to redis
   updates: Update[] = [];
   doc: Text = Text.of(['Start document']);
   pending: ((value: any) => void)[] = [];
 
-  @WebSocketServer() public wss: Server;
+  @WebSocketServer() public wss: Namespace;
 
-  constructor() {}
+  constructor(
+    @InjectRedis()
+    private readonly redis: Redis,
+
+    private readonly documentSocketMiddleware: DocumentSocketMiddleware,
+  ) {}
 
   afterInit() {
     const totalTimeInMs = (performance.now() - this.time).toFixed(3) + 'ms';
     this.logger.verbose(`socket initialized (${totalTimeInMs})`);
+
+    //! Authentication for socket namespace 'doc'
+    this.wss.use(this.documentSocketMiddleware.AuthWsMiddleware());
   }
 
   public async handleConnection(@ConnectedSocket() client: Socket) {
     console.log('Connected ' + client.id);
     // make do locked
+
+    console.log(await this.redis.keys('*'));
+
+    // console.log(this.wss.sockets);
   }
 
   public async handleDisconnect(@ConnectedSocket() client: Socket) {
@@ -92,5 +122,16 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect, 
         socket.emit('pullUpdateResponse', JSON.stringify(updates.slice(version)));
       });
     }
+  }
+
+  @SubscribeMessage('test')
+  async handleUpdatex(@ConnectedSocket() socket: Socket) {
+    //TODO: in sockets eror not work great, try exception filter for socket io or if not then
+    //TODO: socket io response error middleware
+    console.log('test');
+
+    socket.emit('test', 142);
+    // throw new Error('142');
+    // return 12;
   }
 }

@@ -1,4 +1,4 @@
-import { AuthTokenPayload } from '../../../../model/auth.types';
+import { AuthTokenPayload } from '../../../model/auth.types';
 
 export type RefreshTokenClaims = {
   exp: number;

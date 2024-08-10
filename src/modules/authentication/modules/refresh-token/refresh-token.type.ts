@@ -1,5 +1,5 @@
 import { PlatformForJwt } from '@prisma/client';
-import { RefreshTokenClaims } from '../jwt/jwt.type';
+import { RefreshTokenClaims } from '../../../@global/jwt/jwt.type';
 
 export type CreateRefreshTokenParams = {
   userId: number;

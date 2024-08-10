@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import { AuthenticationController } from './authentication.controller';
 import { UserModule } from '../user/user.module';
-import { JwtModule } from './modules/jwt/jwt.module';
 import { AccountVerificationModule } from './modules/account-verification/account-verification.module';
 import { RecoverPasswordModule } from './modules/recover-password/recover-password.module';
 import { RefreshTokenModule } from './modules/refresh-token/refresh-tokem.module';
@@ -16,7 +15,6 @@ import { AuthenticationMailService } from './mail/authenctication-mail.service';
 @Module({
   imports: [
     RefreshTokenModule,
-    JwtModule,
     UserModule,
     RecoverPasswordModule,
     RecoverPasswordAttemptCountModule,

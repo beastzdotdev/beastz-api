@@ -1,21 +1,25 @@
 import path from 'path';
 import figlet from 'figlet';
-import nunjucks from 'nunjucks';
-import cookieParser from 'cookie-parser';
-import compression from 'compression';
-import express from 'express';
 import helmet from 'helmet';
+import Redis from 'ioredis';
+import express from 'express';
+import nunjucks from 'nunjucks';
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+
+import { Logger } from '@nestjs/common';
 import { performance } from 'node:perf_hooks';
 import { NestApplication, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 
-import { Logger } from '@nestjs/common';
+import { cyanLog } from './common/helper';
 import { AppModule } from './modules/app.module';
+import { setupNunjucksFilters } from './common/nunjucks';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
-import { cyanLog } from './common/helper';
-import { setupNunjucksFilters } from './common/nunjucks';
 import { absPublicPath } from './modules/file-structure/file-structure.helper';
+import { RedisIoAdapter } from './modules/@global/socket/document/document-socket.adapter';
 
 // Cool libraries for future
 // https://nosir.github.io/cleave.js/
@@ -26,7 +30,7 @@ import { absPublicPath } from './modules/file-structure/file-structure.helper';
 //   throw new InternalServerErrorException('Something went wrong');
 // });
 
-//@ts-expect-error
+//@ts-ignore
 BigInt.prototype.toJSON = function () {
   return this.toString();
 };
@@ -52,9 +56,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.enableCors({
     credentials: true,
     exposedHeaders: ['Content-Title'],
-    //! asd
-    origin: [envService.get('FRONTEND_URL')],
-    // origin: [envService.get('FRONTEND_URL'), 'http://localhost:3000'],
+    origin: [envService.get('FRONTEND_URL'), 'http://localhost:3000'],
   });
 
   app.enableShutdownHooks();
@@ -73,6 +75,11 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.setViewEngine('njk');
   app.setBaseViewsDir(assetsPath);
   app.use('/public', express.static(absPublicPath()));
+
+  const redis = app.get<Redis>(getRedisConnectionToken());
+  const redisIoAdapter = new RedisIoAdapter(app, redis);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   await app.listen(envService.get('PORT'));
 

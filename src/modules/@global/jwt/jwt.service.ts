@@ -3,13 +3,13 @@ import crypto from 'crypto';
 import { isObject } from '@nestjs/class-validator';
 import { PlatformForJwt } from '@prisma/client';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
-import { InjectEnv } from '../../../@global/env/env.decorator';
-import { EnvService } from '../../../@global/env/env.service';
-import { AuthTokenPayload } from '../../../../model/auth.types';
-import { constants } from '../../../../common/constants';
-import { TokenExpiredException } from '../../../../exceptions/token-expired-forbidden.exception';
-import { promisify } from '../../../../common/helper';
+import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
+import { AuthTokenPayload } from '../../../model/auth.types';
+import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
+import { InjectEnv } from '../env/env.decorator';
+import { EnvService } from '../env/env.service';
+import { promisify } from '../../../common/helper';
+import { constants } from '../../../common/constants';
 import {
   AccessTokenPayload,
   AccountVerifyTokenPayload,

@@ -8,7 +8,6 @@ import { CookieModule } from './@global/cookie/cookie.module';
 import { AppController } from './app.controller';
 import { AuthGuard } from './authentication/guard/auth.guard';
 import { VerifiedEmailGuard } from './authentication/guard/verified-email.guard';
-import { JwtModule } from './authentication/modules/jwt/jwt.module';
 import { UserModule } from './user/user.module';
 import { AccountVerificationModule } from './authentication/modules/account-verification/account-verification.module';
 import { AuthenticationModule } from './authentication/authentication.module';
@@ -22,10 +21,11 @@ import { FileStructureBinModule } from './file-structure-bin/file-structure-bin.
 import { AppService } from './app.service';
 import { UserSupportModule } from './user-support/user-support.module';
 import { UserSupportMessageModule } from './user-support-message/user-support-message.module';
-import { SocketModule } from './@global/socket/socket.module';
 import { ENV_SERVICE_TOKEN } from './@global/env/env.constants';
 import { EnvService } from './@global/env/env.service';
 import { FileStructurePublicShareModule } from './file-structure-public-share/file-structure-public-share.module';
+import { JwtModule } from './@global/jwt/jwt.module';
+import { DocumentSocketModule } from './@global/socket/document/document-socket.module';
 
 @Module({
   imports: [
@@ -33,16 +33,19 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
       useFactory: (envService: EnvService) => ({
         type: 'single',
         url: envService.get('REDIS_URL'),
+        options: {
+          lazyConnect: true,
+        },
       }),
       inject: [ENV_SERVICE_TOKEN],
     }),
     EnvModule.forRoot(),
+    JwtModule,
     TerminusModule,
     RedisHealthModule,
-    SocketModule,
+    DocumentSocketModule,
     PrismaModule,
     CookieModule,
-    JwtModule,
     MailModule,
     AccountVerificationModule,
     UserModule,

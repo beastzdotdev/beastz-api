@@ -1,3 +1,5 @@
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
@@ -26,33 +28,39 @@ export class AdminService {
   }
 
   async testEnvs() {
-    return {
-      instance: this.envService.getInstance(),
-      DEBUG: this.envService.get('DEBUG'),
-      PORT: this.envService.get('PORT'),
-      DATABASE_LOG_QUERY: this.envService.get('DATABASE_LOG_QUERY'),
-      ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION'),
-      FRONTEND_URL: this.envService.get('FRONTEND_URL'),
-      BACKEND_URL: this.envService.get('BACKEND_URL'),
-      COOKIE_SECRET: this.envService.get('COOKIE_SECRET'),
-      MAIL_URL: this.envService.get('MAIL_URL'),
-      MAIL_USERNAME: this.envService.get('MAIL_USERNAME'),
-      MAIL_FROM: this.envService.get('MAIL_FROM'),
-      DATABASE_URL: this.envService.get('DATABASE_URL'),
-      ACCESS_TOKEN_SECRET: this.envService.get('ACCESS_TOKEN_SECRET'),
-      REFRESH_TOKEN_SECRET: this.envService.get('REFRESH_TOKEN_SECRET'),
-      ACCESS_TOKEN_EXPIRATION_IN_SEC: this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'),
-      REFRESH_TOKEN_EXPIRATION_IN_SEC: this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'),
-      RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC: this.envService.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
-      RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC: this.envService.get('RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
-      ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: this.envService.get('ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC'),
-      MAX_FEEDBACK_PER_DAY_COUNT: this.envService.get('MAX_FEEDBACK_PER_DAY_COUNT'),
-      PRISMA_ENGINE_PROTOCOL: this.envService.get('PRISMA_ENGINE_PROTOCOL'),
-      ACCOUNT_VERIFY_TOKEN_SECRET: this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET'),
-      RECOVER_PASSWORD_TOKEN_SECRET: this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET'),
-      RESET_PASSWORD_TOKEN_SECRET: this.envService.get('RESET_PASSWORD_TOKEN_SECRET'),
-      SESSION_JWT_ENCRYPTION_KEY: this.envService.get('SESSION_JWT_ENCRYPTION_KEY'),
-    };
+    return this.envService.getInstance();
+  }
+
+  async createDemoUser(tx: PrismaTx) {
+    const demoMail = 'demo@demo.com';
+    const existingDemo = await tx.user.findFirst({ where: { email: demoMail } });
+
+    if (existingDemo) {
+      await this.deleteUserFsInfo(existingDemo.id, tx);
+      await tx.userIdentity.delete({ where: { userId: existingDemo.id } });
+      await tx.user.delete({ where: { id: existingDemo.id } });
+    }
+
+    const user = await tx.user.create({
+      data: {
+        userName: 'DemoUsername',
+        gender: 'OTHER',
+        uuid: crypto.randomUUID(),
+        birthDate: new Date(),
+        email: 'demo@demo.com',
+        userIdentity: {
+          create: {
+            password: await bcrypt.hash('demo123@', 10),
+            isAccountVerified: true,
+            isBlocked: false,
+            isLocked: false,
+            strictMode: false,
+          },
+        },
+      },
+    });
+
+    return user;
   }
 
   async deleteUserInfo(userId: number) {

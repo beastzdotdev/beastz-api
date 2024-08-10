@@ -18,7 +18,6 @@ import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { encryption } from '../../common/encryption';
 import { UserService } from '../user/user.service';
-import { JwtService } from './modules/jwt/jwt.service';
 import { EnvService } from '../@global/env/env.service';
 import { InjectEnv } from '../@global/env/env.decorator';
 import { CookieService } from '../@global/cookie/cookie.service';
@@ -43,6 +42,7 @@ import { PrismaTx } from '../@global/prisma/prisma.type';
 import { transaction } from '../../common/transaction';
 import { AuthResponseViewJsonParams } from '../../model/types';
 import { AuthPayloadType } from '../../model/auth.types';
+import { JwtService } from '../@global/jwt/jwt.service';
 
 @Injectable()
 export class AuthenticationService {
@@ -56,7 +56,7 @@ export class AuthenticationService {
     private readonly cookieService: CookieService,
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
-    private readonly jwtUtilService: JwtService,
+    private readonly jwtService: JwtService,
     private readonly recoverPasswordService: RecoverPasswordService,
     private readonly accountVerificationService: AccountVerificationService,
     private readonly userIdentityService: UserIdentityService,
@@ -154,7 +154,7 @@ export class AuthenticationService {
         throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
       }
 
-      const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshTokenString);
+      const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(refreshTokenString);
 
       // delete refresh token from db
       await this.refreshTokenService.deleteByJTI(refreshTokenPayload.jti, tx);
@@ -189,7 +189,7 @@ export class AuthenticationService {
         throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
       }
 
-      const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(finalOldRefreshTokenString);
+      const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(finalOldRefreshTokenString);
       const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti, tx);
 
       // validate user existence from token
@@ -197,7 +197,7 @@ export class AuthenticationService {
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
       // validate signature only (very important)
-      await this.jwtUtilService.validateRefreshTokenSignatureOnly(finalOldRefreshTokenString);
+      await this.jwtService.validateRefreshTokenSignatureOnly(finalOldRefreshTokenString);
 
       // detect refresh token reuse
       if (!refreshTokenFromDB) {
@@ -220,7 +220,7 @@ export class AuthenticationService {
 
       // validate fully
       try {
-        await this.jwtUtilService.validateRefreshToken(finalOldRefreshTokenString, {
+        await this.jwtService.validateRefreshToken(finalOldRefreshTokenString, {
           ...refreshTokenFromDB,
           exp: parseInt(refreshTokenFromDB.exp),
           iat: parseInt(refreshTokenFromDB.iat),
@@ -268,7 +268,7 @@ export class AuthenticationService {
 
       const { email } = user;
       const jti = crypto.randomUUID();
-      const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
+      const securityToken = this.jwtService.genResetPasswordToken({ email, userId, jti });
       const newPasswordHashed = await bcrypt.hash(newPassword, 10);
 
       let resetPassword = await this.resetPasswordService.getByUserId(user.id, tx);
@@ -356,7 +356,7 @@ export class AuthenticationService {
 
       const { id: userId } = user;
       const jti = crypto.randomUUID();
-      const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, jti });
+      const securityToken = this.jwtService.genRecoverPasswordToken({ email, userId, jti });
 
       // 4 lowercase, 1 int, 1 symbol
       const newPasswordText =
@@ -455,7 +455,7 @@ export class AuthenticationService {
   async resetPasswordConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
-      const { jti, userId } = this.jwtUtilService.getResetPasswordTokenPayload(token);
+      const { jti, userId } = this.jwtService.getResetPasswordTokenPayload(token);
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
@@ -515,7 +515,7 @@ export class AuthenticationService {
 
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-      await this.jwtUtilService.validateResetPasswordToken(token, {
+      await this.jwtService.validateResetPasswordToken(token, {
         sub: user.email,
         userId: user.id,
         jti: resetPassword.jti,
@@ -539,7 +539,7 @@ export class AuthenticationService {
   async recoverPasswordConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
-      const { jti, userId } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
+      const { jti, userId } = this.jwtService.getRecoverPasswordTokenPayload(token);
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
@@ -597,7 +597,7 @@ export class AuthenticationService {
 
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-      await this.jwtUtilService.validateRecoverPasswordToken(token, {
+      await this.jwtService.validateRecoverPasswordToken(token, {
         sub: user.email,
         userId: user.id,
         jti: recoverPassword.jti,
@@ -621,7 +621,7 @@ export class AuthenticationService {
   async accountVerificationConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
-      const { jti, userId } = this.jwtUtilService.getAccountVerifyTokenPayload(token);
+      const { jti, userId } = this.jwtService.getAccountVerifyTokenPayload(token);
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
@@ -679,7 +679,7 @@ export class AuthenticationService {
 
       this.userService.validateUser(user, { showIsVerifiedErr: true });
 
-      await this.jwtUtilService.validateAccountVerifyToken(token, {
+      await this.jwtService.validateAccountVerifyToken(token, {
         sub: user.email,
         userId: user.id,
         jti: accountVerify.jti,
@@ -710,7 +710,7 @@ export class AuthenticationService {
 
     const { id: userId } = user;
     const jti = crypto.randomUUID();
-    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
+    const securityToken = this.jwtService.genAccountVerifyToken({ email, userId, jti });
 
     let accountVerify = await this.accountVerificationService.getByUserId(userId, outsideTransaction);
 
@@ -781,11 +781,11 @@ export class AuthenticationService {
     const { platform, res, isAccountVerified, email, userId, tx } = params;
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtUtilService.genAccessToken({ userId, email }),
-      this.jwtUtilService.genRefreshToken({ userId, email }),
+      this.jwtService.genAccessToken({ userId, email }),
+      this.jwtService.genRefreshToken({ userId, email }),
     ]);
 
-    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
+    const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(refreshToken);
 
     const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
     const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');

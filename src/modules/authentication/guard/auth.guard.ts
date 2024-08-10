@@ -1,3 +1,6 @@
+import path from 'path';
+import { Reflector } from '@nestjs/core';
+import { PlatformForJwt } from '@prisma/client';
 import {
   BadRequestException,
   CanActivate,
@@ -6,13 +9,8 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PlatformForJwt } from '@prisma/client';
-import { GuardsConsumer } from '@nestjs/core/guards';
-import path from 'path';
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
-import { JwtService } from '../modules/jwt/jwt.service';
 import { constants } from '../../../common/constants';
 import { UserService } from '../../user/user.service';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
@@ -25,6 +23,7 @@ import { EnvService } from '../../@global/env/env.service';
 import { encryption } from '../../../common/encryption';
 import { AccessTokenExpiredException } from '../../../exceptions/access-token-expired.exception';
 import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
+import { JwtService } from '../../@global/jwt/jwt.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -33,7 +32,7 @@ export class AuthGuard implements CanActivate {
     private readonly envService: EnvService,
 
     private readonly reflector: Reflector,
-    private readonly jwtUtilService: JwtService,
+    private readonly jwtService: JwtService,
     private readonly userService: UserService,
   ) {}
 
@@ -74,7 +73,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
     }
 
-    const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(finalAccessToken);
+    const accessTokenPayload = this.jwtService.getAccessTokenPayload(finalAccessToken);
     const user = await this.userService.getByIdIncludeIdentity(accessTokenPayload.userId);
 
     if (user.userIdentity.isBlocked) {
@@ -86,7 +85,7 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      await this.jwtUtilService.validateAccessToken(finalAccessToken, {
+      await this.jwtService.validateAccessToken(finalAccessToken, {
         platform: platform.getPlatform(),
         sub: user.email,
         userId: user.id,
