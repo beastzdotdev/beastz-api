@@ -7,15 +7,16 @@ import { promisify as toPromiseNative } from 'util';
 import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
 import { HttpStatus, InternalServerErrorException, Logger, NestInterceptor } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { constants as OsConstants } from 'os';
 
-import { SafeCallResult, ExceptionType, GeneralEnumType, CustomFsResponse, GeneralClass } from '../model/types';
+import { constants } from './constants';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { ImportantExceptionBody } from '../model/exception.type';
 import { MulterFileInterceptor } from '../interceptor/multer-file.interceptor';
 import { PlainToInstanceInterceptor } from '../interceptor/plain-to-instance.interceptor';
 import { fileStructureHelper } from '../modules/file-structure/file-structure.helper';
-import { constants } from './constants';
+import { SafeCallResult, ExceptionType, GeneralEnumType, CustomFsResponse, GeneralClass } from '../model/types';
 
 const helperLogger = new Logger('Helper logger');
 
@@ -69,9 +70,11 @@ export async function promisify<T>(callback: () => T): Promise<T> {
   });
 }
 
-export function cyanLog<T>(val: T): void {
-  console.log('\x1b[36m%s\x1b[0m', val);
-}
+export const appLogger = {
+  cyanLog<T>(val: T): void {
+    console.log('\x1b[36m%s\x1b[0m', val);
+  },
+};
 
 export function getBoolExact(value: unknown): boolean | null {
   const valueIsTrue = value === 'true' || value === true;
@@ -219,6 +222,12 @@ export const batchPromisesAndResponse = async <T>(promises: Promise<T>[], batchS
 
   return response;
 };
+
+type SignalObject = Record<keyof typeof OsConstants.signals, string>;
+export const signals: SignalObject = Object.keys(OsConstants.signals).reduce(
+  (acc, key) => ({ ...acc, [key]: key }),
+  <SignalObject>{},
+);
 
 //===================================================
 //  ______ _ _      _          _

@@ -70,10 +70,25 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   }
 
   public async handleConnection(@ConnectedSocket() client: Socket) {
+    // add socket connection to redis
+
+    // console.log(client.recovered);
+
+    console.log('recovered ' + client.recovered);
     console.log('Connected ' + client.id);
     // make do locked
 
     console.log(await this.redis.keys('*'));
+    // console.log(this.wss.sockets.keys());
+    console.log([...this.wss.sockets.keys()]);
+
+    for (const [key, value] of this.wss.sockets.entries()) {
+      console.log('='.repeat(20));
+      console.log(key);
+      console.log(value.conn.remoteAddress + ':' + value.conn.transport.name + ':' + value.conn.protocol);
+      console.log(value.id + '-' + 'recovered:' + value.recovered);
+    }
+    // console.log(this.wss.sockets);
 
     // console.log(this.wss.sockets);
   }

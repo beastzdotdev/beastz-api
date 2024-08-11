@@ -24,17 +24,10 @@ export class DocumentSocketMiddleware {
     private readonly envService: EnvService,
 
     private readonly jwtService: JwtService,
-  ) {
-    setTimeout(() => {
-      this.temp = 1;
-    }, 20000);
-  }
-  private temp = 0;
+  ) {}
 
   AuthWsMiddleware() {
     return async (socket: Socket, next: (err?: Error) => void) => {
-      console.log(123);
-
       try {
         // throw new Error('123');
         await this.validate(socket);

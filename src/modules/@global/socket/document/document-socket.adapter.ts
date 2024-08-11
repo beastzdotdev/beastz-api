@@ -20,12 +20,12 @@ export class RedisIoAdapter extends IoAdapter {
   async connectToRedis(): Promise<void> {
     const time = performance.now();
     await this.redis.connect();
-
     this.logger.verbose(`redis connection successfull (${(performance.now() - time).toFixed(3)}ms)`);
 
-    //  connection state recovery feature
+    //! supports connection state recovery feature
     this.adapterConstructor = createAdapter(this.redis, {
       streamName: 'Document:stream',
+      sessionKeyPrefix: 'Document:session:',
     });
   }
 
@@ -51,6 +51,7 @@ export class RedisIoAdapter extends IoAdapter {
     const server: Server = super.createIOServer(port, options);
     server.adapter(this.adapterConstructor);
     this.logger.verbose(`socket redis adapter created (${(performance.now() - time).toFixed(3)}ms)`);
+
     return server;
   }
 }

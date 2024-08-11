@@ -1,9 +1,10 @@
-import path from 'path';
 import figlet from 'figlet';
 import helmet from 'helmet';
 import Redis from 'ioredis';
+import path from 'node:path';
 import express from 'express';
 import nunjucks from 'nunjucks';
+import process from 'node:process';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
@@ -13,22 +14,13 @@ import { NestApplication, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 
-import { cyanLog } from './common/helper';
 import { AppModule } from './modules/app.module';
+import { appLogger, signals } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
 import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { absPublicPath } from './modules/file-structure/file-structure.helper';
 import { RedisIoAdapter } from './modules/@global/socket/document/document-socket.adapter';
-
-// Cool libraries for future
-// https://nosir.github.io/cleave.js/
-// https://sarcadass.github.io/granim.js/examples.html
-
-// process.on('uncaughtException', err => {
-//   console.log(err);
-//   throw new InternalServerErrorException('Something went wrong');
-// });
 
 //@ts-ignore
 BigInt.prototype.toJSON = function () {
@@ -36,11 +28,12 @@ BigInt.prototype.toJSON = function () {
 };
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
-  const logger = new Logger(NestApplication.name);
-
   const startingTime = performance.now();
-  const assetsPath = path.join(__dirname, './assets');
+  const logger = new Logger(NestApplication.name);
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
+
+  const assetsPath = path.join(__dirname, './assets');
+  const hostname = envService.isDev() ? '0.0.0.0' : 'localhost';
 
   const nunjuckMainRenderer = nunjucks.configure(assetsPath, {
     express: app,
@@ -53,18 +46,17 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 
   setupNunjucksFilters(nunjuckMainRenderer);
 
+  app.enableShutdownHooks();
+  app.set('trust proxy', true);
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  app.use(cookieParser(envService.get('COOKIE_SECRET')));
   app.enableCors({
     credentials: true,
     exposedHeaders: ['Content-Title'],
     //TODO: add url
     origin: [envService.get('FRONTEND_URL'), 'http://localhost:3000'],
   });
-
-  app.enableShutdownHooks();
-  app.set('trust proxy', true);
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
-  app.use(cookieParser(envService.get('COOKIE_SECRET')));
   app.use(
     helmet({
       crossOriginResourcePolicy: {
@@ -82,18 +74,37 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
 
-  await app.listen(envService.get('PORT'));
+  await app.listen(envService.get('PORT'), hostname);
 
-  // measure startup time
+  // Measure startup time
   const totalTimeInMs = (performance.now() - startingTime).toFixed(3) + ' ms';
-  logger.log(`Nest application initialized in ${totalTimeInMs}`);
+  logger.verbose(`Nest application initialized (Node: ${process.versions.node}) (${totalTimeInMs})`);
 
-  // log misc stuff
-  cyanLog(
+  // Log misc stuff
+  appLogger.cyanLog(
     figlet.textSync(`Running api : ${envService.get('PORT')}`, {
       font: 'Rectangles',
       width: 80,
       whitespaceBreak: true,
     }),
   );
+
+  // Gracefull Shutdown
+  const shutdown = async (signal: string, value: number): Promise<void> => {
+    appLogger.cyanLog('\nshutdown!');
+
+    await app.close();
+    appLogger.cyanLog(`server stopped by ${signal} with value ${value}`);
+
+    process.exit(128 + value);
+  };
+
+  process.on(signals.SIGINT, shutdown);
+  process.on(signals.SIGTERM, shutdown);
+  process.on(signals.SIGQUIT, shutdown);
+  process.on(signals.SIGQUIT, shutdown);
+  process.on(signals.SIGTSTP, shutdown);
+  process.on(signals.SIGABRT, shutdown);
+  process.on('uncaughtException', shutdown);
+  process.on('unhandledRejection', shutdown);
 });

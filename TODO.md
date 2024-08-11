@@ -1,6 +1,4 @@
-====================================================
-Cloudflase beastz.dev use
-====================================================
+TODO: for dangling users in socket this can be checked by checking in memory and in redis as well
 
 
 
