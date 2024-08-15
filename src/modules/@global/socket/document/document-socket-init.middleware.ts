@@ -16,8 +16,8 @@ import { JwtService } from '../../jwt/jwt.service';
 import { constants } from '../../../../common/constants';
 
 @Injectable()
-export class DocumentSocketMiddleware {
-  private readonly logger = new Logger(DocumentSocketMiddleware.name);
+export class DocumentSocketInitMiddleware {
+  private readonly logger = new Logger(DocumentSocketInitMiddleware.name);
 
   constructor(
     @InjectEnv()
@@ -30,6 +30,7 @@ export class DocumentSocketMiddleware {
     return async (socket: Socket, next: (err?: Error) => void) => {
       try {
         // throw new Error('123');
+
         await this.validate(socket);
         next();
       } catch (error) {

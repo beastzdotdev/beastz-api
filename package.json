@@ -32,7 +32,6 @@
     "start:migrate:prod": "npx prisma migrate deploy && npm run start:prod"
   },
   "dependencies": {
-    "@codemirror/collab": "^6.1.1",
     "@codemirror/state": "^6.4.1",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/class-validator": "^0.13.4",

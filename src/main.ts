@@ -69,6 +69,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.setBaseViewsDir(assetsPath);
   app.use('/public', express.static(absPublicPath()));
 
+  // Wrap socket
   const redis = app.get<Redis>(getRedisConnectionToken());
   const redisIoAdapter = new RedisIoAdapter(app, redis);
   await redisIoAdapter.connectToRedis();

@@ -1,10 +1,11 @@
-version: '3'
-
 volumes:
   local_postgres_data:
+  redis_master:
+  redis_slave:
 
 services:
-  beastz:
+  beastz-api:
+    container_name: beastz-api
     build: ./
     ports:
       - '4000:4000'
@@ -39,7 +40,9 @@ services:
       RESET_PASSWORD_TOKEN_SECRET: ${RESET_PASSWORD_TOKEN_SECRET}
 
     depends_on:
-      - db
+      - beastz-database
+      - redis-master
+      - redis-slave
     volumes:
       - /beastz-data/hub:/app/hub
       - /beastz-data/user-bin:/app/user-bin
@@ -47,14 +50,44 @@ services:
       - /beastz-data/user-upload:/app/user-upload
       - /beastz-data/user-deleted-forever:/app/user-deleted-forever
 
-  db:
+  beastz-database:
     image: postgres:14.5-alpine
+    container_name: beastz-database
     ports:
       - '5433:5432'
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
       POSTGRES_DB: ${POSTGRES_DB}
 
     volumes:
       - local_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_DB}']
+      interval: 10s
+      retries: 10
+      start_period: 30s
+      timeout: 10s
+      #! Only in dev mode
+      # test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p 5000']
+
+  redis-master:
+    image: redis:7.4.0
+    container_name: redis-master
+    restart: always
+    #! Volume will ensure so that if container restarts redis data will not be lost
+    volumes:
+      - redis_master:/data
+    ports:
+      - 6379:6379
+
+  redis-slave:
+    image: redis:7.4.0
+    container_name: redis-slave
+    restart: always
+    volumes:
+      - redis_slave:/data
+    ports:
+      - 6479:6379
+    command: redis-server --slaveof redis-master 6379

@@ -1,9 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { DocumentSocketGateway } from './document-socket.gateway';
-import { DocumentSocketMiddleware } from './document-socket.middleware';
+import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
 
 @Global()
 @Module({
-  providers: [DocumentSocketGateway, DocumentSocketMiddleware],
+  providers: [DocumentSocketGateway, DocumentSocketInitMiddleware],
 })
 export class DocumentSocketModule {}

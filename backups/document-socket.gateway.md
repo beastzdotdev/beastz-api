@@ -1,9 +1,9 @@
-import Redis from 'ioredis';
+```ts
+import type { Update } from '@codemirror/collab';
 import { performance } from 'node:perf_hooks';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { Socket, Namespace } from 'socket.io';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { ChangeSet, Text } from '@codemirror/state';
+import { ChangeSet, StateEffect, Text } from '@codemirror/state';
 import {
   WebSocketGateway,
   ConnectedSocket,
@@ -14,17 +14,21 @@ import {
   MessageBody,
   WebSocketServer,
 } from '@nestjs/websockets';
+import Redis from 'ioredis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { DocumentSocketMiddleware } from './document-socket.middleware';
 
-import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
-import { PushDocBody } from './document-socket.type';
-import { DocumentSocketTokenExtractGuard } from './document-socket-token-extract.guard';
-import { SocketTokenPayload } from './document-socket-user.decorator';
-import { AccessTokenPayload } from '../../jwt/jwt.type';
+type PushUpdateBody = {
+  version: number;
+  updates: {
+    clientID: string;
+    changes: any;
+    effects: readonly StateEffect<any>[] | undefined;
+  }[];
+};
 
 /**
- * @description Namespace for Document
- *
- * Document because it is simultaneously a document saver and a collaboration
+ * @description
  *
  * this.wss <- basically namespace instance of socket
  * this.wss.server <- this is root socket instance
@@ -35,7 +39,7 @@ import { AccessTokenPayload } from '../../jwt/jwt.type';
  * ! Extra configurations are in adapter
  */
 @WebSocketGateway({
-  namespace: 'document',
+  namespace: 'doc-edit',
   allowEIO3: false,
   transports: ['websocket'],
   cors: { origin: ['http://localhost:3000'], credentials: true },
@@ -44,7 +48,10 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   private readonly time = performance.now();
   private readonly logger = new Logger(DocumentSocketGateway.name);
 
+  //TODO: Temp properties, move to redis
+  updates: Update[] = [];
   doc: Text = Text.of(['Start document']);
+  pending: ((value: any) => void)[] = [];
 
   @WebSocketServer() public wss: Namespace;
 
@@ -52,7 +59,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     @InjectRedis()
     private readonly redis: Redis,
 
-    private readonly documentSocketMiddleware: DocumentSocketInitMiddleware,
+    private readonly documentSocketMiddleware: DocumentSocketMiddleware,
   ) {}
 
   afterInit() {
@@ -63,8 +70,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     this.wss.use(this.documentSocketMiddleware.AuthWsMiddleware());
   }
 
-  async handleConnection(@ConnectedSocket() client: Socket) {
-    console.log('Connected ' + client.id);
+  public async handleConnection(@ConnectedSocket() client: Socket) {
     // await this.redis.set(client.id, 'temp');
     //
     // add socket connection to redis
@@ -86,7 +92,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     // console.log(this.wss.sockets);
   }
 
-  async handleDisconnect(@ConnectedSocket() client: Socket) {
+  public async handleDisconnect(@ConnectedSocket() client: Socket) {
     console.log('Disconnected ' + client.id);
 
     // console.time('retrieved');
@@ -100,39 +106,65 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     // this.redis.del(client.id);
   }
 
-  @SubscribeMessage('fetch_doc')
-  async getDocument() {
-    return this.doc.toString();
+  @SubscribeMessage('getDocument')
+  async getDocument(@ConnectedSocket() socket: Socket) {
+    socket.emit('getDocumentResponse', this.updates.length, this.doc.toString());
   }
 
-  @UseGuards(DocumentSocketTokenExtractGuard)
-  @SubscribeMessage('push_doc')
-  async handlePushUpdates(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() body: PushDocBody,
-    @SocketTokenPayload() payload: AccessTokenPayload,
-  ) {
-    console.log(123);
-    console.log(payload);
+  @SubscribeMessage('pushUpdates')
+  async handlePushUpdates(@ConnectedSocket() socket: Socket, @MessageBody() body: PushUpdateBody) {
+    // console.log([...new Set(this.updates.map(e => e.clientID))]);
+    // console.log('pushUpdates' + '---' + socket.id + '---' + ` (${Math.random().toFixed(3).toString()})`);
 
-    const { changes, userId } = body;
-
-    // console.log(socket);
-    //TODO I think you can somehow sync up changes using this.doc (currently it is not in use)
-
-    let isError = false;
+    const { version, updates: docUpdates } = body;
 
     try {
-      const changeSet = ChangeSet.fromJSON(changes);
-      this.doc = changeSet.apply(this.doc);
-    } catch (error) {
-      isError = true;
-      this.logger.error(error);
-      // console.error(error);
-    }
+      if (version != this.updates.length) {
+        console.log('denied');
 
-    if (!isError) {
-      socket.broadcast.emit('pull_doc', changes);
+        socket.emit('pushUpdateResponse', false);
+      } else {
+        console.log('not denied');
+        console.log(docUpdates);
+
+        for (const update of docUpdates) {
+          // Convert the JSON representation to an actual ChangeSet instance
+          const changes = ChangeSet.fromJSON(update.changes);
+
+          console.log('='.repeat(20));
+          console.log(update);
+          console.log(update.changes);
+          console.log(changes);
+
+          this.updates.push(update);
+          this.doc = changes.apply(this.doc);
+        }
+
+        socket.emit('pushUpdateResponse', true);
+
+        console.log('pending');
+        console.log(this.pending);
+
+        while (this.pending.length) this.pending.pop()?.(this.updates);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  @SubscribeMessage('pullUpdates')
+  async handleUpdate(@ConnectedSocket() socket: Socket, @MessageBody() version: number) {
+    if (version < this.updates.length) {
+      console.log('from ' + version + ' to ' + this.updates.length + '----' + 1);
+
+      socket.emit('pullUpdateResponse', this.updates.slice(version));
+    } else {
+      console.log('from ' + version + ' to ' + this.updates.length + '----' + 2);
+      console.log(this.pending);
+
+      this.pending.push(updates => {
+        socket.emit('pullUpdateResponse', updates.slice(version));
+      });
     }
   }
 
@@ -147,3 +179,4 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     // return 12;
   }
 }
+```
