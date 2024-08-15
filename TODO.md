@@ -1,3 +1,5 @@
+TODO: remove this bs refresh token saving in db and save it only one time
+
 TODO: for dangling users in socket this can be checked by checking in memory and in redis as well
 
 
