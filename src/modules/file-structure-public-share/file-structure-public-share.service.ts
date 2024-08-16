@@ -1,11 +1,12 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { FileStructurePublicShare } from '@prisma/client';
 import { FileStructurePublicShareRepository } from './file-structure-public-share.repository';
 import { FileStructureService } from '../file-structure/file-structure.service';
-import { CreateOrIgnoreFsPublicShareDto } from './dto/create-or-ignore-fs-public-share.dto';
+import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-ignore.dto';
 import { PrismaTx } from '../@global/prisma/prisma.type';
 import { AuthPayloadType } from '../../model/auth.types';
 import { random } from '../../common/random';
+import { FsPublishShareGetByQueryDto } from './dto/fs-publish-share-get-by-query.dto';
 
 @Injectable()
 export class FileStructurePublicShareService {
@@ -16,9 +17,27 @@ export class FileStructurePublicShareService {
     private readonly fsService: FileStructureService,
   ) {}
 
+  async getBy(
+    authPayload: AuthPayloadType,
+    queryParams: FsPublishShareGetByQueryDto,
+  ): Promise<FileStructurePublicShare> {
+    const { uniqueHash } = queryParams;
+
+    const fsPublicShare = await this.fsPublicShareRepository.getBy({
+      uniqueHash,
+      userId: authPayload.user.id,
+    });
+
+    if (!fsPublicShare) {
+      throw new NotFoundException();
+    }
+
+    return fsPublicShare;
+  }
+
   async createOrIgnore(
     authPayload: AuthPayloadType,
-    dto: CreateOrIgnoreFsPublicShareDto,
+    dto: FsPublicShareCreateOrIgnoreDto,
     tx: PrismaTx,
   ): Promise<FileStructurePublicShare> {
     const { fileStructureId } = dto;
@@ -33,6 +52,7 @@ export class FileStructurePublicShareService {
     const fsPublicShare = await this.fsPublicShareRepository.getBy(
       {
         fileStructureId,
+        userId: authPayload.user.id,
       },
       tx,
     );

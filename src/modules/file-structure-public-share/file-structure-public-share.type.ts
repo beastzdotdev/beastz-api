@@ -5,4 +5,5 @@ export type CreateFileStructurePublicShare = Omit<FileStructurePublicShare, 'id'
 export type GetByMethodParamsInFsPublicShare = {
   fileStructureId?: number;
   uniqueHash?: string;
+  userId?: number;
 };

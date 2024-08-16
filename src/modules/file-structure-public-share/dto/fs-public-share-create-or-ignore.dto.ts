@@ -1,6 +1,6 @@
 import { IsInt, IsNotEmpty } from 'class-validator';
 
-export class CreateOrIgnoreFsPublicShareDto {
+export class FsPublicShareCreateOrIgnoreDto {
   @IsNotEmpty()
   @IsInt()
   fileStructureId: number;

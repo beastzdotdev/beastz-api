@@ -53,6 +53,7 @@ import { FileStructureEncryptionService } from '../file-structure-encryption/fil
 import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 import { ImportantExceptionBody } from '../../model/exception.type';
+import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
 
 @Injectable()
 export class FileStructureService {
@@ -66,6 +67,19 @@ export class FileStructureService {
     private readonly fsBinService: FileStructureBinService,
     private readonly fsEncryptionService: FileStructureEncryptionService,
   ) {}
+
+  async getAll(authPayload: AuthPayloadType, queryParams: FsGetAllQueryDto) {
+    const { isFile } = queryParams;
+
+    return this.fsRepository.getManyBy({
+      isFile,
+      userId: authPayload.user.id,
+      isEditable: true,
+      isEncrypted: false,
+      isLocked: false,
+      isShortcut: false,
+    });
+  }
 
   async search(authPayload: AuthPayloadType, queryParams: SearchFileStructureQueryDto) {
     return this.fsRepository.search(queryParams.search, { userId: authPayload.user.id });

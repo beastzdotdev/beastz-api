@@ -34,6 +34,11 @@ export type GetManyByMethodParamsInRepo = {
   title?: string;
   isFile?: boolean;
   userId?: number;
+
+  isEditable?: boolean;
+  isEncrypted?: boolean;
+  isLocked?: boolean;
+  isShortcut?: boolean;
 };
 
 export type UpdateFSParams = Omit<Prisma.FileStructureUncheckedUpdateInput, 'id' | 'createdAt'>;

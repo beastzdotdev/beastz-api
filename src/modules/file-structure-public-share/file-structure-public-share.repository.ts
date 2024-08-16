@@ -10,7 +10,7 @@ export class FileStructurePublicShareRepository {
 
   async getBy(params: GetByMethodParamsInFsPublicShare, tx?: PrismaTx): Promise<FileStructurePublicShare | null> {
     const db = tx ?? this.prismaService;
-    const { fileStructureId, uniqueHash } = params;
+    const { fileStructureId, uniqueHash, userId } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -20,6 +20,7 @@ export class FileStructurePublicShareRepository {
       where: {
         fileStructureId,
         uniqueHash,
+        userId,
       },
     });
   }

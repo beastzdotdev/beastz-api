@@ -111,7 +111,7 @@ export class FileStructureRepository {
   async getManyBy(params: GetManyByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure[]> {
     const db = tx ?? this.prismaService;
 
-    const { depth, isFile, title, userId, titleStartsWith, parentId } = params;
+    const { titleStartsWith, title, ...restOfParams } = params;
 
     if (!Object.values(params).length) {
       return [];
@@ -119,11 +119,8 @@ export class FileStructureRepository {
 
     return db.fileStructure.findMany({
       where: {
-        depth,
-        isFile,
-        userId,
-        parentId,
         isInBin: false,
+        ...restOfParams,
         ...(titleStartsWith ? { title: { startsWith: titleStartsWith } } : { title }),
       },
     });

@@ -22,6 +22,7 @@ import { PrismaTx } from '../@global/prisma/prisma.type';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
+import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -31,6 +32,15 @@ export class FileStructureController {
     private readonly fileStructureService: FileStructureService,
     private readonly prismaService: PrismaService,
   ) {}
+
+  @Get()
+  async getAll(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Query() queryParams: FsGetAllQueryDto,
+  ): Promise<BasicFileStructureResponseDto[]> {
+    const response = await this.fileStructureService.getAll(authPayload, queryParams);
+    return BasicFileStructureResponseDto.mapArr(response);
+  }
 
   @Get('search')
   async search(
