@@ -361,8 +361,8 @@ export class AuthenticationService {
       // 4 lowercase, 1 int, 1 symbol
       const newPasswordText =
         random.genRandStringFromCharset(10, constants.LETTERS_LOWERCASE) +
-        random.generateRandomIntStr(0, 9) +
-        random.generateRandomIntStr(0, 9) +
+        random.generateRandomInt(0, 9).toString() +
+        random.generateRandomInt(0, 9).toString() +
         random.genRandStringFromCharset(1, constants.SYMBOLS);
 
       const newPasswordHashed = await bcrypt.hash(newPasswordText, 10);

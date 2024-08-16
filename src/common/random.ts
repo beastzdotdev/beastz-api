@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import { InternalServerErrorException } from '@nestjs/common';
-import { constants } from './constants';
 
 export const random = Object.freeze({
   genRandStringFromCharset(length: number, charset: string): string {
@@ -17,38 +16,19 @@ export const random = Object.freeze({
     return randomString;
   },
 
-  generateRandomASCII(len: number): string {
-    return this.genRandStringFromCharset(len, constants.ASCII);
-  },
-
-  generateRandomHEX(len: number): string {
-    return this.genRandStringFromCharset(len, constants.HEX);
-  },
-
-  generateRandomString(length: number): string {
-    let s = '';
-
-    for (let i = 0; i < length; i++) {
-      s += constants.ASCII.charAt(Math.floor(Math.random() * constants.ASCII.length));
-    }
-
-    return s;
+  getRandomString(length: number): string {
+    return crypto.randomBytes(length).toString('hex').slice(0, length);
   },
 
   /**
    * `Math.floor(max) + 1` to include the upper bound in the range
-   * @number 91023
    * @returns generated random integer from min to max inclusive
    */
   generateRandomInt(min: number, max: number): number {
     if (min > max) {
-      throw new InternalServerErrorException('Something went wrong in method 91023');
+      throw new InternalServerErrorException('Something went wrong in method');
     }
 
     return crypto.randomInt(Math.ceil(min), Math.floor(max) + 1);
-  },
-
-  generateRandomIntStr(min: number, max: number): string {
-    return this.generateRandomInt(min, max).toString();
   },
 });

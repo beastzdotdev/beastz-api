@@ -10,5 +10,6 @@ import { FileStructureEncryptionModule } from '../file-structure-encryption/file
   imports: [FileStructureBinModule, FileStructureEncryptionModule],
   controllers: [FileStructureController],
   providers: [FileStructureService, FileStructureRepository, FileStructureRawQueryRepository],
+  exports: [FileStructureService],
 })
 export class FileStructureModule {}

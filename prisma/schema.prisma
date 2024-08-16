@@ -367,20 +367,22 @@ model FileStructureShare {
 }
 
 model FileStructurePublicShare {
-  id                  Int      @id @default(autoincrement())
-  userId              Int      @map("user_id") // who owns
-  fileStructureId     Int      @unique @map("file_structure_id")
-  uniqueHash          String   @map("unique_hash")
-  isDownloadable      Boolean  @default(false) @map("is_downloadable")
-  isPasswordProtected Boolean  @default(false) @map("is_password_protected")
-  expiresAt           DateTime @map("expires_at")
-  password            String?  @map("password")
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id                  Int       @id @default(autoincrement())
+  userId              Int       @map("user_id") // who owns
+  fileStructureId     Int       @unique @map("file_structure_id")
+  uniqueHash          String    @unique @map("unique_hash") @db.VarChar(16)
+  isDownloadable      Boolean   @default(false) @map("is_downloadable")
+  isPasswordProtected Boolean   @default(false) @map("is_password_protected")
+  expiresAt           DateTime? @map("expires_at")
+  password            String?   @map("password")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
   user                            User                              @relation(fields: [userId], references: [id])
   fileStructure                   FileStructure                     @relation(fields: [fileStructureId], references: [id])
   fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
 
+  @@index([uniqueHash], type: Hash)
+  @@index([fileStructureId], type: BTree)
   @@map("file_structure_public_share")
 }
 
