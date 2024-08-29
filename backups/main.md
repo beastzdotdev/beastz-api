@@ -1,3 +1,4 @@
+```ts
 import figlet from 'figlet';
 import helmet from 'helmet';
 import Redis from 'ioredis';
@@ -21,6 +22,11 @@ import { EnvService } from './modules/@global/env/env.service';
 import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { absPublicPath } from './modules/file-structure/file-structure.helper';
 import { RedisIoAdapter } from './modules/@global/socket/document/document-socket.adapter';
+
+//@ts-ignore
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const startingTime = performance.now();
@@ -104,3 +110,5 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   process.on('uncaughtException', shutdown);
   process.on('unhandledRejection', shutdown);
 });
+
+```
