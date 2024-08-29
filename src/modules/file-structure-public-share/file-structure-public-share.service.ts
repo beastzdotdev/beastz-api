@@ -7,6 +7,7 @@ import { PrismaTx } from '../@global/prisma/prisma.type';
 import { AuthPayloadType } from '../../model/auth.types';
 import { random } from '../../common/random';
 import { FsPublishShareGetByQueryDto } from './dto/fs-publish-share-get-by-query.dto';
+import { FsPublicShareUpdateByIdDto } from './dto/fs-public-share-update-by-id.dto';
 
 @Injectable()
 export class FileStructurePublicShareService {
@@ -21,11 +22,12 @@ export class FileStructurePublicShareService {
     authPayload: AuthPayloadType,
     queryParams: FsPublishShareGetByQueryDto,
   ): Promise<FileStructurePublicShare> {
-    const { uniqueHash } = queryParams;
+    const { uniqueHash, fileStructureId } = queryParams;
 
     const fsPublicShare = await this.fsPublicShareRepository.getBy({
       uniqueHash,
       userId: authPayload.user.id,
+      fileStructureId,
     });
 
     if (!fsPublicShare) {
@@ -71,5 +73,28 @@ export class FileStructurePublicShareService {
       },
       tx,
     );
+  }
+
+  async updateById(
+    authPayload: AuthPayloadType,
+    id: number,
+    dto: FsPublicShareUpdateByIdDto,
+    tx?: PrismaTx,
+  ): Promise<FileStructurePublicShare> {
+    const { isDisabled } = dto;
+    const updateResult = await this.fsPublicShareRepository.updateById(
+      authPayload,
+      id,
+      {
+        isDisabled,
+      },
+      tx,
+    );
+
+    if (!updateResult) {
+      throw new NotFoundException();
+    }
+
+    return updateResult;
   }
 }

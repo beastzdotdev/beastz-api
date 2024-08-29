@@ -103,23 +103,22 @@ model User {
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   profileImagePath String?   @map("profile_image_path") @db.VarChar(2047)
 
-  userIdentity                    UserIdentity?
-  userSupport                     UserSupport[]
-  userSupportMessages             UserSupportMessage[]
-  userSupportImages               UserSupportImage[]
-  feedbacks                       Feedback[]
-  refreshTokens                   RefreshToken[]
-  recoverPasswords                RecoverPassword[]
-  accountVerifications            AccountVerification[]
-  resetPasswords                  ResetPassword[]
-  fileStructure                   FileStructure[]
-  fileStructureEncryption         FileStructureEncryption[]
-  toFileShared                    FileStructureShare[]              @relation(name: "toUser")
-  fromFileShared                  FileStructureShare[]              @relation(name: "fromUser")
-  fileStructureBookmark           FileStructureBookmark[]
-  fileStructurePublicShare        FileStructurePublicShare[]
-  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
-  fileStructureBin                FileStructureBin[]
+  userIdentity             UserIdentity?
+  userSupport              UserSupport[]
+  userSupportMessages      UserSupportMessage[]
+  userSupportImages        UserSupportImage[]
+  feedbacks                Feedback[]
+  refreshTokens            RefreshToken[]
+  recoverPasswords         RecoverPassword[]
+  accountVerifications     AccountVerification[]
+  resetPasswords           ResetPassword[]
+  fileStructure            FileStructure[]
+  fileStructureEncryption  FileStructureEncryption[]
+  toFileShared             FileStructureShare[]       @relation(name: "toUser")
+  fromFileShared           FileStructureShare[]       @relation(name: "fromUser")
+  fileStructureBookmark    FileStructureBookmark[]
+  fileStructurePublicShare FileStructurePublicShare[]
+  fileStructureBin         FileStructureBin[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -376,26 +375,14 @@ model FileStructurePublicShare {
   expiresAt           DateTime? @map("expires_at")
   password            String?   @map("password")
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  isDisabled          Boolean   @default(false) @map("is_disabled")
 
-  user                            User                              @relation(fields: [userId], references: [id])
-  fileStructure                   FileStructure                     @relation(fields: [fileStructureId], references: [id])
-  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
   @@index([uniqueHash], type: Hash)
   @@index([fileStructureId], type: BTree)
   @@map("file_structure_public_share")
-}
-
-model FileStructureSharePulicLinkUser {
-  id                            Int      @id @default(autoincrement())
-  userId                        Int      @map("user_id") // for who is shared for only
-  fileStructureSharePulicLinkId Int      @map("file_structure_share_public_link_id")
-  createdAt                     DateTime @default(now()) @map("created_at") @db.Timestamptz()
-
-  user                     User                     @relation(fields: [userId], references: [id])
-  fileStructurePublicShare FileStructurePublicShare @relation(fields: [fileStructureSharePulicLinkId], references: [id])
-
-  @@map("file_structure_share_public_link_user")
 }
 
 model FileStructureBin {

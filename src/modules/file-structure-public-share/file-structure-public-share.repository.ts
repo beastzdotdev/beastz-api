@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { FileStructurePublicShare } from '@prisma/client';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { PrismaTx } from '../@global/prisma/prisma.type';
-import { GetByMethodParamsInFsPublicShare } from './file-structure-public-share.type';
+import { GetByMethodParamsInFsPublicShare, UpdateFsPublicShareParams } from './file-structure-public-share.type';
+import { AuthPayloadType } from '../../model/auth.types';
 
 @Injectable()
 export class FileStructurePublicShareRepository {
@@ -37,6 +38,28 @@ export class FileStructurePublicShareRepository {
         userId,
         fileStructureId,
         uniqueHash,
+      },
+    });
+  }
+
+  async updateById(
+    authPayload: AuthPayloadType,
+    id: number,
+    params: UpdateFsPublicShareParams,
+    tx: PrismaTx | undefined,
+  ): Promise<FileStructurePublicShare | null> {
+    const db = tx ?? this.prismaService;
+    const entity = await db.fileStructurePublicShare.findUnique({ where: { id, userId: authPayload.user.id } });
+
+    if (!entity) {
+      return null;
+    }
+
+    return db.fileStructurePublicShare.update({
+      where: { id, userId: authPayload.user.id },
+      data: {
+        ...entity,
+        ...params,
       },
     });
   }

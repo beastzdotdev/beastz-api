@@ -69,15 +69,20 @@ export class FileStructureService {
   ) {}
 
   async getAll(authPayload: AuthPayloadType, queryParams: FsGetAllQueryDto) {
-    const { isFile } = queryParams;
+    const { isFile, fileTypes, orderByLastModifiedAt } = queryParams;
 
     return this.fsRepository.getManyBy({
+      fileTypes,
       isFile,
       userId: authPayload.user.id,
       isEditable: true,
       isEncrypted: false,
       isLocked: false,
       isShortcut: false,
+
+      orderBy: {
+        lastModifiedAt: orderByLastModifiedAt,
+      },
     });
   }
 

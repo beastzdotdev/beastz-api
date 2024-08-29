@@ -1,4 +1,4 @@
-import { FileStructure, Prisma } from '@prisma/client';
+import { FileMimeType, FileStructure, Prisma } from '@prisma/client';
 
 export type CreateFileStructureParams = Omit<FileStructure, 'id' | 'createdAt'>;
 
@@ -34,11 +34,14 @@ export type GetManyByMethodParamsInRepo = {
   title?: string;
   isFile?: boolean;
   userId?: number;
+  fileTypes?: FileMimeType[];
 
   isEditable?: boolean;
   isEncrypted?: boolean;
   isLocked?: boolean;
   isShortcut?: boolean;
+
+  orderBy?: Prisma.FileStructureOrderByWithRelationInput;
 };
 
 export type UpdateFSParams = Omit<Prisma.FileStructureUncheckedUpdateInput, 'id' | 'createdAt'>;

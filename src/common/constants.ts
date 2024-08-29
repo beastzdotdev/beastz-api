@@ -41,6 +41,10 @@ export const constants = Object.freeze({
     resetPassword: (base: string) => base,
     accountVerify: (base: string) => base,
     recoverPassword: (base: string) => `${base}/auth/sign-in`,
+
+    document: {
+      collabJoin: '/collab-join',
+    },
   },
 
   singleFileMaxSize: 30 * 1024 * 1024, // ~30mb

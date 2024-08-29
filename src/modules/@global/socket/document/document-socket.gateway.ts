@@ -34,12 +34,7 @@ import { AccessTokenPayload } from '../../jwt/jwt.type';
  *
  * ! Extra configurations are in adapter
  */
-@WebSocketGateway({
-  namespace: 'document',
-  allowEIO3: false,
-  transports: ['websocket'],
-  cors: { origin: ['http://localhost:3000'], credentials: true },
-})
+@WebSocketGateway({ namespace: 'document' })
 export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   private readonly time = performance.now();
   private readonly logger = new Logger(DocumentSocketGateway.name);

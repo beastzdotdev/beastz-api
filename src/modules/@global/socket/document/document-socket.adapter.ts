@@ -5,16 +5,19 @@ import { ServerOptions } from 'socket.io';
 import { INestApplication, Logger } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-streams-adapter';
+import { EnvService } from '../../env/env.service';
 
 export class RedisIoAdapter extends IoAdapter {
   private readonly logger = new Logger(RedisIoAdapter.name);
   private adapterConstructor: ReturnType<typeof createAdapter>;
 
   private readonly redis: Redis;
+  private readonly envService: EnvService;
 
-  constructor(app: INestApplication, redis: Redis) {
+  constructor(app: INestApplication, redis: Redis, envService: EnvService) {
     super(app);
     this.redis = redis;
+    this.envService = envService;
   }
 
   async connectToRedis(): Promise<void> {
@@ -36,9 +39,8 @@ export class RedisIoAdapter extends IoAdapter {
         ...options,
         allowEIO3: false,
         transports: ['websocket'],
-        //TODO: add env from config service
         cors: {
-          origin: ['http://localhost:3000'],
+          origin: [this.envService.get('FRONTEND_DOCUMENT_URL')],
           credentials: true,
         },
         connectionStateRecovery: {

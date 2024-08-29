@@ -2,6 +2,8 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Redis } from 'ioredis';
 import { PrismaService } from '../@global/prisma/prisma.service';
 import { fsCustom } from '../../common/helper';
 import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
@@ -19,12 +21,41 @@ export class AdminService {
     @InjectEnv()
     private readonly envService: EnvService,
 
+    @InjectRedis()
+    private readonly redis: Redis,
+
     private readonly prismaService: PrismaService,
     private readonly mailService: MailService,
   ) {}
 
   async sendMail(data: SendMailDto) {
     await this.mailService.send(data);
+  }
+
+  async testRedis() {
+    const uniqueHash = crypto.randomBytes(10).toString('hex'); // Replace with your actual hash value
+    const key = `fs::collab::${uniqueHash}`;
+
+    console.log(key);
+
+    const result = await this.redis.hmset(key, {
+      masterSocketId: 1234, // Replace with your actual masterSocketId
+      masterUserId: 5678, // Replace with your actual masterUserId
+      // servants: ['9012', '3456'],
+      servants: JSON.stringify(['9012', '3456']), // Replace with your actual array of servant socket IDs
+    });
+
+    console.log('='.repeat(20));
+    const fromRedis = await this.redis.hgetall(key);
+    const fromRedisServants = await this.redis.hget(key, 'servants');
+
+    console.log('='.repeat(20));
+    console.log({
+      result,
+      fromRedis,
+      fromRedisServants,
+      fromRedisServantsArr: JSON.parse(fromRedisServants || 'null'),
+    });
   }
 
   async testEnvs() {
@@ -60,7 +91,10 @@ export class AdminService {
       },
     });
 
-    return user;
+    return {
+      recreated: !!existingDemo,
+      user,
+    };
   }
 
   async deleteUserInfo(userId: number) {
@@ -173,6 +207,10 @@ export class AdminService {
         include: { userSupportMessages: true, userSupportImages: true },
       }),
     });
+  }
+
+  async getBcryptPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
   }
 
   async updateTicket(id: number, dto: UpdateSupportTicketDto) {

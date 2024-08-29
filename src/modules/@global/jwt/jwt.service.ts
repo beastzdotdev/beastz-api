@@ -22,6 +22,7 @@ import {
   ValidateRefreshTokenPayload,
   ValidateResetPasswordTokenPayload,
 } from './jwt.type';
+import { PlatformWrapper } from '../../../model/platform.wrapper';
 
 @Injectable()
 export class JwtService {
@@ -191,10 +192,10 @@ export class JwtService {
     );
   }
 
-  async genAccessToken(params: { userId: number; email: string }): Promise<string> {
+  async genAccessToken(params: { userId: number; email: string; platform: PlatformWrapper }): Promise<string> {
     const authTokenPayload: AuthTokenPayload = {
       userId: params.userId,
-      platform: PlatformForJwt.WEB,
+      platform: params.platform.getPlatform(),
     };
 
     return promisify(() =>
@@ -207,10 +208,10 @@ export class JwtService {
     );
   }
 
-  async genRefreshToken(params: { userId: number; email: string }): Promise<string> {
+  async genRefreshToken(params: { userId: number; email: string; platform: PlatformWrapper }): Promise<string> {
     const authTokenPayload: AuthTokenPayload = {
       userId: params.userId,
-      platform: PlatformForJwt.WEB,
+      platform: params.platform.getPlatform(),
     };
 
     return promisify(() =>

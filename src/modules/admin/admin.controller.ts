@@ -14,7 +14,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { CreateSupportTicketsDto } from './dto/create-support-ticket.dto';
@@ -24,6 +23,7 @@ import { PrismaTx } from '../@global/prisma/prisma.type';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { AdminBasicGuard } from './admin-basic-guard';
+import { NotEmptyPipe } from '../../pipe/not-empty.pipe';
 
 @NoAuth()
 @UseGuards(AdminBasicGuard)
@@ -36,6 +36,11 @@ export class AdminController {
     private readonly prismaService: PrismaService,
   ) {}
 
+  @Get()
+  async healthAdmin() {
+    return 'yes you are admin';
+  }
+
   @Get('test-envs')
   async testEnvs() {
     return this.adminService.testEnvs();
@@ -46,12 +51,21 @@ export class AdminController {
     return this.adminService.getTickets(queryParams);
   }
 
+  @Get('get-password')
+  async getBcryptPassword(@Query('password', NotEmptyPipe) password: string): Promise<string> {
+    return this.adminService.getBcryptPassword(password);
+  }
+
   @Post('send-mail')
   async senMail(@Body() dto: SendMailDto) {
     return this.adminService.sendMail(dto);
   }
 
-  @NoEmailVerifyValidate()
+  @Post('test/redis')
+  testRedis() {
+    return this.adminService.testRedis();
+  }
+
   @Post('user-demo-create')
   createDemoUser() {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
@@ -93,7 +107,6 @@ export class AdminController {
     };
   }
 
-  @NoEmailVerifyValidate()
   @Delete('user/:userId')
   async deleteUserInfo(@Param('userId', ParseIntPipe) userId: number) {
     const affected = await this.adminService.deleteUserInfo(userId);
@@ -104,7 +117,6 @@ export class AdminController {
     };
   }
 
-  @NoEmailVerifyValidate()
   @Delete('user/:userId/fs')
   async deleteUserFsInfo(@Param('userId', ParseIntPipe) userId: number) {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
@@ -116,6 +128,4 @@ export class AdminController {
       };
     });
   }
-
-  //TODO create demo user
 }

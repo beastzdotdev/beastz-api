@@ -111,7 +111,7 @@ export class FileStructureRepository {
   async getManyBy(params: GetManyByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure[]> {
     const db = tx ?? this.prismaService;
 
-    const { titleStartsWith, title, ...restOfParams } = params;
+    const { titleStartsWith, title, fileTypes, orderBy, ...restOfParams } = params;
 
     if (!Object.values(params).length) {
       return [];
@@ -121,8 +121,10 @@ export class FileStructureRepository {
       where: {
         isInBin: false,
         ...restOfParams,
+        ...(fileTypes?.length ? { mimeType: { in: fileTypes } } : {}),
         ...(titleStartsWith ? { title: { startsWith: titleStartsWith } } : { title }),
       },
+      ...(!!orderBy && { orderBy }),
     });
   }
 

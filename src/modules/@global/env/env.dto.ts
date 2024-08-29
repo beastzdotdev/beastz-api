@@ -36,6 +36,11 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   @IsString()
   @IsUrl({ require_tld: false, require_protocol: false })
+  FRONTEND_DOCUMENT_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsUrl({ require_tld: false, require_protocol: false })
   BACKEND_URL: string;
 
   @IsNotEmpty()

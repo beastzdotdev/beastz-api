@@ -781,8 +781,8 @@ export class AuthenticationService {
     const { platform, res, isAccountVerified, email, userId, tx } = params;
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.genAccessToken({ userId, email }),
-      this.jwtService.genRefreshToken({ userId, email }),
+      this.jwtService.genAccessToken({ userId, email, platform }),
+      this.jwtService.genRefreshToken({ userId, email, platform }),
     ]);
 
     const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(refreshToken);

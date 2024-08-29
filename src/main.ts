@@ -54,8 +54,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.enableCors({
     credentials: true,
     exposedHeaders: ['Content-Title'],
-    //TODO: add url
-    origin: [envService.get('FRONTEND_URL'), 'http://localhost:3000'],
+    origin: [envService.get('FRONTEND_URL'), envService.get('FRONTEND_DOCUMENT_URL')],
   });
   app.use(
     helmet({
@@ -71,7 +70,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 
   // Wrap socket
   const redis = app.get<Redis>(getRedisConnectionToken());
-  const redisIoAdapter = new RedisIoAdapter(app, redis);
+  const redisIoAdapter = new RedisIoAdapter(app, redis, envService);
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
 
@@ -92,10 +91,11 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 
   // Gracefull Shutdown
   const shutdown = async (signal: string, value: number): Promise<void> => {
-    appLogger.cyanLog('\nshutdown!');
+    console.log('\n');
+    logger.verbose('shutdown!');
 
     await app.close();
-    appLogger.cyanLog(`server stopped by ${signal} with value ${value}`);
+    logger.verbose(`server stopped by ${signal} with value ${value}`);
 
     process.exit(128 + value);
   };
