@@ -37,6 +37,10 @@ export const constants = Object.freeze({
   HEX: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
   ASCII: '!#$%&*?@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
 
+  redis: {
+    twoDayInSec: 172800,
+  },
+
   frontendPath: {
     resetPassword: (base: string) => base,
     accountVerify: (base: string) => base,

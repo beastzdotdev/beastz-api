@@ -14,6 +14,7 @@ import { InjectEnv } from '../../env/env.decorator';
 import { EnvService } from '../../env/env.service';
 import { JwtService } from '../../jwt/jwt.service';
 import { constants } from '../../../../common/constants';
+import { SocketForUserInject } from './document-socket.type';
 
 @Injectable()
 export class DocumentSocketInitMiddleware {
@@ -30,8 +31,7 @@ export class DocumentSocketInitMiddleware {
     return async (socket: Socket, next: (err?: Error) => void) => {
       try {
         // throw new Error('123');
-
-        await this.validate(socket);
+        await this.validate(socket as SocketForUserInject);
         next();
       } catch (error) {
         // server intended error
@@ -66,7 +66,7 @@ export class DocumentSocketInitMiddleware {
     };
   }
 
-  private async validate(socket: Socket) {
+  private async validate(socket: SocketForUserInject) {
     const { authorizationHeader, platform } = this.validateHeaders(socket);
 
     let accessToken: string | undefined;
@@ -116,6 +116,9 @@ export class DocumentSocketInitMiddleware {
         sub: accessTokenPayload.sub,
         userId: accessTokenPayload.userId,
       });
+
+      //! adding extra property to socket handshake here
+      socket.handshake.accessTokenPayload = accessTokenPayload;
     } catch (error) {
       // catch general token expired error, update is used if access token is correct and expired
       if (error instanceof TokenExpiredException) {

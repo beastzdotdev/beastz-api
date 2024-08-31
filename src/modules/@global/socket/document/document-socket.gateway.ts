@@ -1,8 +1,6 @@
-import Redis from 'ioredis';
 import { performance } from 'node:perf_hooks';
 import { Logger, UseGuards } from '@nestjs/common';
 import { Socket, Namespace } from 'socket.io';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { ChangeSet, Text } from '@codemirror/state';
 import {
   WebSocketGateway,
@@ -16,10 +14,13 @@ import {
 } from '@nestjs/websockets';
 
 import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
-import { PushDocBody } from './document-socket.type';
+import { PushDocBody, SocketForUserInject } from './document-socket.type';
 import { DocumentSocketTokenExtractGuard } from './document-socket-token-extract.guard';
 import { SocketTokenPayload } from './document-socket-user.decorator';
 import { AccessTokenPayload } from '../../jwt/jwt.type';
+import { DocumentSocketService } from './document-socket.service';
+
+const DOC_NAMESPACE = 'document';
 
 /**
  * @description Namespace for Document
@@ -34,7 +35,7 @@ import { AccessTokenPayload } from '../../jwt/jwt.type';
  *
  * ! Extra configurations are in adapter
  */
-@WebSocketGateway({ namespace: 'document' })
+@WebSocketGateway({ namespace: DOC_NAMESPACE })
 export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   private readonly time = performance.now();
   private readonly logger = new Logger(DocumentSocketGateway.name);
@@ -44,55 +45,36 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   @WebSocketServer() public wss: Namespace;
 
   constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
-
-    private readonly documentSocketMiddleware: DocumentSocketInitMiddleware,
+    private readonly documentSocketInitMiddleware: DocumentSocketInitMiddleware,
+    private readonly documentSocketService: DocumentSocketService,
   ) {}
 
   afterInit() {
     const totalTimeInMs = (performance.now() - this.time).toFixed(3) + 'ms';
-    this.logger.verbose(`socket initialized (${totalTimeInMs})`);
+    this.logger.verbose(`socket under namespace of "${DOC_NAMESPACE}" initialized (${totalTimeInMs})`);
 
-    //! Authentication for socket namespace 'doc'
-    this.wss.use(this.documentSocketMiddleware.AuthWsMiddleware());
+    // Register middleware for init (reason: guard executes after connection init which is bad)
+    this.wss.use(this.documentSocketInitMiddleware.AuthWsMiddleware());
   }
 
-  async handleConnection(@ConnectedSocket() client: Socket) {
-    console.log('Connected ' + client.id);
-    // await this.redis.set(client.id, 'temp');
-    //
-    // add socket connection to redis
-    // console.log(client.recovered);
-    // console.log('recovered ' + client.recovered);
-    // console.log('Connected ' + client.id);
-    // // make do locked
-    // console.log(await this.redis.keys('*'));
-    // // console.log(this.wss.sockets.keys());
-    // console.log([...this.wss.sockets.keys()]);
-    // for (const [key, value] of this.wss.sockets.entries()) {
-    //   console.log('='.repeat(20));
-    //   console.log(key);
-    //   console.log(value.conn.remoteAddress + ':' + value.conn.transport.name + ':' + value.conn.protocol);
-    //   console.log(value.id + '-' + 'recovered:' + value.recovered);
-    //   console.log('='.repeat(20));
-    // }
-    // console.log(this.wss.sockets);
-    // console.log(this.wss.sockets);
+  /**
+   * On this method name decorators and guards and interceptors does not work this is just callback
+   * so I have to manually extract some data like access token payload, also throwing errors from this
+   * method does not seem to be good idea, if sometihng bad happens just disconnect client
+   */
+  async handleConnection(@ConnectedSocket() clientSocket: SocketForUserInject) {
+    console.log('Connected ' + clientSocket.id);
+
+    await this.documentSocketService.setLock(clientSocket);
   }
 
-  async handleDisconnect(@ConnectedSocket() client: Socket) {
-    console.log('Disconnected ' + client.id);
+  /**
+   * Same description as in handelConenction, read above
+   */
+  async handleDisconnect(@ConnectedSocket() clientSocket: SocketForUserInject) {
+    console.log('Disconnected ' + clientSocket.id);
 
-    // console.time('retrieved');
-    // const retrieved = await this.redis.get(client.id);
-    // console.timeEnd('retrieved');
-
-    // console.log('removing', retrieved);
-
-    // console.log('unseen', await this.redis.keys('12'));
-
-    // this.redis.del(client.id);
+    await this.documentSocketService.removeLock(clientSocket);
   }
 
   @SubscribeMessage('fetch_doc')
@@ -110,7 +92,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     console.log(123);
     console.log(payload);
 
-    const { changes, userId } = body;
+    const { changes } = body;
 
     // console.log(socket);
     //TODO I think you can somehow sync up changes using this.doc (currently it is not in use)
@@ -131,13 +113,16 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     }
   }
 
+  @UseGuards(DocumentSocketTokenExtractGuard)
   @SubscribeMessage('test')
-  async handleUpdatex(@ConnectedSocket() socket: Socket) {
+  async handleUpdatex(@ConnectedSocket() socket: Socket, @SocketTokenPayload() payload: AccessTokenPayload) {
     //TODO: in sockets eror not work great, try exception filter for socket io or if not then
     //TODO: socket io response error middleware
     console.log('test');
 
     socket.emit('test', 142);
+    console.log('='.repeat(20));
+    console.log(payload);
     // throw new Error('142');
     // return 12;
   }

@@ -17,6 +17,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Redis } from 'ioredis';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
 import { FileStructureRepository } from './file-structure.repository';
@@ -54,19 +56,32 @@ import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 import { ImportantExceptionBody } from '../../model/exception.type';
 import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
+import { DocumentSocketGatewayHelper } from '../@global/socket/document/document-socket.helper';
 
 @Injectable()
 export class FileStructureService {
   private readonly logger = new Logger(FileStructureService.name);
 
   constructor(
-    private readonly prismaService: PrismaService,
+    @InjectRedis()
+    private readonly redis: Redis,
+    private readonly documentSocketGatewayHelper: DocumentSocketGatewayHelper,
 
+    private readonly prismaService: PrismaService,
     private readonly fsRepository: FileStructureRepository,
     private readonly fsRawQueryRepository: FileStructureRawQueryRepository,
     private readonly fsBinService: FileStructureBinService,
     private readonly fsEncryptionService: FileStructureEncryptionService,
   ) {}
+
+  async checkDocEditingCurrently(fsId: number): Promise<void> {
+    const keyBuilder = this.documentSocketGatewayHelper.buildFSLockName(fsId);
+    const value = await this.redis.get(keyBuilder);
+
+    if (value) {
+      throw new BadRequestException(ExceptionMessageCode.DOCUMENT_CURRENTLY_IN_EDIT_MODE);
+    }
+  }
 
   async getAll(authPayload: AuthPayloadType, queryParams: FsGetAllQueryDto) {
     const { isFile, fileTypes, orderByLastModifiedAt } = queryParams;
@@ -199,6 +214,8 @@ export class FileStructureService {
   }
 
   async downloadById(res: Response, authPayload: AuthPayloadType, id: number) {
+    await this.checkDocEditingCurrently(id);
+
     const fs = await this.getById(authPayload, id);
     const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
     const contentTitle = fs.isFile ? fs.title + (fs.fileExstensionRaw ?? '') : fs.title + '.zip';
@@ -672,6 +689,8 @@ export class FileStructureService {
   }
 
   async replaceText(id: number, dto: ReplaceTextFileStructure, authPayload: AuthPayloadType): Promise<FileStructure> {
+    await this.checkDocEditingCurrently(id);
+
     const { text } = dto;
     const fs = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
 
