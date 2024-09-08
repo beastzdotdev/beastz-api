@@ -107,7 +107,7 @@ export function notExists<T>(value: T): boolean {
   return !exists(value);
 }
 
-export function fields<T>() {
+export function fields<T>(): { [P in keyof T]: P } {
   return new Proxy(
     {},
     {
@@ -115,9 +115,7 @@ export function fields<T>() {
         return prop;
       },
     },
-  ) as {
-    [P in keyof T]: P;
-  };
+  ) as { [P in keyof T]: P };
 }
 
 export function removeDuplicates<T>(arr: T[]): T[] {

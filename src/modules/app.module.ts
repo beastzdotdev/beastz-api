@@ -32,7 +32,11 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
 
 @Module({
   imports: [
-    // from @global module
+    //* third party packages
+    TerminusModule,
+    RedisHealthModule,
+
+    //* from global directory
     EnvConfigModule.forRoot(),
     RedisConfigModule.forRoot(),
     EventEmitterConfigModule.forRoot(),
@@ -42,8 +46,6 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
     CookieConfigModule,
     DocumentSocketConfigModule,
 
-    TerminusModule,
-    RedisHealthModule,
     AccountVerificationModule,
     UserModule,
     AuthenticationModule,
