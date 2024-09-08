@@ -12,12 +12,12 @@ export class DocumentSocketAdapter extends IoAdapter {
   private adapterConstructor: ReturnType<typeof createAdapter>;
 
   private readonly redis: Redis;
-  private readonly envService: EnvService;
+  private readonly env: EnvService;
 
-  constructor(app: INestApplication, redis: Redis, envService: EnvService) {
+  constructor(app: INestApplication, redis: Redis, env: EnvService) {
     super(app);
     this.redis = redis;
-    this.envService = envService;
+    this.env = env;
   }
 
   async connectToRedis(): Promise<void> {
@@ -40,7 +40,7 @@ export class DocumentSocketAdapter extends IoAdapter {
         allowEIO3: false,
         transports: ['websocket'],
         cors: {
-          origin: [this.envService.get('FRONTEND_DOCUMENT_URL')],
+          origin: [this.env.get('FRONTEND_DOCUMENT_URL')],
           credentials: true,
         },
         connectionStateRecovery: {

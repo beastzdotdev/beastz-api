@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { isObject } from '@nestjs/class-validator';
-import { PlatformForJwt } from '@prisma/client';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
 import { AuthTokenPayload } from '../../../model/auth.types';
@@ -28,11 +27,11 @@ import { PlatformWrapper } from '../../../model/platform.wrapper';
 export class JwtService {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
   ) {}
 
   async validateAccessToken(token: string, validateOptions: ValidateAccesssTokenPayload) {
-    const secret = this.envService.get('ACCESS_TOKEN_SECRET');
+    const secret = this.env.get('ACCESS_TOKEN_SECRET');
     const accessTokenPayload = this.getAccessTokenPayload(token);
 
     const { platform, sub, userId } = validateOptions;
@@ -58,7 +57,7 @@ export class JwtService {
   }
 
   async validateRefreshToken(token: string, validateOptions: ValidateRefreshTokenPayload) {
-    const secret = this.envService.get('REFRESH_TOKEN_SECRET');
+    const secret = this.env.get('REFRESH_TOKEN_SECRET');
     const refreshTokenPayload = this.getRefreshTokenPayload(token);
 
     const { exp, iat, iss, jti, platform, sub, userId } = validateOptions;
@@ -93,7 +92,7 @@ export class JwtService {
   }
 
   async validateRefreshTokenSignatureOnly(token: string) {
-    const secret = this.envService.get('REFRESH_TOKEN_SECRET');
+    const secret = this.env.get('REFRESH_TOKEN_SECRET');
 
     jwt.verify(
       token,
@@ -106,7 +105,7 @@ export class JwtService {
   }
 
   async validateAccountVerifyToken(token: string, validateOptions: ValidateAccountVerifyTokenPayload) {
-    const secret = this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET');
+    const secret = this.env.get('ACCOUNT_VERIFY_TOKEN_SECRET');
     const tokenPayload = this.getAccountVerifyTokenPayload(token);
 
     const { sub, userId, jti } = validateOptions;
@@ -135,7 +134,7 @@ export class JwtService {
   }
 
   async validateRecoverPasswordToken(token: string, validateOptions: ValidateRecoverPasswordTokenPayload) {
-    const secret = this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET');
+    const secret = this.env.get('RECOVER_PASSWORD_TOKEN_SECRET');
     const tokenPayload = this.getRecoverPasswordTokenPayload(token);
 
     const { sub, userId, jti } = validateOptions;
@@ -164,7 +163,7 @@ export class JwtService {
   }
 
   async validateResetPasswordToken(token: string, validateOptions: ValidateResetPasswordTokenPayload) {
-    const secret = this.envService.get('RESET_PASSWORD_TOKEN_SECRET');
+    const secret = this.env.get('RESET_PASSWORD_TOKEN_SECRET');
     const tokenPayload = this.getResetPasswordTokenPayload(token);
 
     const { sub, userId, jti } = validateOptions;
@@ -199,8 +198,8 @@ export class JwtService {
     };
 
     return promisify(() =>
-      jwt.sign(authTokenPayload, this.envService.get('ACCESS_TOKEN_SECRET'), {
-        expiresIn: this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'),
+      jwt.sign(authTokenPayload, this.env.get('ACCESS_TOKEN_SECRET'), {
+        expiresIn: this.env.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'),
         algorithm: 'HS256',
         issuer: constants.JWT_ISSUER,
         subject: params.email,
@@ -215,8 +214,8 @@ export class JwtService {
     };
 
     return promisify(() =>
-      jwt.sign(authTokenPayload, this.envService.get('REFRESH_TOKEN_SECRET'), {
-        expiresIn: this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'),
+      jwt.sign(authTokenPayload, this.env.get('REFRESH_TOKEN_SECRET'), {
+        expiresIn: this.env.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'),
         algorithm: 'HS256',
         issuer: constants.JWT_ISSUER,
         subject: params.email,
@@ -230,8 +229,8 @@ export class JwtService {
       userId: params.userId,
     };
 
-    return jwt.sign(tokenPayload, this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET').toString(), {
-      expiresIn: this.envService.get('ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC'),
+    return jwt.sign(tokenPayload, this.env.get('ACCOUNT_VERIFY_TOKEN_SECRET').toString(), {
+      expiresIn: this.env.get('ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC'),
       algorithm: 'HS256',
       issuer: constants.JWT_ISSUER,
       subject: params.email,
@@ -244,8 +243,8 @@ export class JwtService {
       userId: params.userId,
     };
 
-    return jwt.sign(tokenPayload, this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET').toString(), {
-      expiresIn: this.envService.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
+    return jwt.sign(tokenPayload, this.env.get('RECOVER_PASSWORD_TOKEN_SECRET').toString(), {
+      expiresIn: this.env.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
       algorithm: 'HS256',
       issuer: constants.JWT_ISSUER,
       subject: params.email,
@@ -258,8 +257,8 @@ export class JwtService {
       userId: params.userId,
     };
 
-    return jwt.sign(tokenPayload, this.envService.get('RESET_PASSWORD_TOKEN_SECRET').toString(), {
-      expiresIn: this.envService.get('RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
+    return jwt.sign(tokenPayload, this.env.get('RESET_PASSWORD_TOKEN_SECRET').toString(), {
+      expiresIn: this.env.get('RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
       algorithm: 'HS256',
       issuer: constants.JWT_ISSUER,
       subject: params.email,

@@ -4,7 +4,7 @@ import { FileStructurePublicShare } from '@prisma/client';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import path from 'path';
 import { PrismaTx } from '@global/prisma';
-import { CollabRedis } from '@global/redis-services';
+import { CollabRedis } from '@global/redis';
 import { FileStructurePublicShareRepository } from './file-structure-public-share.repository';
 import { FileStructureService } from '../file-structure/file-structure.service';
 import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-ignore.dto';

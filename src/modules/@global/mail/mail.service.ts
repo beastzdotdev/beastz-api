@@ -4,6 +4,7 @@ import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/c
 import { InjectEnv } from '../env/env.decorator';
 import { EnvService } from '../env/env.service';
 import { SendSimpleParams } from './mail.type';
+import { mailConfig } from './mail.config';
 
 @Injectable()
 export class MailService implements OnModuleInit {
@@ -13,12 +14,12 @@ export class MailService implements OnModuleInit {
 
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
   ) {}
 
   async onModuleInit() {
-    this.from = this.envService.get('MAIL_FROM');
-    this.resend = new Resend(this.envService.get('MAIL_PASSWORD'));
+    this.from = this.env.get('MAIL_FROM');
+    this.resend = new Resend(mailConfig(this.env));
   }
 
   async send(data: SendSimpleParams) {

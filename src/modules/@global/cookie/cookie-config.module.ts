@@ -6,4 +6,4 @@ import { CookieService } from './cookie.service';
   providers: [CookieService],
   exports: [CookieService],
 })
-export class CookieModule {}
+export class CookieConfigModule {}

@@ -33,7 +33,7 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
 
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
 
     private readonly jwtService: JwtService,
   ) {}
@@ -61,7 +61,7 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
           new SocketError('Something went wrong', {
             description: `Caught general error (UNINTENDED ERROR)`,
 
-            ...(this.envService.isDev() && {
+            ...(this.env.isDev() && {
               name: error.name,
               message: error.message,
               stack: error.stack,
@@ -91,7 +91,7 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
     if (platform.isWeb() && socket.handshake.headers.cookie) {
       const accessTokenSigned = cookie.parse(socket.handshake.headers.cookie)?.[constants.COOKIE_ACCESS_NAME];
 
-      const temp = cookieParser.signedCookie(accessTokenSigned, this.envService.get('COOKIE_SECRET'));
+      const temp = cookieParser.signedCookie(accessTokenSigned, this.env.get('COOKIE_SECRET'));
 
       if (!temp) {
         this.logger.debug(`Invalid signature for signed cookie access token: ${accessTokenSigned}`);
@@ -112,10 +112,10 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
     let finalAccessToken: string | undefined | null = null;
 
     // Decrypt is session is enabled
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
 
     if (isEncryptionSessionActive) {
-      const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+      const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
       finalAccessToken = await encryption.aes256gcm.decrypt(accessToken, key);
     } else {
       finalAccessToken = accessToken;

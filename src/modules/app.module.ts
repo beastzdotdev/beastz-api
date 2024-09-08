@@ -1,15 +1,17 @@
 import { APP_PIPE, APP_GUARD, APP_FILTER } from '@nestjs/core';
-import { Module, ValidationPipe } from '@nestjs/common';
-import { RedisHealthModule, RedisModule } from '@nestjs-modules/ioredis';
+import { Module } from '@nestjs/common';
+import { RedisHealthModule } from '@nestjs-modules/ioredis';
 import { TerminusModule } from '@nestjs/terminus';
-import { JwtModule } from '@global/jwt';
-import { MailModule } from '@global/mail';
-import { PrismaModule } from '@global/prisma';
-import { CookieModule } from '@global/cookie';
-import { DocumentSocketModule } from '@global/socket';
-import { RedisServicesModule } from '@global/redis-services';
+
+import { JwtConfigModule } from '@global/jwt';
+import { MailConfigModule } from '@global/mail';
+import { PrismaConfigModule } from '@global/prisma';
+import { CookieConfigModule } from '@global/cookie';
+import { DocumentSocketConfigModule } from '@global/socket';
 import { EventEmitterConfigModule } from '@global/event-emitter';
-import { EnvConfigModule, ENV_SERVICE_TOKEN, EnvService } from '@global/env';
+import { EnvConfigModule } from '@global/env';
+import { RedisConfigModule } from '@global/redis';
+import { ValidationConfigFactoryPipe } from '@global/validation';
 
 import { AppController } from './app.controller';
 import { AuthGuard } from './authentication/guard/auth.guard';
@@ -30,28 +32,20 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
 
 @Module({
   imports: [
-    RedisModule.forRootAsync({
-      useFactory: (envService: EnvService) => ({
-        type: 'single',
-        url: envService.get('REDIS_URL'),
-        options: {
-          lazyConnect: true,
-        },
-      }),
-      inject: [ENV_SERVICE_TOKEN],
-    }),
+    // from @global module
     EnvConfigModule.forRoot(),
+    RedisConfigModule.forRoot(),
     EventEmitterConfigModule.forRoot(),
-    JwtModule,
+    JwtConfigModule,
+    MailConfigModule,
+    PrismaConfigModule,
+    CookieConfigModule,
+    DocumentSocketConfigModule,
+
     TerminusModule,
     RedisHealthModule,
-    DocumentSocketModule,
-    PrismaModule,
-    CookieModule,
-    MailModule,
     AccountVerificationModule,
     UserModule,
-    RedisServicesModule,
     AuthenticationModule,
     FeedbackModule,
     LegalDocumentModule,
@@ -67,15 +61,7 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
     AppService,
     {
       provide: APP_PIPE,
-      useValue: new ValidationPipe({
-        forbidNonWhitelisted: true,
-        whitelist: true,
-        transform: true,
-        transformOptions: {
-          enableCircularCheck: true,
-          enableImplicitConversion: false, // do not enable this param messes up lot of things
-        },
-      }),
+      useValue: ValidationConfigFactoryPipe.create(),
     },
     {
       provide: APP_GUARD,

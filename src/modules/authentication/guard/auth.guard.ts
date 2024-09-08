@@ -30,7 +30,7 @@ import { TokenExpiredException } from '../../../exceptions/token-expired-forbidd
 export class AuthGuard implements CanActivate {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
 
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
@@ -63,8 +63,8 @@ export class AuthGuard implements CanActivate {
     }
 
     // Decrypt is session is enabled
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+    const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
     const finalAccessToken = isEncryptionSessionActive
       ? await encryption.aes256gcm.decrypt(accessToken, key)

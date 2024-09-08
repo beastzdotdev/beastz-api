@@ -49,7 +49,7 @@ export class AuthenticationService {
 
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
 
     private readonly prismaService: PrismaService,
     private readonly cookieService: CookieService,
@@ -139,8 +139,8 @@ export class AuthenticationService {
   async signOut(res: Response, authPayload: AuthPayloadType, refreshToken: string): Promise<Response> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       // Decrypt is session is enabled
-      const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-      const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+      const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+      const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
       const refreshTokenString = isEncryptionSessionActive
         ? await encryption.aes256gcm.decrypt(refreshToken, key).catch(() => {
@@ -177,8 +177,8 @@ export class AuthenticationService {
       const { oldRefreshTokenString } = params;
 
       // Decrypt is session is enabled
-      const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-      const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+      const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+      const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
       const finalOldRefreshTokenString = isEncryptionSessionActive
         ? await encryption.aes256gcm.decrypt(oldRefreshTokenString, key)
@@ -338,7 +338,7 @@ export class AuthenticationService {
       }
 
       // send backend url on email for backend to confirm
-      const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/reset-password/confirm`;
+      const backendUrl = `${this.env.get('BACKEND_URL')}/auth/reset-password/confirm`;
       const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
 
       this.authenticationMailService.sendPasswordReset(
@@ -434,7 +434,7 @@ export class AuthenticationService {
       }
 
       // send backend url on email for backend to confirm
-      const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/recover-password/confirm`;
+      const backendUrl = `${this.env.get('BACKEND_URL')}/auth/recover-password/confirm`;
       const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
 
       this.authenticationMailService.sendPasswordRecover(
@@ -499,7 +499,7 @@ export class AuthenticationService {
         // show success page and button for redirecting to front end
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Reset password already requested',
-          frontEndUrl: constants.frontendPath.resetPassword(this.envService.get('FRONTEND_URL')),
+          frontEndUrl: constants.frontendPath.resetPassword(this.env.get('FRONTEND_URL')),
           pageTabTitle: 'Reset password confirm',
         });
       }
@@ -529,7 +529,7 @@ export class AuthenticationService {
       // show success page and button for redirecting to front end
       res.render('view/auth-response', <AuthResponseViewJsonParams>{
         text: 'Reset password was successsfull',
-        frontEndUrl: constants.frontendPath.resetPassword(this.envService.get('FRONTEND_URL')),
+        frontEndUrl: constants.frontendPath.resetPassword(this.env.get('FRONTEND_URL')),
         pageTabTitle: 'Reset password confirm',
       });
     });
@@ -581,7 +581,7 @@ export class AuthenticationService {
         // show success page and button for redirecting to front end
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Recover password already requested',
-          frontEndUrl: constants.frontendPath.recoverPassword(this.envService.get('FRONTEND_URL')),
+          frontEndUrl: constants.frontendPath.recoverPassword(this.env.get('FRONTEND_URL')),
           pageTabTitle: 'Recover password confirm',
         });
       }
@@ -611,7 +611,7 @@ export class AuthenticationService {
       // show success page and button for redirecting to front end
       return res.render('view/auth-response', <AuthResponseViewJsonParams>{
         text: 'Recover password was successsfull',
-        frontEndUrl: constants.frontendPath.recoverPassword(this.envService.get('FRONTEND_URL')),
+        frontEndUrl: constants.frontendPath.recoverPassword(this.env.get('FRONTEND_URL')),
         pageTabTitle: 'Recover password confirm',
       });
     });
@@ -663,7 +663,7 @@ export class AuthenticationService {
         // show already verified page
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Account verify already requested',
-          frontEndUrl: constants.frontendPath.accountVerify(this.envService.get('FRONTEND_URL')),
+          frontEndUrl: constants.frontendPath.accountVerify(this.env.get('FRONTEND_URL')),
           pageTabTitle: 'Account verify confirm',
         });
       }
@@ -697,7 +697,7 @@ export class AuthenticationService {
       // show success page and button for redirecting to front end
       res.render('view/auth-response', <AuthResponseViewJsonParams>{
         text: 'Account verify was successsfull',
-        frontEndUrl: constants.frontendPath.accountVerify(this.envService.get('FRONTEND_URL')),
+        frontEndUrl: constants.frontendPath.accountVerify(this.env.get('FRONTEND_URL')),
         pageTabTitle: 'Account verify confirm',
       });
     });
@@ -767,7 +767,7 @@ export class AuthenticationService {
     }
 
     // send backend url on email for backend to confirm
-    const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/account-verify/confirm`;
+    const backendUrl = `${this.env.get('BACKEND_URL')}/auth/account-verify/confirm`;
     const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
 
     this.authenticationMailService.sendAccountVerify(
@@ -786,8 +786,8 @@ export class AuthenticationService {
 
     const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(refreshToken);
 
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+    const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
     const [finalAccessToken, finalRefreshToken] = await Promise.all([
       isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(accessToken, key) : accessToken,

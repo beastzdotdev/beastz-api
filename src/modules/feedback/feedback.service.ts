@@ -12,7 +12,8 @@ import { TooManyRequestException } from '../../exceptions/too-many-request.excep
 export class FeedbackService {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
+
     private readonly feedbackRepository: FeedbackRepository,
   ) {}
 
@@ -27,7 +28,7 @@ export class FeedbackService {
 
     const feedbacksCount = await this.feedbackRepository.getAllByUserIdAndDatesCount(userId, startDate, endDate);
 
-    if (feedbacksCount >= this.envService.get('MAX_FEEDBACK_PER_DAY_COUNT')) {
+    if (feedbacksCount >= this.env.get('MAX_FEEDBACK_PER_DAY_COUNT')) {
       throw new TooManyRequestException();
     }
 

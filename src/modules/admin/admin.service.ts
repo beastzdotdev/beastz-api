@@ -20,7 +20,7 @@ import { absUserBinPath, absUserContentPath } from '../file-structure/file-struc
 export class AdminService {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
 
     @InjectRedis()
     private readonly redis: Redis,
@@ -82,7 +82,7 @@ export class AdminService {
   }
 
   async testEnvs() {
-    return this.envService.getInstance();
+    return this.env.getInstance();
   }
 
   async createDemoUser(tx: PrismaTx) {

@@ -9,4 +9,4 @@ import { FileStructurePublicShareModule } from '../../../file-structure-public-s
   imports: [FileStructurePublicShareModule],
   providers: [DocumentSocketGateway, DocumentSocketInitMiddleware, DocumentSocketService],
 })
-export class DocumentSocketModule {}
+export class DocumentSocketConfigModule {}

@@ -15,7 +15,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
+
     private readonly httpAdapterHost: HttpAdapterHost,
   ) {}
 
@@ -32,7 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const url = ctx.getRequest<Request>().url;
 
-    const isDev = this.envService.isDev();
+    const isDev = this.env.isDev();
 
     let errorBody: AllExceptionBody;
 
