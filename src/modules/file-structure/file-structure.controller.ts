@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res, Logger, Delete } from '@nestjs/common';
 import { Response } from 'express';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { FileStructureService } from './file-structure.service';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
@@ -18,8 +19,6 @@ import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
 import { fileInterceptors } from '../../common/helper';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';

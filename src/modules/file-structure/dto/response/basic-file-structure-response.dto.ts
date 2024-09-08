@@ -1,8 +1,8 @@
 import path from 'path';
 import { FileMimeType, FileStructure } from '@prisma/client';
 import { Exclude, Expose, plainToInstance } from 'class-transformer';
+import { envService } from '@global/env';
 import { FileStructureFromRaw } from '../../model/file-structure-from-raw';
-import { envService } from '../../../@global/env/env.service';
 import { constants } from '../../../../common/constants';
 import { TransformFlags } from '../../../../model/types';
 

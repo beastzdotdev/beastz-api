@@ -13,13 +13,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { AdminService } from './admin.service';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { CreateSupportTicketsDto } from './dto/create-support-ticket.dto';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { AdminBasicGuard } from './admin-basic-guard';

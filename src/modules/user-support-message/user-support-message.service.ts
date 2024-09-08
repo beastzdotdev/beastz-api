@@ -8,7 +8,7 @@ import { UserSupportMessageCreateDto } from './dto/user-support-message-create.d
 import { UserSupportMessageRepository } from './user-support-message.repository';
 import { UserSupportService } from '../user-support/user-support.service';
 import { UserSupportImageService } from '../user-support-image/user-support-image.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class UserSupportMessageService {

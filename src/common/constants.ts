@@ -37,8 +37,15 @@ export const constants = Object.freeze({
   HEX: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
   ASCII: '!#$%&*?@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
 
+  socket: {
+    DOC_NAMESPACE: 'document',
+  },
+
   redis: {
     twoDayInSec: 172800,
+
+    buildFSLockName: (fsId: number) => `fs::lock::${fsId}`,
+    buildFSCollabName: (uniqueHash: string) => `fs::collab::${uniqueHash}`,
   },
 
   frontendPath: {

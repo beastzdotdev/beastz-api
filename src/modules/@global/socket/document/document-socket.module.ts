@@ -1,12 +1,12 @@
 import { Global, Module } from '@nestjs/common';
 import { DocumentSocketGateway } from './document-socket.gateway';
 import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
-import { DocumentSocketGatewayHelper } from './document-socket.helper';
 import { DocumentSocketService } from './document-socket.service';
+import { FileStructurePublicShareModule } from '../../../file-structure-public-share/file-structure-public-share.module';
 
 @Global()
 @Module({
-  providers: [DocumentSocketGateway, DocumentSocketInitMiddleware, DocumentSocketGatewayHelper, DocumentSocketService],
-  exports: [DocumentSocketGatewayHelper],
+  imports: [FileStructurePublicShareModule],
+  providers: [DocumentSocketGateway, DocumentSocketInitMiddleware, DocumentSocketService],
 })
 export class DocumentSocketModule {}

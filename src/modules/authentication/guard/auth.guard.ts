@@ -9,6 +9,10 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+
+import { JwtService } from '@global/jwt';
+import { InjectEnv, EnvService } from '@global/env';
+
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
 import { constants } from '../../../common/constants';
@@ -18,12 +22,9 @@ import { enumValueIncludes } from '../../../common/helper';
 import { PlatformWrapper } from '../../../model/platform.wrapper';
 import { UserBlockedException } from '../../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../../exceptions/user-locked.exception';
-import { InjectEnv } from '../../@global/env/env.decorator';
-import { EnvService } from '../../@global/env/env.service';
 import { encryption } from '../../../common/encryption';
 import { AccessTokenExpiredException } from '../../../exceptions/access-token-expired.exception';
 import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
-import { JwtService } from '../../@global/jwt/jwt.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {

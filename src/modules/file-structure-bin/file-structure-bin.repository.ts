@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { FileStructureBin, Prisma } from '@prisma/client';
-import { PrismaService } from '../@global/prisma/prisma.service';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { CreateFileStructureBinParams, FileStructureBinWithRelation } from './file-structure-bin.type';
 import { AuthPayloadType } from '../../model/auth.types';
 import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto';
 import { Pagination } from '../../model/types';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class FileStructureBinRepository {

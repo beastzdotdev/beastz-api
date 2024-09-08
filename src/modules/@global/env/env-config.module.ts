@@ -11,8 +11,8 @@ import { EnvModuleOptions } from './env.interface';
 
 @Global()
 @Module({})
-export class EnvModule {
-  public static readonly envLogger = new Logger(EnvModule.name);
+export class EnvConfigModule {
+  public static readonly envLogger = new Logger(EnvConfigModule.name);
 
   /**
    *
@@ -65,7 +65,7 @@ export class EnvModule {
           ...options,
         }),
       ],
-      module: EnvModule,
+      module: EnvConfigModule,
       providers: [provider],
       exports: [provider],
     };

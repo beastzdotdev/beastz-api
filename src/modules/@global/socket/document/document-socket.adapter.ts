@@ -7,8 +7,8 @@ import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-streams-adapter';
 import { EnvService } from '../../env/env.service';
 
-export class RedisIoAdapter extends IoAdapter {
-  private readonly logger = new Logger(RedisIoAdapter.name);
+export class DocumentSocketAdapter extends IoAdapter {
+  private readonly logger = new Logger(DocumentSocketAdapter.name);
   private adapterConstructor: ReturnType<typeof createAdapter>;
 
   private readonly redis: Redis;

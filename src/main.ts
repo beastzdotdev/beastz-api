@@ -8,19 +8,19 @@ import process from 'node:process';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
-import { Logger } from '@nestjs/common';
 import { performance } from 'node:perf_hooks';
+import { Logger } from '@nestjs/common';
 import { NestApplication, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 
+import { DocumentSocketAdapter } from '@global/socket';
+import { EnvService, ENV_SERVICE_TOKEN } from '@global/env';
+
 import { AppModule } from './modules/app.module';
 import { appLogger, signals } from './common/helper';
 import { setupNunjucksFilters } from './common/nunjucks';
-import { EnvService } from './modules/@global/env/env.service';
-import { ENV_SERVICE_TOKEN } from './modules/@global/env/env.constants';
 import { absPublicPath } from './modules/file-structure/file-structure.helper';
-import { RedisIoAdapter } from './modules/@global/socket/document/document-socket.adapter';
 
 NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const startingTime = performance.now();
@@ -65,9 +65,9 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 
   // Wrap socket
   const redis = app.get<Redis>(getRedisConnectionToken());
-  const redisIoAdapter = new RedisIoAdapter(app, redis, envService);
-  await redisIoAdapter.connectToRedis();
-  app.useWebSocketAdapter(redisIoAdapter);
+  const documentSocketAdapter = new DocumentSocketAdapter(app, redis, envService);
+  await documentSocketAdapter.connectToRedis();
+  app.useWebSocketAdapter(documentSocketAdapter);
 
   await app.listen(envService.get('PORT'), hostname);
 

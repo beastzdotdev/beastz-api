@@ -3,7 +3,7 @@ import { FileStructureEncryption, Prisma } from '@prisma/client';
 import { FileStructureEncryptionParams } from './file-structure-encryption.type';
 import { FileStructureEncryptionRepository } from './file-structure-encryption.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class FileStructureEncryptionService {

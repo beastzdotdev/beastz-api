@@ -241,6 +241,26 @@ export const signals: SignalObject = Object.keys(OsConstants.signals).reduce(
 //===================================================
 
 export const fsCustom = {
+  async readFile(fsPath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      return fs.readFile(fsPath, 'utf8', (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
+
+    // const fs = require('fs'),
+    //   filename = process.argv[2];
+    // fs.readFile(filename, 'utf8', function (err, data) {
+    //   if (err) throw err;
+    //   console.log('OK: ' + filename);
+    //   console.log(data);
+    // });
+  },
+
   async createDir(fsPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       return fs.mkdir(fsPath, { recursive: true }, err => {

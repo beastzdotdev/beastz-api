@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Logger, Param, ParseIntPipe, Patch } from '@nestjs/common';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
@@ -7,9 +8,7 @@ import { AuthPayloadType } from '../../model/auth.types';
 import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
 import { imageInterceptor } from '../../common/helper';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Controller('user')
 export class UserController {

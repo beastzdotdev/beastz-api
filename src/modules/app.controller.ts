@@ -1,12 +1,13 @@
-import { Controller, Get, Req, Res } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { Controller, Get, Req, Res } from '@nestjs/common';
 import { HealthCheck, HealthCheckService, PrismaHealthIndicator } from '@nestjs/terminus';
 import { RedisHealthIndicator } from '@nestjs-modules/ioredis';
+import { PrismaService } from '@global/prisma';
+
 import { NoAuth } from '../decorator/no-auth.decorator';
 import { AuthPayload } from '../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../model/auth.types';
 import { AppService } from './app.service';
-import { PrismaService } from './@global/prisma/prisma.service';
 import {
   absUserContentPath,
   absUserUploadPath,

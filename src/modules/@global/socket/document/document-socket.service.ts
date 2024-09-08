@@ -1,17 +1,25 @@
 import Redis from 'ioredis';
+import { Namespace } from 'socket.io';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { SocketForUserInject } from './document-socket.type';
-import { DocumentSocketGatewayHelper } from './document-socket.helper';
 import { constants } from '../../../../common/constants';
+import { FileStructurePublicShareService } from '../../../file-structure-public-share/file-structure-public-share.service';
 
 @Injectable()
 export class DocumentSocketService {
+  /**
+   * @description This variable is only reference to document socket gateway server namespace instance
+   */
+  public wss: Namespace;
+
   constructor(
     @InjectRedis()
     private readonly redis: Redis,
-    private readonly helper: DocumentSocketGatewayHelper,
+
+    // private readonly collabRedis: CollabRedis,
+    private readonly fsPublicShareService: FileStructurePublicShareService,
   ) {}
 
   async setLock(client: SocketForUserInject) {
@@ -20,13 +28,14 @@ export class DocumentSocketService {
 
     // This should not happend
     if (!filesStructureId || !userId) {
-      client.disconnect();
-      return;
+      throw new BadRequestException('Missing filesStructureId or userId');
     }
 
-    const lockKeyName = this.helper.buildFSLockName(filesStructureId);
+    const lockKeyName = constants.redis.buildFSLockName(filesStructureId);
 
-    await this.redis.set(lockKeyName, userId, 'EX', constants.redis.twoDayInSec); // expire after 2 day if something happens
+    // expire after 2 day if something happens
+    // also this will override if there is dangling key in redis
+    await this.redis.set(lockKeyName, userId, 'EX', constants.redis.twoDayInSec);
   }
 
   async removeLock(client: SocketForUserInject) {
@@ -34,12 +43,28 @@ export class DocumentSocketService {
 
     // This should not happend if happens then just disconnect
     if (!filesStructureId) {
-      client.disconnect();
-      return;
+      throw new BadRequestException('Missing filesStructureId or userId');
     }
 
-    const lockKeyName = this.helper.buildFSLockName(filesStructureId);
+    const lockKeyName = constants.redis.buildFSLockName(filesStructureId);
 
     await this.redis.del(lockKeyName);
+  }
+
+  async checkSharing(client: SocketForUserInject) {
+    const fsPublicShares = await this.fsPublicShareService.getManyForSocketUser({
+      userId: client.handshake.accessTokenPayload.userId,
+    });
+
+    for (const fsPublicShare of fsPublicShares) {
+      const fsCollabKeyName = constants.redis.buildFSCollabName(fsPublicShare.uniqueHash);
+
+      await this.redis.hset(fsCollabKeyName, 'masterSocketId', client.id); // update socket id
+
+      // ignore if disabled
+      if (fsPublicShare.isDisabled) {
+        continue;
+      }
+    }
   }
 }

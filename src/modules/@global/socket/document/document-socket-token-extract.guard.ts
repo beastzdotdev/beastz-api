@@ -88,9 +88,6 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
 
     let accessToken: string | undefined;
 
-    console.log('='.repeat(20));
-    console.log(socket.handshake);
-
     if (platform.isWeb() && socket.handshake.headers.cookie) {
       const accessTokenSigned = cookie.parse(socket.handshake.headers.cookie)?.[constants.COOKIE_ACCESS_NAME];
 

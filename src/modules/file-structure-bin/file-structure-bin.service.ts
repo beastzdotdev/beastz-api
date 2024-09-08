@@ -6,7 +6,7 @@ import { ExceptionMessageCode } from '../../model/enum/exception-message-code.en
 import { AuthPayloadType } from '../../model/auth.types';
 import { Pagination } from '../../model/types';
 import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class FileStructureBinService {

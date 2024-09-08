@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FileStructure, Prisma } from '@prisma/client';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import {
   CreateFileStructureParams,
   ExistsByIdsReturnType,

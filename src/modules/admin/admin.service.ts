@@ -1,19 +1,20 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { Injectable } from '@nestjs/common';
-import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
-import { InjectRedis } from '@nestjs-modules/ioredis';
+
 import { Redis } from 'ioredis';
-import { PrismaService } from '../@global/prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
+
+import { MailService } from '@global/mail';
+import { InjectEnv, EnvService } from '@global/env';
+import { PrismaService, PrismaTx } from '@global/prisma';
+
 import { fsCustom } from '../../common/helper';
-import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
-import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
-import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
-import { PrismaTx } from '../@global/prisma/prisma.type';
-import { InjectEnv } from '../@global/env/env.decorator';
-import { EnvService } from '../@global/env/env.service';
-import { MailService } from '../@global/mail/mail.service';
 import { SendMailDto } from './dto/send-mail-admin.dto';
+import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
+import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
+import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class AdminService {
@@ -33,29 +34,51 @@ export class AdminService {
   }
 
   async testRedis() {
-    const uniqueHash = crypto.randomBytes(10).toString('hex'); // Replace with your actual hash value
-    const key = `fs::collab::${uniqueHash}`;
+    const key = 'seomtihng';
 
-    console.log(key);
+    await this.redis.set(key, 123);
+    await this.redis.set(key, 321, 'EX', 100);
+    await this.redis.set(key, 321, 'EX', 200);
 
-    const result = await this.redis.hmset(key, {
-      masterSocketId: 1234, // Replace with your actual masterSocketId
-      masterUserId: 5678, // Replace with your actual masterUserId
-      // servants: ['9012', '3456'],
-      servants: JSON.stringify(['9012', '3456']), // Replace with your actual array of servant socket IDs
-    });
+    // const x = await this.redis.get(key);
+    // console.log(x);
 
-    console.log('='.repeat(20));
-    const fromRedis = await this.redis.hgetall(key);
-    const fromRedisServants = await this.redis.hget(key, 'servants');
+    // console.log(await this.redis.debug(key));
 
-    console.log('='.repeat(20));
-    console.log({
-      result,
-      fromRedis,
-      fromRedisServants,
-      fromRedisServantsArr: JSON.parse(fromRedisServants || 'null'),
-    });
+    const z = await this.redis.del('non existsant');
+    console.log(z);
+
+    const q = await this.redis.del(key);
+    console.log(q);
+
+    await this.redis.set('test', '123');
+    await this.redis.set('test2', '123');
+
+    console.log(await this.redis.del('test', 'test2'));
+
+    // const uniqueHash = crypto.randomBytes(10).toString('hex'); // Replace with your actual hash value
+    // const key = `fs::collab::${uniqueHash}`;
+
+    // console.log(key);
+
+    // const result = await this.redis.hmset(key, {
+    //   masterSocketId: 1234, // Replace with your actual masterSocketId
+    //   masterUserId: 5678, // Replace with your actual masterUserId
+    //   // servants: ['9012', '3456'],
+    //   servants: JSON.stringify(['9012', '3456']), // Replace with your actual array of servant socket IDs
+    // });
+
+    // console.log('='.repeat(20));
+    // const fromRedis = await this.redis.hgetall(key);
+    // const fromRedisServants = await this.redis.hget(key, 'servants');
+
+    // console.log('='.repeat(20));
+    // console.log({
+    //   result,
+    //   fromRedis,
+    //   fromRedisServants,
+    //   fromRedisServantsArr: JSON.parse(fromRedisServants || 'null'),
+    // });
   }
 
   async testEnvs() {

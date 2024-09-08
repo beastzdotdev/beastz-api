@@ -1,6 +1,6 @@
 import { FileStructurePublicShare } from '@prisma/client';
 import { Exclude, Expose, plainToInstance } from 'class-transformer';
-import { envService } from '../../../@global/env/env.service';
+import { envService } from '@global/env';
 import { constants } from '../../../../common/constants';
 
 @Exclude()

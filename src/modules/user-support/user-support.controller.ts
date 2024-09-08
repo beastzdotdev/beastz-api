@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Logger, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { UserSupportResponseDto } from './dto/user-support-response.dto';
 import { UserSupportService } from './user-support.service';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
@@ -9,8 +10,6 @@ import { Pagination } from '../../model/types';
 import { UserSupportCreateDto } from './dto/user-support-create.dto';
 import { UserSupportUpdateDto } from './dto/user-support-update.dto';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
-import { PrismaService } from '../@global/prisma/prisma.service';
 
 @Controller('user-support')
 export class UserSupportController {

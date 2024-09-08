@@ -16,7 +16,7 @@ import { UserRepository } from './user.repository';
 import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../exceptions/user-locked.exception';
 import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.types';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
 import { AuthPayloadType } from '../../model/auth.types';

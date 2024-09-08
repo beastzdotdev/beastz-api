@@ -5,8 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EnvironmentVariables } from '../../src/modules/@global/env/env.dto';
-import { EnvironmentType } from '../../src/modules/@global/env/env.interface';
+import { EnvironmentVariables, EnvironmentType } from '@global/env';
 import { AppModule } from '../../src/modules/app.module';
 
 describe('App (e2e)', () => {

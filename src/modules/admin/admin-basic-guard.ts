@@ -1,7 +1,6 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
-import { EnvService } from '../@global/env/env.service';
-import { InjectEnv } from '../@global/env/env.decorator';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { EnvService, InjectEnv } from '@global/env';
 import { constants } from '../../common/constants';
 
 @Injectable()

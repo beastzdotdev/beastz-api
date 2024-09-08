@@ -1,3 +1,9 @@
+1. [x] when user joins lock file
+2. [x] when user enables collab create/update entity in db and also create/overwrite redis hash table on collab key
+  a. [x] since this is http call masterSocketId must be updated in handle connection even if entity is disabled 
+3. 
+
+
 TODO: remove this bs refresh token saving in db and save it only one time
 
 TODO: for dangling users in socket this can be checked by checking in memory and in redis as well

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RefreshToken } from '@prisma/client';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { CreateRefreshTokenParams } from './refresh-token.type';
-import { PrismaTx } from '../../../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class RefreshTokenService {

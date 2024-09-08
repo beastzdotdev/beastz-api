@@ -8,7 +8,7 @@ import { DeleteUserSupportImageParams } from './user-support-image.type';
 import { fsCustom } from '../../common/helper';
 import { absUserSupportPath } from '../file-structure/file-structure.helper';
 import { AuthPayloadType } from '../../model/auth.types';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class UserSupportImageService {

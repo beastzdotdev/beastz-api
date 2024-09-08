@@ -1,5 +1,5 @@
 import { IsArray, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { SendSimpleParams } from '../../@global/mail/mail.type';
+import { SendSimpleParams } from '@global/mail';
 
 export class SendMailDto implements SendSimpleParams {
   @IsNotEmpty()

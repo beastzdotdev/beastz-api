@@ -1,6 +1,5 @@
 import { HttpException, InternalServerErrorException, Logger } from '@nestjs/common';
-import { PrismaService } from '../modules/@global/prisma/prisma.service';
-import { PrismaTx } from '../modules/@global/prisma/prisma.type';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { appLogger } from './helper';
 
 export const transaction = Object.freeze({

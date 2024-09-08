@@ -13,14 +13,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
+import { JwtService } from '@global/jwt';
+import { CookieService } from '@global/cookie';
+import { EnvService, InjectEnv } from '@global/env';
+import { PrismaService, PrismaTx } from '@global/prisma';
+
 import { helper, prismaSafeCall } from '../../common/helper';
 import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { encryption } from '../../common/encryption';
 import { UserService } from '../user/user.service';
-import { EnvService } from '../@global/env/env.service';
-import { InjectEnv } from '../@global/env/env.decorator';
-import { CookieService } from '../@global/cookie/cookie.service';
 import { PlatformWrapper } from '../../model/platform.wrapper';
 import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
 import { ResetPasswordService } from './modules/reset-password/reset-password.service';
@@ -37,12 +39,9 @@ import { GenTokensAndSendResponseParams, RefreshParams, SignInParams } from './a
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
 import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignUpBodyDto } from './dto';
 import { AuthenticationMailService } from './mail/authenctication-mail.service';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 import { transaction } from '../../common/transaction';
 import { AuthResponseViewJsonParams } from '../../model/types';
 import { AuthPayloadType } from '../../model/auth.types';
-import { JwtService } from '../@global/jwt/jwt.service';
 
 @Injectable()
 export class AuthenticationService {

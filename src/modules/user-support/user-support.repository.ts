@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, UserSupport } from '@prisma/client';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { CreateUserSupportParams, UpdateUserSupportParams } from './user-support.type';
 import { UserSupportQueryAllDto } from './dto/user-support-get-all-query.dto';
 import { Pagination } from '../../model/types';

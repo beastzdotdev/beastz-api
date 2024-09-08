@@ -1,12 +1,11 @@
 import moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { RecoverPasswordAttemptCount } from '@prisma/client';
-import { PrismaService } from '../../../@global/prisma/prisma.service';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import {
   RecoverPasswordAttemptCountCreate,
   RecoverPasswordAttemptCountUpdate,
 } from './recover-password-attempt-count.type';
-import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class RecoverPasswordAttemptCountRepository {

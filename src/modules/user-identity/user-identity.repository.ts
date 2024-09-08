@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../@global/prisma/prisma.service';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { CreateUserIdentityParams } from './user-identity.type';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserIdentityRepository {

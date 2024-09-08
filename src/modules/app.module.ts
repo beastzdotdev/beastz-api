@@ -2,9 +2,15 @@ import { APP_PIPE, APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { RedisHealthModule, RedisModule } from '@nestjs-modules/ioredis';
 import { TerminusModule } from '@nestjs/terminus';
-import { EnvModule } from './@global/env/env.module';
-import { PrismaModule } from './@global/prisma/prisma.module';
-import { CookieModule } from './@global/cookie/cookie.module';
+import { JwtModule } from '@global/jwt';
+import { MailModule } from '@global/mail';
+import { PrismaModule } from '@global/prisma';
+import { CookieModule } from '@global/cookie';
+import { DocumentSocketModule } from '@global/socket';
+import { RedisServicesModule } from '@global/redis-services';
+import { EventEmitterConfigModule } from '@global/event-emitter';
+import { EnvConfigModule, ENV_SERVICE_TOKEN, EnvService } from '@global/env';
+
 import { AppController } from './app.controller';
 import { AuthGuard } from './authentication/guard/auth.guard';
 import { VerifiedEmailGuard } from './authentication/guard/verified-email.guard';
@@ -14,18 +20,13 @@ import { AuthenticationModule } from './authentication/authentication.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { LegalDocumentModule } from './legal-document/legal-document.module';
 import { AdminModule } from './admin/admin.module';
-import { MailModule } from './@global/mail/mail.module';
 import { AllExceptionsFilter } from '../filters/all-exception.filter';
 import { FileStructureModule } from './file-structure/file-structure.module';
 import { FileStructureBinModule } from './file-structure-bin/file-structure-bin.module';
 import { AppService } from './app.service';
 import { UserSupportModule } from './user-support/user-support.module';
 import { UserSupportMessageModule } from './user-support-message/user-support-message.module';
-import { ENV_SERVICE_TOKEN } from './@global/env/env.constants';
-import { EnvService } from './@global/env/env.service';
 import { FileStructurePublicShareModule } from './file-structure-public-share/file-structure-public-share.module';
-import { JwtModule } from './@global/jwt/jwt.module';
-import { DocumentSocketModule } from './@global/socket/document/document-socket.module';
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { DocumentSocketModule } from './@global/socket/document/document-socket.
       }),
       inject: [ENV_SERVICE_TOKEN],
     }),
-    EnvModule.forRoot(),
+    EnvConfigModule.forRoot(),
+    EventEmitterConfigModule.forRoot(),
     JwtModule,
     TerminusModule,
     RedisHealthModule,
@@ -49,6 +51,7 @@ import { DocumentSocketModule } from './@global/socket/document/document-socket.
     MailModule,
     AccountVerificationModule,
     UserModule,
+    RedisServicesModule,
     AuthenticationModule,
     FeedbackModule,
     LegalDocumentModule,

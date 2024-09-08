@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { AuthPayload } from 'src/decorator/auth-payload.decorator';
 import { FeedbackCreateDto } from './dto/feedback-create.dto';
 import { FilterFeedbacksQueryDto } from './dto/filter-feedbacks-query.dto';
 import { FeedbackService } from './feedback.service';
 import { AuthPayloadType } from '../../model/auth.types';
+import { AuthPayload } from '../../decorator/auth-payload.decorator';
 
 @Controller('feedback')
 export class FeedbackController {

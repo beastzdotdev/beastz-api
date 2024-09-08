@@ -3,7 +3,7 @@ import { RecoverPassword } from '@prisma/client';
 import { RecoverPasswordRepository } from './recover-password.repository';
 import { CreateRecoverPasswordParams, UpdateRecoverPasswordParams } from './recover-password.type';
 import { ExceptionMessageCode } from '../../../../model/enum/exception-message-code.enum';
-import { PrismaTx } from '../../../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class RecoverPasswordService {

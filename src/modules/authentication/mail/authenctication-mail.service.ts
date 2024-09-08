@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MailService } from '../../@global/mail/mail.service';
+import { MailService } from '@global/mail';
 
 const messagees = {
   reuseAndStrict:

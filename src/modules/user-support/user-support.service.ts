@@ -9,7 +9,7 @@ import { UserSupportQueryAllDto } from './dto/user-support-get-all-query.dto';
 import { Pagination } from '../../model/types';
 import { UserSupportCreateDto } from './dto/user-support-create.dto';
 import { UserSupportUpdateDto } from './dto/user-support-update.dto';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class UserSupportService {

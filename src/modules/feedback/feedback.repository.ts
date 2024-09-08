@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Feedback, Prisma } from '@prisma/client';
+import { PrismaService } from '@global/prisma';
 import { FeedbackCreateDto } from './dto/feedback-create.dto';
 import { FilterFeedbackParams } from './feedback.type';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { Pagination } from '../../model/types';
 
 @Injectable()

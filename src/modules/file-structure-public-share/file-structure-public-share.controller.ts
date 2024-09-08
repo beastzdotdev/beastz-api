@@ -1,10 +1,8 @@
 import { Controller, Post, Body, Get, Query, Logger, Patch, Param, ParseIntPipe } from '@nestjs/common';
-import { FileStructurePublicShare } from '@prisma/client';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { FileStructurePublicShareService } from './file-structure-public-share.service';
 import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-ignore.dto';
 import { FsPublishShareGetByQueryDto } from './dto/fs-publish-share-get-by-query.dto';

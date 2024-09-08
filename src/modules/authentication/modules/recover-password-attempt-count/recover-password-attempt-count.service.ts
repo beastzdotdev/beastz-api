@@ -5,7 +5,7 @@ import {
   RecoverPasswordAttemptCountCreate,
   RecoverPasswordAttemptCountUpdate,
 } from './recover-password-attempt-count.type';
-import { PrismaTx } from '../../../@global/prisma/prisma.type';
+import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class RecoverPasswordAttemptCountService {

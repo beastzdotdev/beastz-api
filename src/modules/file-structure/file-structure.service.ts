@@ -4,7 +4,7 @@ import mime from 'mime';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
 import crypto from 'crypto';
-import { createReadStream } from 'fs';
+import fs from 'fs';
 import { Response } from 'express';
 import { EncryptionAlgorithm, EncryptionType, FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
 import {
@@ -19,6 +19,7 @@ import {
 
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
 import { FileStructureRepository } from './file-structure.repository';
@@ -34,9 +35,7 @@ import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 import { batchPromises, fsCustom } from '../../common/helper';
 import { FileStructureBinService } from '../file-structure-bin/file-structure-bin.service';
 import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 import { FileStructureRawQueryRepository } from './file-structure-raw-query.repositor';
 import {
   constFileStructureNameDuplicateRegex,
@@ -56,7 +55,6 @@ import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 import { ImportantExceptionBody } from '../../model/exception.type';
 import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
-import { DocumentSocketGatewayHelper } from '../@global/socket/document/document-socket.helper';
 
 @Injectable()
 export class FileStructureService {
@@ -65,7 +63,6 @@ export class FileStructureService {
   constructor(
     @InjectRedis()
     private readonly redis: Redis,
-    private readonly documentSocketGatewayHelper: DocumentSocketGatewayHelper,
 
     private readonly prismaService: PrismaService,
     private readonly fsRepository: FileStructureRepository,
@@ -75,7 +72,7 @@ export class FileStructureService {
   ) {}
 
   async checkDocEditingCurrently(fsId: number): Promise<void> {
-    const keyBuilder = this.documentSocketGatewayHelper.buildFSLockName(fsId);
+    const keyBuilder = constants.redis.buildFSLockName(fsId);
     const value = await this.redis.get(keyBuilder);
 
     if (value) {
@@ -216,26 +213,26 @@ export class FileStructureService {
   async downloadById(res: Response, authPayload: AuthPayloadType, id: number) {
     await this.checkDocEditingCurrently(id);
 
-    const fs = await this.getById(authPayload, id);
-    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
-    const contentTitle = fs.isFile ? fs.title + (fs.fileExstensionRaw ?? '') : fs.title + '.zip';
+    const fst = await this.getById(authPayload, id);
+    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fst.path);
+    const contentTitle = fst.isFile ? fst.title + (fst.fileExstensionRaw ?? '') : fst.title + '.zip';
 
     res.setHeader('Content-Disposition', `attachment; filename=${contentTitle}`);
     res.setHeader('Content-Title', contentTitle);
 
-    if (fs.mimeTypeRaw) {
-      res.setHeader('Content-Type', fs.mimeTypeRaw);
+    if (fst.mimeTypeRaw) {
+      res.setHeader('Content-Type', fst.mimeTypeRaw);
     }
 
-    if (fs.sizeInBytes) {
-      res.setHeader('Content-Length', fs.sizeInBytes);
+    if (fst.sizeInBytes) {
+      res.setHeader('Content-Length', fst.sizeInBytes);
     }
 
-    if (fs.isFile) {
-      const readStream = createReadStream(absPath);
+    if (fst.isFile) {
+      const readStream = fs.createReadStream(absPath);
       readStream.pipe(res);
       readStream.on('error', err => {
-        this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+        this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
         this.logger.debug('Error in stream download');
         this.logger.debug(err);
 
@@ -276,11 +273,11 @@ export class FileStructureService {
         });
 
         if (err) {
-          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
           this.logger.debug(err);
 
           fsCustom.delete(outputZip).catch(err => {
-            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
             this.logger.debug(err);
           });
 
@@ -299,17 +296,17 @@ export class FileStructureService {
       }
 
       if (outputZipPath) {
-        const readStream = createReadStream(outputZipPath);
+        const readStream = fs.createReadStream(outputZipPath);
 
         readStream.on('close', () => {
           fsCustom.delete(outputZipPath).catch(err => {
-            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
             this.logger.debug(err);
           });
         });
 
         readStream.on('error', err => {
-          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
           this.logger.debug('Error in stream download');
           this.logger.debug(err);
 

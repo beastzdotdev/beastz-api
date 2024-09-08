@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FileStructureEncryption, Prisma } from '@prisma/client';
-import { PrismaService } from '../@global/prisma/prisma.service';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { FileStructureEncryptionParams } from './file-structure-encryption.type';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class FileStructureEncryptionRepository {

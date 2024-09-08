@@ -1,7 +1,7 @@
 import { Gender, User } from '@prisma/client';
 import { Exclude, Expose, plainToInstance } from 'class-transformer';
 import path from 'path';
-import { envService } from '../../@global/env/env.service';
+import { envService } from '@global/env';
 import { constants } from '../../../common/constants';
 
 @Exclude()
