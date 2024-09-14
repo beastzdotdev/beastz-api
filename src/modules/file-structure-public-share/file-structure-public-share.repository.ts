@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { FileStructurePublicShare } from '@prisma/client';
 import { PrismaService, PrismaTx } from '@global/prisma';
-import { GetByMethodParamsInFsPublicShare, UpdateFsPublicShareParams } from './file-structure-public-share.type';
+import {
+  FsPublicShareForSocketUser,
+  GetByMethodParamsInFsPublicShare,
+  UpdateFsPublicShareParams,
+} from './file-structure-public-share.type';
 import { AuthPayloadType } from '../../model/auth.types';
 
 @Injectable()
@@ -38,6 +42,24 @@ export class FileStructurePublicShareRepository {
         fileStructureId,
         uniqueHash,
         userId,
+      },
+    });
+  }
+
+  async getManyForSocketUser(userId: number, tx?: PrismaTx): Promise<FsPublicShareForSocketUser[]> {
+    const db = tx ?? this.prismaService;
+
+    return db.fileStructurePublicShare.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        fileStructure: {
+          select: {
+            id: true,
+            path: true,
+          },
+        },
       },
     });
   }

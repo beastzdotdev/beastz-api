@@ -7,11 +7,11 @@ import { JwtConfigModule } from '@global/jwt';
 import { MailConfigModule } from '@global/mail';
 import { PrismaConfigModule } from '@global/prisma';
 import { CookieConfigModule } from '@global/cookie';
-import { DocumentSocketConfigModule } from '@global/socket';
 import { EventEmitterConfigModule } from '@global/event-emitter';
 import { EnvConfigModule } from '@global/env';
 import { RedisConfigModule } from '@global/redis';
 import { ValidationConfigFactoryPipe } from '@global/validation';
+import { SocketConfigModule } from '@global/socket';
 
 import { AppController } from './app.controller';
 import { AuthGuard } from './authentication/guard/auth.guard';
@@ -44,7 +44,7 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
     MailConfigModule,
     PrismaConfigModule,
     CookieConfigModule,
-    DocumentSocketConfigModule,
+    SocketConfigModule,
 
     AccountVerificationModule,
     UserModule,

@@ -55,6 +55,8 @@ import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 import { ImportantExceptionBody } from '../../model/exception.type';
 import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
+import { FsPublicSharePureService } from '../file-structure-public-share/fs-public-share-pure.service';
+import { CollabRedis } from '../@global/redis';
 
 @Injectable()
 export class FileStructureService {
@@ -64,11 +66,13 @@ export class FileStructureService {
     @InjectRedis()
     private readonly redis: Redis,
 
+    private readonly collabRedis: CollabRedis,
     private readonly prismaService: PrismaService,
     private readonly fsRepository: FileStructureRepository,
     private readonly fsRawQueryRepository: FileStructureRawQueryRepository,
     private readonly fsBinService: FileStructureBinService,
     private readonly fsEncryptionService: FileStructureEncryptionService,
+    private readonly fsPublicSharePureService: FsPublicSharePureService,
   ) {}
 
   async checkDocEditingCurrently(fsId: number): Promise<void> {
@@ -322,6 +326,19 @@ export class FileStructureService {
         return readStream.pipe(res);
       }
     }
+  }
+
+  async getDocumentTextById(authPayload: AuthPayloadType, id: number): Promise<string> {
+    const fs = await this.getById(authPayload, id);
+    const fsPublicShare = await this.fsPublicSharePureService.getBy(authPayload, { fileStructureId: fs.id });
+
+    const text = await this.redis.hget(constants.redis.buildFSCollabName(fsPublicShare.uniqueHash), 'doc');
+
+    if (text === null) {
+      throw new BadRequestException(ExceptionMessageCode.DOCUMENT_NOT_FOUND);
+    }
+
+    return text;
   }
 
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType, tx?: PrismaTx) {
@@ -685,11 +702,17 @@ export class FileStructureService {
     return response;
   }
 
-  async replaceText(id: number, dto: ReplaceTextFileStructure, authPayload: AuthPayloadType): Promise<FileStructure> {
+  async replaceText(
+    id: number,
+    dto: ReplaceTextFileStructure,
+    authPayload: AuthPayloadType | { user: { id: number; uuid: string } },
+  ): Promise<FileStructure> {
     await this.checkDocEditingCurrently(id);
 
+    const { id: userId, uuid } = authPayload.user;
+
     const { text } = dto;
-    const fs = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
+    const fs = await this.fsRepository.getByIdForUser(id, { userId });
 
     if (!fs) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
@@ -699,11 +722,11 @@ export class FileStructureService {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
     }
 
-    if (fs.mimeType !== FileMimeType.TEXT_PLAIN) {
+    if (fs.mimeType !== FileMimeType.TEXT_PLAIN && fs.mimeType !== FileMimeType.TEXT_MARKDOWN) {
       throw new NotFoundException(ExceptionMessageCode.FS_MUST_BE_TEXT_PLAIN);
     }
 
-    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+    const absPath = path.join(absUserContentPath(uuid), fs.path);
 
     await fsCustom.access(absPath).catch(e => {
       this.logger.debug(e);
@@ -711,11 +734,7 @@ export class FileStructureService {
     });
 
     const [updatedFs] = await Promise.all([
-      this.fsRepository.updateByIdAndReturn(
-        id,
-        { userId: authPayload.user.id, isInBin: false },
-        { lastModifiedAt: moment().toDate() },
-      ),
+      this.fsRepository.updateByIdAndReturn(id, { userId, isInBin: false }, { lastModifiedAt: moment().toDate() }),
       fsCustom.writeFile(absPath, text).catch(e => {
         this.logger.debug(e);
         throw new InternalServerErrorException(ExceptionMessageCode.INTERNAL_ERROR);

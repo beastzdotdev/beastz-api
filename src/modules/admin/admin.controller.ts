@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService, PrismaTx } from '@global/prisma';
 import { OnEvent } from '@nestjs/event-emitter';
+import { EmitterEventFields, EmitterEvents } from '@global/event-emitter';
 import { AdminService } from './admin.service';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
@@ -24,9 +25,6 @@ import { NoAuth } from '../../decorator/no-auth.decorator';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { AdminBasicGuard } from './admin-basic-guard';
 import { NotEmptyPipe } from '../../pipe/not-empty.pipe';
-import { EventEmitterService } from '../@global/event-emitter/event-emitter.service';
-import { EmitterEventFields } from '../@global/event-emitter/event-emitter-constants';
-import { EmitterEvents } from '../@global/event-emitter/event-emitter.type';
 
 @NoAuth()
 @UseGuards(AdminBasicGuard)
@@ -37,7 +35,6 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly prismaService: PrismaService,
-    private readonly eventEmitterService: EventEmitterService,
   ) {}
 
   @Get()
@@ -62,15 +59,12 @@ export class AdminController {
 
   @Get('test/event-emitter')
   async testEventEmitter() {
-    const promises: Promise<unknown>[] = [];
+    return this.adminService.testEventEmitter();
+  }
 
-    for (let i = 0; i < 5; i++) {
-      promises.push(this.eventEmitterService.emitAsync('admin.test', { message: `Hello for admin index at ${i}` }));
-    }
-
-    await Promise.all(promises);
-
-    console.log('finished test event emitter');
+  @Get('test/socket')
+  async testSocket() {
+    return this.adminService.testSocket();
   }
 
   @Post('send-mail')

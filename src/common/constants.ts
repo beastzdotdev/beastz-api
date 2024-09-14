@@ -39,6 +39,7 @@ export const constants = Object.freeze({
 
   socket: {
     DOC_NAMESPACE: 'document',
+    COLLAB_NAMESPACE: 'collab',
   },
 
   redis: {

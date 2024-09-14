@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { FileStructurePublicShare } from '@prisma/client';
+import { FileStructure, FileStructurePublicShare } from '@prisma/client';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import path from 'path';
 import { PrismaTx } from '@global/prisma';
@@ -10,12 +10,12 @@ import { FileStructureService } from '../file-structure/file-structure.service';
 import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-ignore.dto';
 import { AuthPayloadType } from '../../model/auth.types';
 import { random } from '../../common/random';
-import { FsPublishShareGetByQueryDto } from './dto/fs-publish-share-get-by-query.dto';
 import { FsPublicShareUpdateByIdDto } from './dto/fs-public-share-update-by-id.dto';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { constants } from '../../common/constants';
 import { fsCustom } from '../../common/helper';
 import { absUserContentPath } from '../file-structure/file-structure.helper';
+import { FsPublicShareForSocketUser } from './file-structure-public-share.type';
 
 @Injectable()
 export class FileStructurePublicShareService {
@@ -31,34 +31,13 @@ export class FileStructurePublicShareService {
     private readonly collabRedis: CollabRedis,
   ) {}
 
-  async getBy(
-    authPayload: AuthPayloadType,
-    queryParams: FsPublishShareGetByQueryDto,
-  ): Promise<FileStructurePublicShare> {
-    const { uniqueHash, fileStructureId } = queryParams;
-
-    const fsPublicShare = await this.fsPublicShareRepository.getBy({
-      uniqueHash,
-      userId: authPayload.user.id,
-      fileStructureId,
-    });
-
-    if (!fsPublicShare) {
-      throw new NotFoundException();
-    }
-
-    return fsPublicShare;
-  }
-
-  async getManyForSocketUser(params: { userId: number }): Promise<FileStructurePublicShare[]> {
+  async getManyForSocketUser(params: { userId: number }): Promise<FsPublicShareForSocketUser[]> {
     const { userId } = params;
 
-    return this.fsPublicShareRepository.getManyBy({
-      userId,
-    });
+    return this.fsPublicShareRepository.getManyForSocketUser(userId);
   }
 
-  async createOrIgnore(
+  async create(
     authPayload: AuthPayloadType,
     dto: FsPublicShareCreateOrIgnoreDto,
     tx: PrismaTx,
@@ -81,7 +60,7 @@ export class FileStructurePublicShareService {
     );
 
     if (fsPublicShare) {
-      return fsPublicShare;
+      throw new BadRequestException(ExceptionMessageCode.FS_PUBLICS_SHARE_EXISTS);
     }
 
     const uniqueHash = random.getRandomString(16);
@@ -95,15 +74,11 @@ export class FileStructurePublicShareService {
     );
 
     const fsCollabKeyName = constants.redis.buildFSCollabName(uniqueHash);
-
-    const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
-    const text = await fsCustom.readFile(sourceContentPath).catch(() => {
-      throw new BadRequestException('File not found');
-    });
+    const documentText = await this.getDocumentText(authPayload, fs);
 
     // master socket id must be updated in handleConnection
     await this.collabRedis.createFsCollabHashTable(fsCollabKeyName, {
-      doc: text,
+      doc: documentText,
       masterSocketId: null,
       masterUserId: authPayload.user.id,
       servants: [],
@@ -142,27 +117,17 @@ export class FileStructurePublicShareService {
     }
 
     const fsCollabKeyName = constants.redis.buildFSCollabName(updateResult.uniqueHash);
-    const servants = await this.collabRedis.getServants(fsCollabKeyName);
 
-    if (isDisabled) {
-      // notify socket users by uniqueHash
-      for (const socketId of servants) {
-        //TODO resolve here dependency issue !!!
-        // this.documentSocketGateway.notifySocketOnRoot(socketId, 'collab-ended', {
-        //   uniqueHash: updateResult.uniqueHash,
-        // });
-      }
-
+    if (!isDisabled) {
       await this.redis.del(fsCollabKeyName);
     } else {
-      const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
-
-      const text = await fsCustom.readFile(sourceContentPath).catch(() => {
-        throw new BadRequestException('File not found');
-      });
+      const [documentText, servants] = await Promise.all([
+        this.getDocumentText(authPayload, fs),
+        this.collabRedis.getServants(fsCollabKeyName),
+      ]);
 
       await this.collabRedis.createFsCollabHashTable(fsCollabKeyName, {
-        doc: text,
+        doc: documentText,
         masterSocketId: null,
         masterUserId: authPayload.user.id,
         servants,
@@ -171,5 +136,12 @@ export class FileStructurePublicShareService {
     }
 
     return updateResult;
+  }
+
+  private async getDocumentText(authPayload: AuthPayloadType, fs: FileStructure): Promise<string> {
+    const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+    return fsCustom.readFile(sourceContentPath).catch(() => {
+      throw new BadRequestException('File not found');
+    });
   }
 }

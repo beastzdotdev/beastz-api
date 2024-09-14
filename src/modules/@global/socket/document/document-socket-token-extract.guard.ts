@@ -19,6 +19,7 @@ import { EnvService } from '../../env/env.service';
 import { JwtService } from '../../jwt/jwt.service';
 import { constants } from '../../../../common/constants';
 import { SocketForUserInject } from './document-socket.type';
+import { UserService } from '../../../user/user.service';
 
 /**
  * @description
@@ -35,6 +36,7 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
     @InjectEnv()
     private readonly env: EnvService,
 
+    private readonly userService: UserService,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -127,8 +129,11 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
 
     const accessTokenPayload = this.jwtService.getAccessTokenPayload(finalAccessToken);
 
+    const uuid = await this.userService.getUUIDById(accessTokenPayload.userId);
+
     //! adding extra property to socket handshake here
     socket.handshake.accessTokenPayload = accessTokenPayload;
+    socket.handshake.user = { uuid };
   }
 
   private validateHeaders(socket: SocketForUserInject) {

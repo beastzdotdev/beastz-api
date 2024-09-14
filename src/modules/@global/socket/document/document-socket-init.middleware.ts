@@ -15,6 +15,7 @@ import { EnvService } from '../../env/env.service';
 import { JwtService } from '../../jwt/jwt.service';
 import { constants } from '../../../../common/constants';
 import { SocketForUserInject } from './document-socket.type';
+import { UserService } from '../../../user/user.service';
 
 @Injectable()
 export class DocumentSocketInitMiddleware {
@@ -25,6 +26,7 @@ export class DocumentSocketInitMiddleware {
     private readonly env: EnvService,
 
     private readonly jwtService: JwtService,
+    private readonly userService: UserService,
   ) {}
 
   AuthWsMiddleware() {
@@ -117,8 +119,11 @@ export class DocumentSocketInitMiddleware {
         userId: accessTokenPayload.userId,
       });
 
+      const uuid = await this.userService.getUUIDById(accessTokenPayload.userId);
+
       //! adding extra property to socket handshake here
       socket.handshake.accessTokenPayload = accessTokenPayload;
+      socket.handshake.user = { uuid };
     } catch (error) {
       // catch general token expired error, update is used if access token is correct and expired
       if (error instanceof TokenExpiredException) {

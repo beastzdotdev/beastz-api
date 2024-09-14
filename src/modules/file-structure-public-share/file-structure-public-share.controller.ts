@@ -8,6 +8,7 @@ import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-
 import { FsPublishShareGetByQueryDto } from './dto/fs-publish-share-get-by-query.dto';
 import { FsPublicShareUpdateByIdDto } from './dto/fs-public-share-update-by-id.dto';
 import { FsPublicShareResponseDto } from './dto/response/fs-public-share-response.dto';
+import { FsPublicSharePureService } from './fs-public-share-pure.service';
 
 @Controller('file-structure-public-share')
 export class FileStructurePublicShareController {
@@ -16,6 +17,7 @@ export class FileStructurePublicShareController {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly fsPublicShareService: FileStructurePublicShareService,
+    private readonly fsPublicSharePureService: FsPublicSharePureService,
   ) {}
 
   @Get('get-by')
@@ -23,17 +25,17 @@ export class FileStructurePublicShareController {
     @AuthPayload() authPayload: AuthPayloadType,
     @Query() queryParams: FsPublishShareGetByQueryDto,
   ): Promise<FsPublicShareResponseDto> {
-    const response = await this.fsPublicShareService.getBy(authPayload, queryParams);
+    const response = await this.fsPublicSharePureService.getBy(authPayload, queryParams);
     return FsPublicShareResponseDto.map(response);
   }
 
-  @Post('create-or-ignore')
-  async createOrIgnore(
+  @Post()
+  async create(
     @AuthPayload() authPayload: AuthPayloadType,
     @Body() dto: FsPublicShareCreateOrIgnoreDto,
   ): Promise<FsPublicShareResponseDto> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
-      const response = await this.fsPublicShareService.createOrIgnore(authPayload, dto, tx);
+      const response = await this.fsPublicShareService.create(authPayload, dto, tx);
       return FsPublicShareResponseDto.map(response);
     });
   }

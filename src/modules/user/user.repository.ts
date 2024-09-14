@@ -120,6 +120,11 @@ export class UserRepository {
     return result?.id ?? null;
   }
 
+  async getUUIDById(id: number): Promise<string | null> {
+    const result = await this.prismaService.user.findFirst({ where: { id }, select: { uuid: true } });
+    return result?.uuid ?? null;
+  }
+
   async existsById(id: number): Promise<boolean> {
     const count = await this.prismaService.user.count({ where: { id } });
 

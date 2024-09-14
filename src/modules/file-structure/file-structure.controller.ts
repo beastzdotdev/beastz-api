@@ -1,4 +1,17 @@
-import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res, Logger, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+  Patch,
+  Res,
+  Logger,
+  Delete,
+  Header,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { PrismaService, PrismaTx } from '@global/prisma';
 import { FileStructureService } from './file-structure.service';
@@ -92,6 +105,14 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.fileStructureService.downloadById(res, authPayload, id);
+  }
+
+  @Get('document-text/:id')
+  async getDocumentTextById(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<string> {
+    return this.fileStructureService.getDocumentTextById(authPayload, id);
   }
 
   @Post('duplicate-status')

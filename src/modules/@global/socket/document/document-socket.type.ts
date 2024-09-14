@@ -7,7 +7,10 @@ export type PushDocBody = {
 };
 
 export type SocketForUserInject = Socket & {
-  handshake: Socket['handshake'] & { accessTokenPayload: AccessTokenPayload };
+  handshake: Socket['handshake'] & {
+    accessTokenPayload: AccessTokenPayload;
+    user: { uuid: string };
+  };
 };
 
 export type CollaborationSession = {

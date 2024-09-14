@@ -18,9 +18,9 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
 import { PushDocBody, SocketForUserInject } from './document-socket.type';
 import { DocumentSocketTokenExtractGuard } from './document-socket-token-extract.guard';
+import { DocumentSocketService } from './document-socket.service';
 import { SocketTokenPayload } from './document-socket-user.decorator';
 import { AccessTokenPayload } from '../../jwt/jwt.type';
-import { DocumentSocketService } from './document-socket.service';
 import { constants } from '../../../../common/constants';
 
 /**
@@ -82,7 +82,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       return;
     }
 
-    await this.redis.set(clientSocket.id, 1); // just for information
+    await this.redis.set(clientSocket.id, 1, 'EX', constants.redis.twoDayInSec); // just for information
 
     console.log('[Connect] finish - ' + clientSocket.id);
   }
@@ -90,7 +90,22 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   async handleDisconnect(@ConnectedSocket() clientSocket: SocketForUserInject) {
     console.log('[Disconnet] Start - ' + clientSocket.id);
     try {
-      await this.documentSocketService.removeLock(clientSocket);
+      const { key, activeServants, fsId } = await this.documentSocketService.getDisconnectParams(clientSocket);
+      console.log('='.repeat(20));
+      console.log(activeServants);
+      console.log(!activeServants.length);
+
+      if (!activeServants.length) {
+        await this.documentSocketService.removeLock(clientSocket);
+
+        //! must be after removing lock
+        await this.documentSocketService.saveFileStructure(clientSocket, { fsId, key });
+      }
+
+      // notify everyone
+      for (const socketId of activeServants) {
+        this.wss.to(socketId).emit('user-left', { socketId: clientSocket.id });
+      }
     } catch (error) {
       this.logger.error(error);
       this.logger.error('[Disconnet] Early return - ' + clientSocket.id);
@@ -105,6 +120,10 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     console.log('[Disconnet] Finish - ' + clientSocket.id);
   }
 
+  //TODO implement collab user here as well, onliy validaition for legitimacy for collab user will be
+  //TODO uniqueHash thats all and also hash regen will be added in soon to come
+  //TODO unique hash required
+  //TODO check for user limit as well it must be max of 10 maybe per file structure ???
   @SubscribeMessage('fetch_doc')
   async getDocument() {
     return this.doc.toString();
@@ -158,9 +177,5 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     console.log(payload);
     // throw new Error('142');
     // return 12;
-  }
-
-  notifySocketOnRoot(socketId: string, event: string, value: unknown) {
-    this.wss.server.to(socketId).emit(event, value);
   }
 }

@@ -9,6 +9,7 @@ import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
 import { MailService } from '@global/mail';
 import { InjectEnv, EnvService } from '@global/env';
 import { PrismaService, PrismaTx } from '@global/prisma';
+import { EventEmitterService } from '@global/event-emitter';
 
 import { fsCustom } from '../../common/helper';
 import { SendMailDto } from './dto/send-mail-admin.dto';
@@ -27,6 +28,7 @@ export class AdminService {
 
     private readonly prismaService: PrismaService,
     private readonly mailService: MailService,
+    private readonly eventEmitterService: EventEmitterService,
   ) {}
 
   async sendMail(data: SendMailDto) {
@@ -40,11 +42,6 @@ export class AdminService {
     await this.redis.set(key, 321, 'EX', 100);
     await this.redis.set(key, 321, 'EX', 200);
 
-    // const x = await this.redis.get(key);
-    // console.log(x);
-
-    // console.log(await this.redis.debug(key));
-
     const z = await this.redis.del('non existsant');
     console.log(z);
 
@@ -56,29 +53,9 @@ export class AdminService {
 
     console.log(await this.redis.del('test', 'test2'));
 
-    // const uniqueHash = crypto.randomBytes(10).toString('hex'); // Replace with your actual hash value
-    // const key = `fs::collab::${uniqueHash}`;
-
-    // console.log(key);
-
-    // const result = await this.redis.hmset(key, {
-    //   masterSocketId: 1234, // Replace with your actual masterSocketId
-    //   masterUserId: 5678, // Replace with your actual masterUserId
-    //   // servants: ['9012', '3456'],
-    //   servants: JSON.stringify(['9012', '3456']), // Replace with your actual array of servant socket IDs
-    // });
-
-    // console.log('='.repeat(20));
-    // const fromRedis = await this.redis.hgetall(key);
-    // const fromRedisServants = await this.redis.hget(key, 'servants');
-
-    // console.log('='.repeat(20));
-    // console.log({
-    //   result,
-    //   fromRedis,
-    //   fromRedisServants,
-    //   fromRedisServantsArr: JSON.parse(fromRedisServants || 'null'),
-    // });
+    // overwrites
+    await this.redis.hset('testing-hash-table', { message: 'test 1' });
+    await this.redis.hset('testing-hash-table', { message: 'test 2' });
   }
 
   async testEnvs() {
@@ -234,6 +211,27 @@ export class AdminService {
 
   async getBcryptPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 10);
+  }
+
+  async testEventEmitter() {
+    const promises: Promise<unknown>[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      promises.push(this.eventEmitterService.emitAsync('admin.test', { message: `Hello for admin index at ${i}` }));
+    }
+
+    await Promise.all(promises);
+
+    console.log('finished test event emitter');
+  }
+
+  async testSocket() {
+    await Promise.all([
+      this.eventEmitterService.emitAsync('admin.socket.test', { message: 'test all', type: 'all' }),
+      this.eventEmitterService.emitAsync('admin.socket.test', { message: 'test broadcast', type: 'namespace' }),
+    ]);
+
+    console.log('finished test event emitter');
   }
 
   async updateTicket(id: number, dto: UpdateSupportTicketDto) {
