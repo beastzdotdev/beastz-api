@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ResetPasswordAttemptCount } from '@prisma/client';
+import { PrismaTx } from '@global/prisma';
 import { ResetPasswordAttemptCountRepository } from './reset-password-attempt-count.repository';
 import { ResetPasswordAttemptCountCreate, ResetPasswordAttemptCountUpdate } from './reset-password-attempt-count.type';
-import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class ResetPasswordAttemptCountService {

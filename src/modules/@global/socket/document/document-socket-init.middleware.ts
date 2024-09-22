@@ -32,7 +32,6 @@ export class DocumentSocketInitMiddleware {
   AuthWsMiddleware() {
     return async (socket: Socket | SocketForUserInject, next: (err?: Error) => void) => {
       try {
-        // throw new Error('123');
         await this.validate(socket as SocketForUserInject);
 
         if (!socket.handshake.auth?.filesStructureId) {

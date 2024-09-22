@@ -15,7 +15,7 @@ import { fsCustom } from '../../common/helper';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
-import { absUserBinPath, absUserContentPath, absUserDeletedForeverPath } from '../file-structure/file-structure.helper';
+import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class AdminService {

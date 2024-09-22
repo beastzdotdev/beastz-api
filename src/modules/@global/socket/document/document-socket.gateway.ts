@@ -25,6 +25,7 @@ import { AccessTokenPayload } from '../../jwt/jwt.type';
 import { constants } from '../../../../common/constants';
 import { EmitterEventFields, EmitterEvents } from '../../event-emitter';
 import { FileStructurePublicShareService } from '../../../file-structure-public-share/file-structure-public-share.service';
+import { SocketError } from '../../../../exceptions/socket.exception';
 
 /**
  * @description Namespace for Document, Extra configurations are in adapter
@@ -203,6 +204,13 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     socket.emit('test', 'trigerring from backend');
     this.logger.debug('Emitted from server to test event');
     this.logger.debug('='.repeat(20));
+
+    socket.emit(
+      'error',
+      new SocketError('Something went wrong', {
+        description: `Caught general error (UNINTENDED ERROR)`,
+      }),
+    );
   }
 
   //================================================================

@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaTx } from '@global/prisma';
 import { UserIdentityRepository } from './user-identity.repository';
 import { CreateUserIdentityParams } from './user-identity.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class UserIdentityService {

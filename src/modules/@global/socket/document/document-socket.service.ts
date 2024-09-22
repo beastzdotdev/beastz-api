@@ -11,7 +11,6 @@ import { CollabRedis } from '../../redis';
 import { absUserContentPath } from '../../../file-structure/file-structure.helper';
 import { fsCustom } from '../../../../common/helper';
 import { FileStructureService } from '../../../file-structure/file-structure.service';
-import { FsPublicShareWithRelations } from '../../../file-structure-public-share/file-structure-public-share.type';
 
 @Injectable()
 export class DocumentSocketService {

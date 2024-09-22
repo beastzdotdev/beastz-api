@@ -2,13 +2,13 @@ import path from 'path';
 import crypto from 'crypto';
 import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { UserSupportImage } from '@prisma/client';
+import { PrismaTx } from '@global/prisma';
 import { UserSupportImageRepository } from './user-support-image.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { DeleteUserSupportImageParams } from './user-support-image.type';
 import { fsCustom } from '../../common/helper';
 import { absUserSupportPath } from '../file-structure/file-structure.helper';
 import { AuthPayloadType } from '../../model/auth.types';
-import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class UserSupportImageService {

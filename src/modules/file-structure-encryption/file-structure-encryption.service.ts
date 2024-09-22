@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { FileStructureEncryption, Prisma } from '@prisma/client';
+import { PrismaTx } from '@global/prisma';
 import { FileStructureEncryptionParams } from './file-structure-encryption.type';
 import { FileStructureEncryptionRepository } from './file-structure-encryption.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class FileStructureEncryptionService {

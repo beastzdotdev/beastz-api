@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserSupportMessage } from '@prisma/client';
+import { PrismaTx } from '@global/prisma';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { AuthPayloadType } from '../../model/auth.types';
 import { UserSupportMessageQueryAllDto } from './dto/user-support-message-get-all-query.dto';
@@ -8,7 +9,6 @@ import { UserSupportMessageCreateDto } from './dto/user-support-message-create.d
 import { UserSupportMessageRepository } from './user-support-message.repository';
 import { UserSupportService } from '../user-support/user-support.service';
 import { UserSupportImageService } from '../user-support-image/user-support-image.service';
-import { PrismaTx } from '@global/prisma';
 
 @Injectable()
 export class UserSupportMessageService {
