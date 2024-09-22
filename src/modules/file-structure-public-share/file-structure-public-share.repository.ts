@@ -3,6 +3,7 @@ import { FileStructurePublicShare } from '@prisma/client';
 import { PrismaService, PrismaTx } from '@global/prisma';
 import {
   FsPublicShareForSocketUser,
+  FsPublicShareWithRelations,
   GetByMethodParamsInFsPublicShare,
   UpdateFsPublicShareParams,
 } from './file-structure-public-share.type';
@@ -12,9 +13,21 @@ import { AuthPayloadType } from '../../model/auth.types';
 export class FileStructurePublicShareRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getBy(params: GetByMethodParamsInFsPublicShare, tx?: PrismaTx): Promise<FileStructurePublicShare | null> {
+  async getById(id: number, params: { userId: number }, tx?: PrismaTx): Promise<FileStructurePublicShare | null> {
     const db = tx ?? this.prismaService;
-    const { fileStructureId, uniqueHash, userId } = params;
+    const { userId } = params;
+
+    return db.fileStructurePublicShare.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+  }
+
+  async getBy(params: GetByMethodParamsInFsPublicShare, tx?: PrismaTx): Promise<FsPublicShareWithRelations | null> {
+    const db = tx ?? this.prismaService;
+    const { fileStructureId, userId } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -23,15 +36,18 @@ export class FileStructurePublicShareRepository {
     return db.fileStructurePublicShare.findFirst({
       where: {
         fileStructureId,
-        uniqueHash,
         userId,
+      },
+      relationLoadStrategy: 'join',
+      include: {
+        fileStructure: true,
       },
     });
   }
 
   async getManyBy(params: GetByMethodParamsInFsPublicShare, tx?: PrismaTx): Promise<FileStructurePublicShare[]> {
     const db = tx ?? this.prismaService;
-    const { fileStructureId, uniqueHash, userId } = params;
+    const { fileStructureId, userId } = params;
 
     if (!Object.values(params).length) {
       return [];
@@ -40,7 +56,6 @@ export class FileStructurePublicShareRepository {
     return db.fileStructurePublicShare.findMany({
       where: {
         fileStructureId,
-        uniqueHash,
         userId,
       },
     });
@@ -58,24 +73,21 @@ export class FileStructurePublicShareRepository {
           select: {
             id: true,
             path: true,
+            sharedUniqueHash: true,
           },
         },
       },
     });
   }
 
-  async create(
-    params: { userId: number; fileStructureId: number; uniqueHash: string },
-    tx?: PrismaTx,
-  ): Promise<FileStructurePublicShare> {
+  async create(params: { userId: number; fileStructureId: number }, tx?: PrismaTx): Promise<FileStructurePublicShare> {
     const db = tx ?? this.prismaService;
-    const { userId, fileStructureId, uniqueHash } = params;
+    const { userId, fileStructureId } = params;
 
     return db.fileStructurePublicShare.create({
       data: {
         userId,
         fileStructureId,
-        uniqueHash,
       },
     });
   }

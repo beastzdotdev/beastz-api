@@ -5,5 +5,8 @@
     "**/bower_components": true,
     "**/*.code-search": true,
     "**/backups": true
+  },
+  "files.exclude": {
+    "**/.DS_Store": false
   }
 }

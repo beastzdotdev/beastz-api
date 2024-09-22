@@ -2,7 +2,7 @@ import { Socket } from 'socket.io';
 import { AccessTokenPayload } from '../../jwt/jwt.type';
 
 export type PushDocBody = {
-  userId: string;
+  sharedUniqueHash: string;
   changes: unknown;
 };
 
@@ -10,6 +10,7 @@ export type SocketForUserInject = Socket & {
   handshake: Socket['handshake'] & {
     accessTokenPayload: AccessTokenPayload;
     user: { uuid: string };
+    auth: Socket['handshake']['auth'] & { filesStructureId: number };
   };
 };
 

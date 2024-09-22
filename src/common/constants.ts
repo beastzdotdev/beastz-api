@@ -39,14 +39,21 @@ export const constants = Object.freeze({
 
   socket: {
     DOC_NAMESPACE: 'document',
-    COLLAB_NAMESPACE: 'collab',
+
+    events: {
+      PushDoc: 'push_doc',
+      PullDoc: 'pull_doc',
+      PullDocFull: 'pull_doc_full',
+      UserLeft: 'user_left',
+      UserJoined: 'user_joined',
+    },
   },
 
   redis: {
     twoDayInSec: 172800,
 
     buildFSLockName: (fsId: number) => `fs::lock::${fsId}`,
-    buildFSCollabName: (uniqueHash: string) => `fs::collab::${uniqueHash}`,
+    buildFSCollabName: (sharedUniqueHash: string) => `fs::collab::${sharedUniqueHash}`,
   },
 
   frontendPath: {

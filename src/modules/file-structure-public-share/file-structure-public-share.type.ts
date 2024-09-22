@@ -4,7 +4,6 @@ export type CreateFileStructurePublicShare = Omit<FileStructurePublicShare, 'id'
 
 export type GetByMethodParamsInFsPublicShare = {
   fileStructureId?: number;
-  uniqueHash?: string;
   userId?: number;
 };
 
@@ -14,5 +13,9 @@ export type UpdateFsPublicShareParams = Omit<
 >;
 
 export type FsPublicShareForSocketUser = FileStructurePublicShare & {
-  fileStructure: Pick<FileStructure, 'id' | 'path'>;
+  fileStructure: Pick<FileStructure, 'id' | 'path' | 'sharedUniqueHash'>;
+};
+
+export type FsPublicShareWithRelations = FileStructurePublicShare & {
+  fileStructure: FileStructure;
 };

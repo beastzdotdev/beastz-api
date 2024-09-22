@@ -1,12 +1,23 @@
+import fs from 'fs';
 import path from 'path';
 import moment from 'moment';
 import mime from 'mime';
+import crypto from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
-import crypto from 'crypto';
-import fs from 'fs';
+
+import { Redis } from 'ioredis';
 import { Response } from 'express';
-import { EncryptionAlgorithm, EncryptionType, FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { PrismaService, PrismaTx } from '@global/prisma';
+import {
+  EncryptionAlgorithm,
+  EncryptionType,
+  FileMimeType,
+  FileStructure,
+  FileStructureBin,
+  Prisma,
+} from '@prisma/client';
 import {
   BadRequestException,
   ForbiddenException,
@@ -17,9 +28,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Redis } from 'ioredis';
-import { PrismaService, PrismaTx } from '@global/prisma';
+import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
 import { FileStructureRepository } from './file-structure.repository';
@@ -37,6 +46,13 @@ import { FileStructureBinService } from '../file-structure-bin/file-structure-bi
 import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
 import { transaction } from '../../common/transaction';
 import { FileStructureRawQueryRepository } from './file-structure-raw-query.repositor';
+import { GetDetailsQueryDto } from './dto/get-details-query.dto';
+import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
+import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
+import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
+import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
+import { ImportantExceptionBody } from '../../model/exception.type';
+import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
 import {
   constFileStructureNameDuplicateRegex,
   extractNumber,
@@ -48,15 +64,6 @@ import {
   absUserDeletedForeverPath,
   absUserTempFolderZipPath,
 } from './file-structure.helper';
-import { GetDetailsQueryDto } from './dto/get-details-query.dto';
-import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
-import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
-import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
-import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
-import { ImportantExceptionBody } from '../../model/exception.type';
-import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
-import { FsPublicSharePureService } from '../file-structure-public-share/fs-public-share-pure.service';
-import { CollabRedis } from '../@global/redis';
 
 @Injectable()
 export class FileStructureService {
@@ -66,13 +73,11 @@ export class FileStructureService {
     @InjectRedis()
     private readonly redis: Redis,
 
-    private readonly collabRedis: CollabRedis,
     private readonly prismaService: PrismaService,
     private readonly fsRepository: FileStructureRepository,
     private readonly fsRawQueryRepository: FileStructureRawQueryRepository,
     private readonly fsBinService: FileStructureBinService,
     private readonly fsEncryptionService: FileStructureEncryptionService,
-    private readonly fsPublicSharePureService: FsPublicSharePureService,
   ) {}
 
   async checkDocEditingCurrently(fsId: number): Promise<void> {
@@ -204,8 +209,22 @@ export class FileStructureService {
     return fileStructures;
   }
 
-  async getById(authPayload: AuthPayloadType, id: number, tx?: PrismaTx) {
+  async getById(authPayload: AuthPayloadType | { user: { id: number } }, id: number, tx?: PrismaTx) {
     const fileStructure = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id }, tx);
+
+    if (!fileStructure) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    return fileStructure;
+  }
+
+  async getByIdSelect<T extends Prisma.FileStructureSelect>(
+    authPayload: AuthPayloadType | { user: { id: number } },
+    id: number,
+    select: T,
+  ): Promise<Prisma.FileStructureGetPayload<{ select: T }>> {
+    const fileStructure = await this.fsRepository.getByIdSelect(id, { userId: authPayload.user.id }, select);
 
     if (!fileStructure) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
@@ -329,10 +348,8 @@ export class FileStructureService {
   }
 
   async getDocumentTextById(authPayload: AuthPayloadType, id: number): Promise<string> {
-    const fs = await this.getById(authPayload, id);
-    const fsPublicShare = await this.fsPublicSharePureService.getBy(authPayload, { fileStructureId: fs.id });
-
-    const text = await this.redis.hget(constants.redis.buildFSCollabName(fsPublicShare.uniqueHash), 'doc');
+    const { sharedUniqueHash } = await this.getByIdSelect(authPayload, id, { sharedUniqueHash: true });
+    const text = await this.redis.hget(constants.redis.buildFSCollabName(sharedUniqueHash), 'doc');
 
     if (text === null) {
       throw new BadRequestException(ExceptionMessageCode.DOCUMENT_NOT_FOUND);
@@ -462,6 +479,7 @@ export class FileStructureService {
         isEditable: true,
         isLocked: false,
         lastModifiedAt: lastModifiedAt ?? null,
+        sharedUniqueHash: random.getRandomString(16),
 
         //! important
         rootParentId: rootParentId ?? null,
@@ -677,6 +695,7 @@ export class FileStructureService {
       isEditable: true,
       isLocked: false,
       lastModifiedAt: new Date(Date.now()),
+      sharedUniqueHash: random.getRandomString(16),
 
       //! important
       rootParentId: rootParentId ?? null,

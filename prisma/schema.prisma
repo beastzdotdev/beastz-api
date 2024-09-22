@@ -306,6 +306,7 @@ model FileStructure {
   lastModifiedAt    DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   uuid              String        @map("uuid") @db.Uuid // can be used for various reason e.g. unique name for object storage
+  sharedUniqueHash  String        @unique @map("shared_unique_hash") @db.VarChar(16)
 
   // recursive properties
   rootParentId Int?            @map("root_parent_id")
@@ -320,6 +321,7 @@ model FileStructure {
   fileStructurePublicShare FileStructurePublicShare?
   fileStructureBin         FileStructureBin?
 
+  @@index([sharedUniqueHash], type: Hash)
   @@index([uuid], type: BTree)
   @@map("file_structure")
 }
@@ -369,7 +371,6 @@ model FileStructurePublicShare {
   id                  Int       @id @default(autoincrement())
   userId              Int       @map("user_id") // who owns
   fileStructureId     Int       @unique @map("file_structure_id")
-  uniqueHash          String    @unique @map("unique_hash") @db.VarChar(16)
   isDownloadable      Boolean   @default(false) @map("is_downloadable")
   isPasswordProtected Boolean   @default(false) @map("is_password_protected")
   expiresAt           DateTime? @map("expires_at")
@@ -380,7 +381,6 @@ model FileStructurePublicShare {
   user          User          @relation(fields: [userId], references: [id])
   fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
-  @@index([uniqueHash], type: Hash)
   @@index([fileStructureId], type: BTree)
   @@map("file_structure_public_share")
 }

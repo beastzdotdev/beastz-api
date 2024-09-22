@@ -60,6 +60,9 @@ export class BasicFileStructureResponseDto {
   parentId: number | null;
 
   @Expose()
+  sharedUniqueHash: string;
+
+  @Expose()
   absRelativePath: string | null = null;
 
   @Expose()

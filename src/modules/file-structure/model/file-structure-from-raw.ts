@@ -70,5 +70,8 @@ export class FileStructureFromRaw implements FileStructure {
   parentId: number | null;
 
   @Expose()
+  sharedUniqueHash: string;
+
+  @Expose()
   children: FileStructureFromRaw[] | null = [];
 }

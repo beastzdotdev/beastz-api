@@ -29,6 +29,14 @@ export class FileStructurePublicShareController {
     return FsPublicShareResponseDto.map(response);
   }
 
+  @Get('is-enabled/:fsId')
+  async isEnabled(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('fsId', ParseIntPipe) fsId: number,
+  ): Promise<boolean> {
+    return this.fsPublicShareService.isEnabled(authPayload, fsId);
+  }
+
   @Post()
   async create(
     @AuthPayload() authPayload: AuthPayloadType,

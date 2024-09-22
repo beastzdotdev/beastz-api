@@ -66,6 +66,25 @@ export class FileStructureRepository {
     });
   }
 
+  async getByIdSelect<T extends Prisma.FileStructureSelect>(
+    id: number,
+    params: { userId: number; isInBin?: boolean },
+    select: T,
+    tx?: PrismaTx,
+  ): Promise<Prisma.FileStructureGetPayload<{ select: T }> | null> {
+    const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
+
+    return db.fileStructure.findFirst({
+      where: {
+        id,
+        userId,
+        isInBin: isInBin ?? false,
+      },
+      select,
+    });
+  }
+
   async getTotalFilesSize(userId: number, params: { isInBin?: boolean }, tx?: PrismaTx): Promise<number> {
     const db = tx ?? this.prismaService;
     const { isInBin } = params;

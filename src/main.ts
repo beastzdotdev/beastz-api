@@ -87,9 +87,10 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   // Gracefull Shutdown
   const shutdown = async (signal: string, code: number): Promise<void> => {
     console.log('\n');
-    logger.verbose('shutdown!');
 
     await app.close();
+
+    logger.verbose('app gracefull shutdown');
     logger.verbose(`server stopped by ${signal} with code ${code}`);
 
     process.exit(code);

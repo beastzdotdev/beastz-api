@@ -15,7 +15,7 @@ import { fsCustom } from '../../common/helper';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
-import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
+import { absUserBinPath, absUserContentPath, absUserDeletedForeverPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class AdminService {
@@ -138,9 +138,11 @@ export class AdminService {
     const allBinFsIds = allBinFs.map(e => e.id);
     const allFsIds = allFs.map(e => e.id);
 
-    await tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } });
-
-    await tx.fileStructureEncryption.deleteMany({ where: { fileStructureId: { in: allFsIds } } });
+    await Promise.all([
+      tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } }),
+      tx.fileStructureEncryption.deleteMany({ where: { fileStructureId: { in: allFsIds } } }),
+      tx.fileStructurePublicShare.deleteMany({ where: { fileStructureId: { in: allFsIds } } }),
+    ]);
 
     // must be after
     await tx.fileStructure.deleteMany({ where: { id: { in: allFsIds } } });

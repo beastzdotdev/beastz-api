@@ -28,7 +28,6 @@ export class DocumentSocketAdapter extends IoAdapter {
     //! supports connection state recovery feature
     this.adapterConstructor = createAdapter(this.redis, {
       streamName: 'Document:stream',
-      sessionKeyPrefix: 'Document:session:',
     });
   }
 
@@ -42,10 +41,6 @@ export class DocumentSocketAdapter extends IoAdapter {
         cors: {
           origin: [this.env.get('FRONTEND_DOCUMENT_URL')],
           credentials: true,
-        },
-        connectionStateRecovery: {
-          maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
-          skipMiddlewares: true,
         },
       };
     }

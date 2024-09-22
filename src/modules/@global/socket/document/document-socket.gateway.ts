@@ -15,6 +15,7 @@ import {
 
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { OnEvent } from '@nestjs/event-emitter';
 import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
 import { PushDocBody, SocketForUserInject } from './document-socket.type';
 import { DocumentSocketTokenExtractGuard } from './document-socket-token-extract.guard';
@@ -22,6 +23,8 @@ import { DocumentSocketService } from './document-socket.service';
 import { SocketTokenPayload } from './document-socket-user.decorator';
 import { AccessTokenPayload } from '../../jwt/jwt.type';
 import { constants } from '../../../../common/constants';
+import { EmitterEventFields, EmitterEvents } from '../../event-emitter';
+import { FileStructurePublicShareService } from '../../../file-structure-public-share/file-structure-public-share.service';
 
 /**
  * @description Namespace for Document, Extra configurations are in adapter
@@ -49,6 +52,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
     private readonly documentSocketInitMiddleware: DocumentSocketInitMiddleware,
     private readonly documentSocketService: DocumentSocketService,
+    private readonly fsPublicShareService: FileStructurePublicShareService,
   ) {
     this.documentSocketService.wss = this.wss;
   }
@@ -58,6 +62,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     this.logger.verbose(`socket under namespace of "${constants.socket.DOC_NAMESPACE}" initialized (${totalTimeInMs})`);
 
     // Register middleware for init (reason: guard executes after connection init which is bad)
+    // Validate file structure id in auth as well
     this.wss.use(this.documentSocketInitMiddleware.AuthWsMiddleware());
   }
 
@@ -70,10 +75,25 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     console.log('[Connect] Start - ' + clientSocket.id);
 
     try {
+      // const fsPublicShare = await this.fsPublicShareService.getBy({
+      //   fileStructureId: clientSocket.handshake.auth.filesStructureId,
+      //   userId: clientSocket.handshake.accessTokenPayload.userId,
+      // });
+
+      const isFsPublicShareEnabled = await this.fsPublicShareService.isEnabled(
+        { user: { id: clientSocket.handshake.accessTokenPayload.userId } },
+        clientSocket.handshake.auth.filesStructureId,
+      );
+
       await Promise.all([
         this.documentSocketService.setLock(clientSocket),
-        this.documentSocketService.checkSharing(clientSocket),
+        this.documentSocketService.checkSharing(clientSocket, isFsPublicShareEnabled),
       ]);
+
+      if (isFsPublicShareEnabled) {
+        // notify myself to fetch document
+        this.wss.to(clientSocket.id).emit(constants.socket.events.PullDocFull);
+      }
     } catch (error) {
       this.logger.error(error);
       this.logger.error('[Connect] Early disconnect - ' + clientSocket.id);
@@ -82,7 +102,12 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       return;
     }
 
-    await this.redis.set(clientSocket.id, 1, 'EX', constants.redis.twoDayInSec); // just for information
+    await this.redis.set(
+      `userId-[${clientSocket.handshake.accessTokenPayload.userId}]-socketId-[${clientSocket.id}]`,
+      1,
+      'EX',
+      constants.redis.twoDayInSec,
+    ); // just for information
 
     console.log('[Connect] finish - ' + clientSocket.id);
   }
@@ -90,21 +115,25 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   async handleDisconnect(@ConnectedSocket() clientSocket: SocketForUserInject) {
     console.log('[Disconnet] Start - ' + clientSocket.id);
     try {
-      const { key, activeServants, fsId } = await this.documentSocketService.getDisconnectParams(clientSocket);
-      console.log('='.repeat(20));
-      console.log(activeServants);
-      console.log(!activeServants.length);
+      const { fsCollabKeyName, activeServants, fsId } =
+        await this.documentSocketService.getDisconnectParams(clientSocket);
 
       if (!activeServants.length) {
         await this.documentSocketService.removeLock(clientSocket);
 
         //! must be after removing lock
-        await this.documentSocketService.saveFileStructure(clientSocket, { fsId, key });
+        await this.documentSocketService.saveFileStructure(clientSocket, { fsId, fsCollabKeyName });
+
+        //! must be after saving fs
+        await Promise.all([
+          this.redis.del(fsCollabKeyName),
+          this.documentSocketService.removeDanglingPublicShareKeys(clientSocket),
+        ]);
       }
 
       // notify everyone
       for (const socketId of activeServants) {
-        this.wss.to(socketId).emit('user-left', { socketId: clientSocket.id });
+        this.wss.to(socketId).emit(constants.socket.events.UserLeft, { socketId: clientSocket.id });
       }
     } catch (error) {
       this.logger.error(error);
@@ -113,69 +142,78 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       // if forcefully disconnected from handleconnection then forcefull disconnect is not needed here
       clientSocket.connected ? clientSocket.disconnect() : undefined;
       return;
+    } finally {
+      // just for information
+      await this.redis.del(
+        `userId-[${clientSocket.handshake.accessTokenPayload.userId}]-socketId-[${clientSocket.id}]`,
+      );
     }
-
-    await this.redis.del(clientSocket.id); // just for information
 
     console.log('[Disconnet] Finish - ' + clientSocket.id);
   }
 
-  //TODO implement collab user here as well, onliy validaition for legitimacy for collab user will be
-  //TODO uniqueHash thats all and also hash regen will be added in soon to come
-  //TODO unique hash required
-  //TODO check for user limit as well it must be max of 10 maybe per file structure ???
-  @SubscribeMessage('fetch_doc')
-  async getDocument() {
-    return this.doc.toString();
-  }
-
   @UseGuards(DocumentSocketTokenExtractGuard)
-  @SubscribeMessage('push_doc')
-  async handlePushUpdates(
-    @ConnectedSocket() socket: Socket,
-    @MessageBody() body: PushDocBody,
-    @SocketTokenPayload() payload: AccessTokenPayload,
-  ) {
-    // console.log(123);
-    // console.log(payload);
-
-    const { changes } = body;
-    //
-    //
-
-    // console.log(socket);
-    //TODO I think you can somehow sync up changes using this.doc (currently it is not in use)
-
+  @SubscribeMessage(constants.socket.events.PushDoc)
+  async handlePushUpdates(@ConnectedSocket() socket: Socket, @MessageBody() body: PushDocBody) {
     let isError = false;
 
+    const { changes, sharedUniqueHash } = body;
+
     try {
-      const changeSet = ChangeSet.fromJSON(changes);
-      this.doc = changeSet.apply(this.doc);
+      const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
+      const doc = await this.redis.hget(fsCollabKeyName, 'doc');
+
+      if (doc) {
+        // this is three liner
+        // const docObj = Text.of(doc.split('\n'));
+        // const changeSet = ChangeSet.fromJSON(changes);
+        // const newDoc = changeSet.apply(docObj);
+
+        const newDoc = ChangeSet.fromJSON(changes)
+          .apply(Text.of(doc.split('\n')))
+          .toString();
+
+        await this.redis.hset(fsCollabKeyName, 'doc', newDoc);
+      }
     } catch (error) {
       isError = true;
       this.logger.error(error);
     }
-
     if (!isError) {
       // pulled by everyone
-      socket.broadcast.emit('pull_doc', changes);
+      socket.broadcast.emit(constants.socket.events.PullDoc, changes);
     } else {
       // if error happens
-      socket.emit('pull_doc_full', this.doc);
+      this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
     }
   }
 
   @UseGuards(DocumentSocketTokenExtractGuard)
   @SubscribeMessage('test')
-  async handleUpdatex(@ConnectedSocket() socket: Socket, @SocketTokenPayload() payload: AccessTokenPayload) {
-    //TODO: in sockets eror not work great, try exception filter for socket io or if not then
-    //TODO: socket io response error middleware
-    console.log('test');
+  async handleUpdatex(
+    @ConnectedSocket() socket: SocketForUserInject,
+    @SocketTokenPayload() payload: AccessTokenPayload,
+  ) {
+    this.logger.debug('='.repeat(20));
+    this.logger.debug('test');
+    this.logger.debug('socket id', socket.id);
+    this.logger.debug('socket handshake', socket.handshake);
+    this.logger.debug('checking if payload works', payload.userId === socket.handshake.accessTokenPayload.userId);
 
-    socket.emit('test', 142);
-    console.log('='.repeat(20));
-    console.log(payload);
-    // throw new Error('142');
-    // return 12;
+    socket.emit('test', 'trigerring from backend');
+    this.logger.debug('Emitted from server to test event');
+    this.logger.debug('='.repeat(20));
+  }
+
+  //================================================================
+  // Via Event Emitter
+  //================================================================
+
+  @OnEvent(EmitterEventFields['admin.socket.test'])
+  testSocketFromAdmin(payload: EmitterEvents['admin.socket.test']) {
+    // emit to all connected clients in this namespace
+    if (payload.type === 'namespace') {
+      this.wss.emit('admin_test', payload.message);
+    }
   }
 }

@@ -15,7 +15,11 @@ import { ExceptionMessageCode } from '../../model/enum/exception-message-code.en
 import { constants } from '../../common/constants';
 import { fsCustom } from '../../common/helper';
 import { absUserContentPath } from '../file-structure/file-structure.helper';
-import { FsPublicShareForSocketUser } from './file-structure-public-share.type';
+import {
+  FsPublicShareForSocketUser,
+  FsPublicShareWithRelations,
+  GetByMethodParamsInFsPublicShare,
+} from './file-structure-public-share.type';
 
 @Injectable()
 export class FileStructurePublicShareService {
@@ -30,6 +34,26 @@ export class FileStructurePublicShareService {
 
     private readonly collabRedis: CollabRedis,
   ) {}
+
+  async getById(id: number, params: { userId: number }): Promise<FileStructurePublicShare> {
+    const result = await this.fsPublicShareRepository.getById(id, { userId: params.userId });
+
+    if (!result) {
+      throw new NotFoundException(ExceptionMessageCode.FS_PUBLIC_SHARE_NOT_FOUND);
+    }
+
+    return result;
+  }
+
+  async getBy(params: GetByMethodParamsInFsPublicShare, tx?: PrismaTx): Promise<FsPublicShareWithRelations> {
+    const result = await this.fsPublicShareRepository.getBy(params, tx);
+
+    if (!result) {
+      throw new NotFoundException(ExceptionMessageCode.FS_PUBLIC_SHARE_NOT_FOUND);
+    }
+
+    return result;
+  }
 
   async getManyForSocketUser(params: { userId: number }): Promise<FsPublicShareForSocketUser[]> {
     const { userId } = params;
@@ -68,7 +92,6 @@ export class FileStructurePublicShareService {
       {
         userId: authPayload.user.id,
         fileStructureId,
-        uniqueHash,
       },
       tx,
     );
@@ -84,6 +107,9 @@ export class FileStructurePublicShareService {
       servants: [],
       updates: [],
     });
+
+    //! Important
+    //TODO ! notify sockets via event emitter
 
     return fsPublicShareCreated;
   }
@@ -116,7 +142,7 @@ export class FileStructurePublicShareService {
       throw new BadRequestException(ExceptionMessageCode.DOCUMENT_NOT_SHAREABLE);
     }
 
-    const fsCollabKeyName = constants.redis.buildFSCollabName(updateResult.uniqueHash);
+    const fsCollabKeyName = constants.redis.buildFSCollabName(fs.sharedUniqueHash);
 
     if (!isDisabled) {
       await this.redis.del(fsCollabKeyName);
@@ -136,6 +162,19 @@ export class FileStructurePublicShareService {
     }
 
     return updateResult;
+  }
+
+  async isEnabled(authPayload: AuthPayloadType | { user: { id: number } }, fsId: number): Promise<boolean> {
+    const fsPublicShare = await this.fsPublicShareRepository.getBy({
+      userId: authPayload.user.id,
+      fileStructureId: fsId,
+    });
+
+    if (!fsPublicShare) {
+      return false;
+    }
+
+    return !fsPublicShare.isDisabled;
   }
 
   private async getDocumentText(authPayload: AuthPayloadType, fs: FileStructure): Promise<string> {

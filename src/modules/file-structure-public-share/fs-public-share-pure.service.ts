@@ -12,10 +12,9 @@ export class FsPublicSharePureService {
     authPayload: AuthPayloadType | { user: { id: number } },
     queryParams: FsPublishShareGetByQueryDto,
   ): Promise<FileStructurePublicShare> {
-    const { uniqueHash, fileStructureId } = queryParams;
+    const { fileStructureId } = queryParams;
 
     const fsPublicShare = await this.fsPublicShareRepository.getBy({
-      uniqueHash,
       userId: authPayload.user.id,
       fileStructureId,
     });
