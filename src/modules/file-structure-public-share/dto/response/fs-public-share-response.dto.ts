@@ -15,9 +15,6 @@ export class FsPublicShareResponseDto {
   fileStructureId: number;
 
   @Expose()
-  uniqueHash: string;
-
-  @Expose()
   isDownloadable: boolean;
 
   @Expose()
@@ -41,7 +38,8 @@ export class FsPublicShareResponseDto {
   setJoinLink() {
     const url = new URL(envService.get('FRONTEND_DOCUMENT_URL'));
     url.pathname = constants.frontendPath.document.collabJoin;
-    url.searchParams.set('uniqueHash', this.uniqueHash);
+    //TODO fix here uniqueHash is from fs not from public share anymore
+    // url.searchParams.set('uniqueHash', this.uniqueHash);
 
     this.joinLink = url.toString();
   }

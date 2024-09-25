@@ -102,7 +102,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     //TODO      * collab people missing people :D
 
     try {
-      const isFsPublicShareEnabled = await this.fsPublicShareService.isEnabled(
+      const { enabled: isFsPublicShareEnabled } = await this.fsPublicShareService.isEnabled(
         { user: { id: clientSocket.handshake.accessTokenPayload.userId } },
         clientSocket.handshake.auth.filesStructureId,
       );

@@ -164,17 +164,26 @@ export class FileStructurePublicShareService {
     return updateResult;
   }
 
-  async isEnabled(authPayload: AuthPayloadType | { user: { id: number } }, fsId: number): Promise<boolean> {
+  async isEnabled(
+    authPayload: AuthPayloadType | { user: { id: number } },
+    fsId: number,
+  ): Promise<{ enabled: boolean; data: FileStructurePublicShare | null }> {
     const fsPublicShare = await this.fsPublicShareRepository.getBy({
       userId: authPayload.user.id,
       fileStructureId: fsId,
     });
 
     if (!fsPublicShare) {
-      return false;
+      return {
+        enabled: false,
+        data: null,
+      };
     }
 
-    return !fsPublicShare.isDisabled;
+    return {
+      enabled: !fsPublicShare.isDisabled,
+      data: fsPublicShare,
+    };
   }
 
   private async getDocumentText(authPayload: AuthPayloadType, fs: FileStructure): Promise<string> {

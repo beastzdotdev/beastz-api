@@ -33,8 +33,12 @@ export class FileStructurePublicShareController {
   async isEnabled(
     @AuthPayload() authPayload: AuthPayloadType,
     @Param('fsId', ParseIntPipe) fsId: number,
-  ): Promise<boolean> {
-    return this.fsPublicShareService.isEnabled(authPayload, fsId);
+  ): Promise<{ enabled: boolean; data: FsPublicShareResponseDto | null }> {
+    const response = await this.fsPublicShareService.isEnabled(authPayload, fsId);
+    return {
+      data: response.data ? FsPublicShareResponseDto.map(response.data) : null,
+      enabled: response.enabled,
+    };
   }
 
   @Post()
