@@ -57,16 +57,10 @@ export class DocumentSocketService {
       userId: client.handshake.accessTokenPayload.userId,
     });
 
-    if (fsPublicShare.isDisabled) {
-      return;
-    }
-
     const fsCollabKeyName = constants.redis.buildFSCollabName(fsPublicShare.fileStructure.sharedUniqueHash);
 
     //! Exists must be before setting masterSocketId
     const exists = await this.redis.exists(fsCollabKeyName);
-
-    await this.redis.hset(fsCollabKeyName, 'masterSocketId', client.id); // update socket id
 
     if (!exists) {
       const sourceContentPath = path.join(
@@ -87,6 +81,9 @@ export class DocumentSocketService {
         updates: [],
       });
     } else {
+      // update socket id
+      await this.redis.hset(fsCollabKeyName, 'masterSocketId', client.id);
+
       // notify everyone the join
       const servants = await this.collabRedis.getServants(fsCollabKeyName);
 
@@ -134,36 +131,5 @@ export class DocumentSocketService {
       fsCollabKeyName,
       activeServants: servants,
     };
-  }
-
-  async removeDanglingPublicShareKeys(client: SocketForUserInject): Promise<void> {
-    const fsPublicShares = await this.fsPublicShareService.getManyForSocketUser({
-      userId: client.handshake.accessTokenPayload.userId,
-    });
-
-    for (const fsPublicShare of fsPublicShares) {
-      // ignore if disabled
-      if (fsPublicShare.isDisabled) {
-        continue;
-      }
-
-      const fsCollabKeyName = constants.redis.buildFSCollabName(fsPublicShare.fileStructure.sharedUniqueHash);
-
-      const exists = await this.redis.exists(fsCollabKeyName);
-
-      // ignore is redis key does not exist
-      if (!exists) {
-        continue;
-      }
-
-      const servants = await this.collabRedis.getServants(fsCollabKeyName);
-
-      // ignore if there is at least one servant
-      if (servants.length) {
-        continue;
-      }
-
-      await this.redis.del(fsCollabKeyName);
-    }
   }
 }

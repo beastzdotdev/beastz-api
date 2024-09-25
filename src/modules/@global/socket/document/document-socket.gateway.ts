@@ -75,12 +75,33 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   async handleConnection(@ConnectedSocket() clientSocket: SocketForUserInject): Promise<void> {
     console.log('[Connect] Start - ' + clientSocket.id);
 
-    try {
-      // const fsPublicShare = await this.fsPublicShareService.getBy({
-      //   fileStructureId: clientSocket.handshake.auth.filesStructureId,
-      //   userId: clientSocket.handshake.accessTokenPayload.userId,
-      // });
+    //TODO now after lots of things are stable
+    //TODO   (+) start adding collab button back first
+    //TODO    * fix activating collab extension in front
+    //TODO    * after that start adding back push doc
+    //TODO    * after that start adding back pull doc
 
+    //TODO: check multiple processes
+    //TODO      * when user connects and share is enabled
+    //TODO      * when user connects and share is disabled
+    //TODO      * when user reconnects and share is enabled
+    //TODO      * when user reconnects and share is disabled
+
+    //TODO      * when user enables collab and start typing
+    //TODO      * when user disables collab and start typing
+
+    //TODO after adding others then test this
+    //TODO      * fix people component in front and start
+    //TODO      * when others rejoin
+    //TODO      * when other reconnect
+
+    //TODO      * when user disconnects and others are still active
+    //TODO      * when user disables collab and others are still active
+
+    //TODO      * add cursor at the very end
+    //TODO      * collab people missing people :D
+
+    try {
       const isFsPublicShareEnabled = await this.fsPublicShareService.isEnabled(
         { user: { id: clientSocket.handshake.accessTokenPayload.userId } },
         clientSocket.handshake.auth.filesStructureId,
@@ -126,10 +147,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
         await this.documentSocketService.saveFileStructure(clientSocket, { fsId, fsCollabKeyName });
 
         //! must be after saving fs
-        await Promise.all([
-          this.redis.del(fsCollabKeyName),
-          this.documentSocketService.removeDanglingPublicShareKeys(clientSocket),
-        ]);
+        await this.redis.del(fsCollabKeyName);
       }
 
       // notify everyone
