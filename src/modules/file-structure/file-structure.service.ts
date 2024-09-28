@@ -348,11 +348,21 @@ export class FileStructureService {
   }
 
   async getDocumentTextById(authPayload: AuthPayloadType, id: number): Promise<string> {
-    const { sharedUniqueHash } = await this.getByIdSelect(authPayload, id, { sharedUniqueHash: true });
-    const text = await this.redis.hget(constants.redis.buildFSCollabName(sharedUniqueHash), 'doc');
+    const { sharedUniqueHash, path: fsPath } = await this.getByIdSelect(authPayload, id, {
+      sharedUniqueHash: true,
+      path: true,
+    });
+
+    const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
+    const text = await this.redis.hget(fsCollabKeyName, 'doc');
 
     if (text === null) {
-      throw new BadRequestException(ExceptionMessageCode.DOCUMENT_NOT_FOUND);
+      const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fsPath);
+      const documentText = await fsCustom.readFile(sourceContentPath).catch(() => {
+        throw new BadRequestException('File not found');
+      });
+
+      return documentText;
     }
 
     return text;
@@ -725,13 +735,18 @@ export class FileStructureService {
     id: number,
     dto: ReplaceTextFileStructure,
     authPayload: AuthPayloadType | { user: { id: number; uuid: string } },
+    tx?: PrismaTx,
   ): Promise<FileStructure> {
-    await this.checkDocEditingCurrently(id);
+    const { checkEditMode = true } = dto;
+
+    if (checkEditMode) {
+      await this.checkDocEditingCurrently(id);
+    }
 
     const { id: userId, uuid } = authPayload.user;
 
     const { text } = dto;
-    const fs = await this.fsRepository.getByIdForUser(id, { userId });
+    const fs = await this.fsRepository.getByIdForUser(id, { userId }, tx);
 
     if (!fs) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
@@ -753,7 +768,7 @@ export class FileStructureService {
     });
 
     const [updatedFs] = await Promise.all([
-      this.fsRepository.updateByIdAndReturn(id, { userId, isInBin: false }, { lastModifiedAt: moment().toDate() }),
+      this.fsRepository.updateByIdAndReturn(id, { userId, isInBin: false }, { lastModifiedAt: moment().toDate() }, tx),
       fsCustom.writeFile(absPath, text).catch(e => {
         this.logger.debug(e);
         throw new InternalServerErrorException(ExceptionMessageCode.INTERNAL_ERROR);

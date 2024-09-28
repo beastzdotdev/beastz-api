@@ -47,8 +47,13 @@ export class DocumentSocketService {
     await this.redis.del(lockKeyName);
   }
 
-  async checkSharing(client: SocketForUserInject, isFsPublicShareEnabled: boolean) {
-    if (!isFsPublicShareEnabled) {
+  async checkSharing(client: SocketForUserInject) {
+    const { enabled } = await this.fsPublicShareService.isEnabled(
+      { user: { id: client.handshake.accessTokenPayload.userId } },
+      client.handshake.auth.filesStructureId,
+    );
+
+    if (!enabled) {
       return;
     }
 
@@ -83,13 +88,13 @@ export class DocumentSocketService {
     } else {
       // update socket id
       await this.redis.hset(fsCollabKeyName, 'masterSocketId', client.id);
+    }
 
-      // notify everyone the join
-      const servants = await this.collabRedis.getServants(fsCollabKeyName);
+    // notify everyone the join
+    const servants = await this.collabRedis.getServants(fsCollabKeyName);
 
-      for (const socketId of servants) {
-        this.wss.to(socketId).emit(constants.socket.events.UserJoined, { socketId: client.id });
-      }
+    for (const socketId of servants) {
+      this.wss.to(socketId).emit(constants.socket.events.UserJoined, { socketId: client.id });
     }
   }
 
@@ -123,13 +128,24 @@ export class DocumentSocketService {
     }
 
     const fs = await this.fsService.getById({ user: { id: client.handshake.accessTokenPayload.userId } }, fsId);
-    const fsCollabKeyName = constants.redis.buildFSCollabName(fs.sharedUniqueHash);
-    const servants = await this.collabRedis.getServants(fsCollabKeyName);
+    const { fsCollabKeyName, servants } = await this.getServantsBySharedUniqueHash(fs.sharedUniqueHash);
 
     return {
       fsId,
       fsCollabKeyName,
       activeServants: servants,
+    };
+  }
+
+  async getServantsBySharedUniqueHash(
+    sharedUniqueHash: string,
+  ): Promise<{ fsCollabKeyName: string; servants: string[] }> {
+    const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
+    const servants = await this.collabRedis.getServants(fsCollabKeyName);
+
+    return {
+      servants,
+      fsCollabKeyName,
     };
   }
 }

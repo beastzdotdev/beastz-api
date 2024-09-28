@@ -46,6 +46,8 @@ export const constants = Object.freeze({
       PullDocFull: 'pull_doc_full',
       UserLeft: 'user_left',
       UserJoined: 'user_joined',
+      RetryConnection: 'retry_connection',
+      DocumentShareDisabled: 'document_share_disabled',
     },
   },
 
@@ -53,6 +55,7 @@ export const constants = Object.freeze({
     twoDayInSec: 172800,
 
     buildFSLockName: (fsId: number) => `fs::lock::${fsId}`,
+    buildUserIdName: (userId: number) => `user::${userId}`,
     buildFSCollabName: (sharedUniqueHash: string) => `fs::collab::${sharedUniqueHash}`,
   },
 

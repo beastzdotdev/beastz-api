@@ -1,7 +1,10 @@
+import { Redis } from 'ioredis';
 import { performance } from 'node:perf_hooks';
-import { Logger, UseGuards } from '@nestjs/common';
 import { Socket, Namespace } from 'socket.io';
+import { OnEvent } from '@nestjs/event-emitter';
+import { Logger, UseGuards } from '@nestjs/common';
 import { ChangeSet, Text } from '@codemirror/state';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
   WebSocketGateway,
   ConnectedSocket,
@@ -13,9 +16,6 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 
-import { Redis } from 'ioredis';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { OnEvent } from '@nestjs/event-emitter';
 import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
 import { PushDocBody, SocketForUserInject } from './document-socket.type';
 import { DocumentSocketTokenExtractGuard } from './document-socket-token-extract.guard';
@@ -24,8 +24,30 @@ import { SocketTokenPayload } from './document-socket-user.decorator';
 import { AccessTokenPayload } from '../../jwt/jwt.type';
 import { constants } from '../../../../common/constants';
 import { EmitterEventFields, EmitterEvents } from '../../event-emitter';
-import { FileStructurePublicShareService } from '../../../file-structure-public-share/file-structure-public-share.service';
 import { SocketError } from '../../../../exceptions/socket.exception';
+
+// now after lots of things are stable
+//   (+) start adding collab button back first
+//   (+) fix activating collab extension in front
+//   (+) after that start adding back push doc
+//   (+) after that start adding back pull doc
+// check multiple processes
+//      (+) when user connects and share is enabled
+//      (+) when user connects and share is disabled
+//      (+) when user reconnects and share is enabled
+//      (+) when user reconnects and share is disabled
+//      (+) when user enables collab and start typing
+//      (+) when user disables collab and start typing
+//TODO after adding others then test this
+//TODO      * fix people component in front and start
+//TODO      * when others rejoin
+//TODO      * when other reconnect
+
+//TODO      * when user disconnects and others are still active
+//TODO      * when user disables collab and others are still active
+
+//TODO      * add cursor at the very end
+//TODO      * collab people missing people :D
 
 /**
  * @description Namespace for Document, Extra configurations are in adapter
@@ -46,6 +68,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   doc: Text = Text.of(['Start document']);
 
   @WebSocketServer() private wss: Namespace;
+  //
 
   constructor(
     @InjectRedis()
@@ -53,7 +76,6 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
     private readonly documentSocketInitMiddleware: DocumentSocketInitMiddleware,
     private readonly documentSocketService: DocumentSocketService,
-    private readonly fsPublicShareService: FileStructurePublicShareService,
   ) {
     this.documentSocketService.wss = this.wss;
   }
@@ -67,56 +89,28 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     this.wss.use(this.documentSocketInitMiddleware.AuthWsMiddleware());
   }
 
-  /**
-   * On this method name decorators and guards and interceptors does not work this is just callback
-   * so I have to manually extract some data like access token payload, also throwing errors from this
-   * method does not seem to be good idea, if sometihng bad happens just disconnect client
-   */
   async handleConnection(@ConnectedSocket() clientSocket: SocketForUserInject): Promise<void> {
     console.log('[Connect] Start - ' + clientSocket.id);
 
-    //TODO now after lots of things are stable
-    //TODO   (+) start adding collab button back first
-    //TODO    * fix activating collab extension in front
-    //TODO    * after that start adding back push doc
-    //TODO    * after that start adding back pull doc
-
-    //TODO: check multiple processes
-    //TODO      * when user connects and share is enabled
-    //TODO      * when user connects and share is disabled
-    //TODO      * when user reconnects and share is enabled
-    //TODO      * when user reconnects and share is disabled
-
-    //TODO      * when user enables collab and start typing
-    //TODO      * when user disables collab and start typing
-
-    //TODO after adding others then test this
-    //TODO      * fix people component in front and start
-    //TODO      * when others rejoin
-    //TODO      * when other reconnect
-
-    //TODO      * when user disconnects and others are still active
-    //TODO      * when user disables collab and others are still active
-
-    //TODO      * add cursor at the very end
-    //TODO      * collab people missing people :D
+    await this.redis.set(
+      constants.redis.buildUserIdName(clientSocket.handshake.accessTokenPayload.userId),
+      clientSocket.id,
+      'EX',
+      constants.redis.twoDayInSec,
+    );
 
     try {
-      const { enabled: isFsPublicShareEnabled } = await this.fsPublicShareService.isEnabled(
-        { user: { id: clientSocket.handshake.accessTokenPayload.userId } },
-        clientSocket.handshake.auth.filesStructureId,
-      );
-
       await Promise.all([
         this.documentSocketService.setLock(clientSocket),
-        this.documentSocketService.checkSharing(clientSocket, isFsPublicShareEnabled),
+        this.documentSocketService.checkSharing(clientSocket),
       ]);
 
-      if (isFsPublicShareEnabled) {
-        // notify myself to fetch document
-        this.wss.to(clientSocket.id).emit(constants.socket.events.PullDocFull);
-      }
+      // notify myself to fetch document always !
+      this.wss.to(clientSocket.id).emit(constants.socket.events.PullDocFull);
     } catch (error) {
+      // throwing errors from this method does not seem to be good idea
+      // if sometihng bad happens just disconnect client
+
       this.logger.error(error);
       this.logger.error('[Connect] Early disconnect - ' + clientSocket.id);
 
@@ -124,18 +118,14 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       return;
     }
 
-    await this.redis.set(
-      `userId-[${clientSocket.handshake.accessTokenPayload.userId}]-socketId-[${clientSocket.id}]`,
-      1,
-      'EX',
-      constants.redis.twoDayInSec,
-    ); // just for information
-
     console.log('[Connect] finish - ' + clientSocket.id);
   }
 
   async handleDisconnect(@ConnectedSocket() clientSocket: SocketForUserInject) {
     console.log('[Disconnet] Start - ' + clientSocket.id);
+
+    await this.redis.del(constants.redis.buildUserIdName(clientSocket.handshake.accessTokenPayload.userId));
+
     try {
       const { fsCollabKeyName, activeServants, fsId } =
         await this.documentSocketService.getDisconnectParams(clientSocket);
@@ -161,11 +151,6 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       // if forcefully disconnected from handleconnection then forcefull disconnect is not needed here
       clientSocket.connected ? clientSocket.disconnect() : undefined;
       return;
-    } finally {
-      // just for information
-      await this.redis.del(
-        `userId-[${clientSocket.handshake.accessTokenPayload.userId}]-socketId-[${clientSocket.id}]`,
-      );
     }
 
     console.log('[Disconnet] Finish - ' + clientSocket.id);
@@ -182,29 +167,44 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
       const doc = await this.redis.hget(fsCollabKeyName, 'doc');
 
-      if (doc) {
-        // this is three liner
-        // const docObj = Text.of(doc.split('\n'));
-        // const changeSet = ChangeSet.fromJSON(changes);
-        // const newDoc = changeSet.apply(docObj);
-
+      if (doc !== null) {
         const newDoc = ChangeSet.fromJSON(changes)
           .apply(Text.of(doc.split('\n')))
           .toString();
 
         await this.redis.hset(fsCollabKeyName, 'doc', newDoc);
+      } else {
+        const { servants } = await this.documentSocketService.getServantsBySharedUniqueHash(sharedUniqueHash);
+
+        // notify everyone
+        for (const socketId of servants.concat(socket.id)) {
+          this.wss.to(socketId).emit(constants.socket.events.RetryConnection);
+        }
+
+        // early return
+        return;
       }
     } catch (error) {
       isError = true;
       this.logger.error(error);
     }
+
     if (!isError) {
-      // pulled by everyone
-      socket.broadcast.emit(constants.socket.events.PullDoc, changes);
+      const { servants } = await this.documentSocketService.getServantsBySharedUniqueHash(sharedUniqueHash);
+
+      // notify all servant
+      for (const socketId of servants) {
+        this.wss.to(socketId).emit(constants.socket.events.PullDoc, changes);
+      }
     } else {
       // if error happens
       this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
     }
+  }
+
+  @SubscribeMessage(constants.socket.events.PullDocFull)
+  async handlePullUpdates(@ConnectedSocket() socket: Socket) {
+    this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
   }
 
   @UseGuards(DocumentSocketTokenExtractGuard)
@@ -234,6 +234,19 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   //================================================================
   // Via Event Emitter
   //================================================================
+
+  @OnEvent(EmitterEventFields['document.pull.doc.full'], { async: true })
+  async documentPullDocFull(payload: EmitterEvents['document.pull.doc.full']) {
+    const { userId } = payload;
+    const socketId = await this.redis.get(constants.redis.buildUserIdName(userId));
+
+    if (!socketId) {
+      this.logger.error(`User ${userId} not found in redis`);
+      return;
+    }
+
+    this.wss.to(socketId).emit(constants.socket.events.PullDocFull);
+  }
 
   @OnEvent(EmitterEventFields['admin.socket.test'])
   testSocketFromAdmin(payload: EmitterEvents['admin.socket.test']) {

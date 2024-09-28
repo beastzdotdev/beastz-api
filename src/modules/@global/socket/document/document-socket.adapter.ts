@@ -4,12 +4,12 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 import { INestApplication, Logger } from '@nestjs/common';
 import { Server } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-streams-adapter';
+// import { createAdapter } from '@socket.io/redis-streams-adapter';
 import { EnvService } from '../../env/env.service';
 
 export class DocumentSocketAdapter extends IoAdapter {
   private readonly logger = new Logger(DocumentSocketAdapter.name);
-  private adapterConstructor: ReturnType<typeof createAdapter>;
+  // private adapterConstructor: ReturnType<typeof createAdapter>;
 
   private readonly redis: Redis;
   private readonly env: EnvService;
@@ -26,9 +26,9 @@ export class DocumentSocketAdapter extends IoAdapter {
     this.logger.verbose(`redis connection successfull (${(performance.now() - time).toFixed(3)}ms)`);
 
     //! supports connection state recovery feature
-    this.adapterConstructor = createAdapter(this.redis, {
-      streamName: 'Document:stream',
-    });
+    // this.adapterConstructor = createAdapter(this.redis, {
+    //   streamName: 'Document:stream',
+    // });
   }
 
   createIOServer(port: number, options?: ServerOptions): Server {
@@ -46,7 +46,7 @@ export class DocumentSocketAdapter extends IoAdapter {
     }
 
     const server: Server = super.createIOServer(port, options);
-    server.adapter(this.adapterConstructor);
+    // server.adapter(this.adapterConstructor);
     this.logger.verbose(`socket redis adapter created (${(performance.now() - time).toFixed(3)}ms)`);
 
     return server;

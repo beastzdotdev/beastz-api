@@ -5,6 +5,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import path from 'path';
 import { PrismaTx } from '@global/prisma';
 import { CollabRedis } from '@global/redis';
+import { EventEmitterService } from '@global/event-emitter';
 import { FileStructurePublicShareRepository } from './file-structure-public-share.repository';
 import { FileStructureService } from '../file-structure/file-structure.service';
 import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-ignore.dto';
@@ -33,6 +34,7 @@ export class FileStructurePublicShareService {
     private readonly fsService: FileStructureService,
 
     private readonly collabRedis: CollabRedis,
+    private readonly eventEmitter: EventEmitterService,
   ) {}
 
   async getById(id: number, params: { userId: number }): Promise<FileStructurePublicShare> {
@@ -68,6 +70,12 @@ export class FileStructurePublicShareService {
   ): Promise<FileStructurePublicShare> {
     const { fileStructureId } = dto;
 
+    const userActiveSessionSocketId = await this.redis.get(constants.redis.buildUserIdName(authPayload.user.id));
+
+    if (!userActiveSessionSocketId) {
+      throw new BadRequestException('user is not in session');
+    }
+
     const fs = await this.fsService.getById(authPayload, fileStructureId, tx);
 
     if (fs.isInBin || fs.isEncrypted || !fs.isFile || fs.isInBin || fs.isLocked || fs.isShortcut) {
@@ -102,14 +110,14 @@ export class FileStructurePublicShareService {
     // master socket id must be updated in handleConnection
     await this.collabRedis.createFsCollabHashTable(fsCollabKeyName, {
       doc: documentText,
-      masterSocketId: null,
+      masterSocketId: userActiveSessionSocketId,
       masterUserId: authPayload.user.id,
       servants: [],
       updates: [],
     });
 
-    //! Important
-    //TODO ! notify sockets via event emitter
+    // this is creation/toggle process so no need to notify servants only me !
+    await this.eventEmitter.emitAsync('document.pull.doc.full', { userId: authPayload.user.id });
 
     return fsPublicShareCreated;
   }
@@ -144,8 +152,21 @@ export class FileStructurePublicShareService {
 
     const fsCollabKeyName = constants.redis.buildFSCollabName(fs.sharedUniqueHash);
 
-    if (!isDisabled) {
-      await this.redis.del(fsCollabKeyName);
+    // if true then collab exists (here value is toggled)
+    if (isDisabled) {
+      const text = await this.redis.hget(fsCollabKeyName, 'doc');
+
+      if (!text) {
+        throw new BadRequestException('File not found');
+      }
+
+      await this.fsService.replaceText(fs.id, { text, checkEditMode: false }, authPayload, tx);
+
+      await Promise.all([
+        this.redis.del(fsCollabKeyName),
+        this.eventEmitter.emitAsync('document.pull.doc.full', { userId: authPayload.user.id }),
+        this.eventEmitter.emitAsync('document.share.disabled', { sharedUniqueHash: fs.sharedUniqueHash }),
+      ]);
     } else {
       const [documentText, servants] = await Promise.all([
         this.getDocumentText(authPayload, fs),
@@ -159,6 +180,9 @@ export class FileStructurePublicShareService {
         servants,
         updates: [],
       });
+
+      // this is creation/toggle process so no need to notify servants only me !
+      await this.eventEmitter.emitAsync('document.pull.doc.full', { userId: authPayload.user.id });
     }
 
     return updateResult;

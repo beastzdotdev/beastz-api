@@ -21,8 +21,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    // console.log(exception);
-
     if (
       (exception instanceof HttpException && exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR) ||
       !(exception instanceof HttpException)
@@ -36,8 +34,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const isDev = this.env.isDev();
 
     let errorBody: AllExceptionBody;
-
-    // console.log(url);
 
     //TODO needs some check for example can be moved to hub
     if (
