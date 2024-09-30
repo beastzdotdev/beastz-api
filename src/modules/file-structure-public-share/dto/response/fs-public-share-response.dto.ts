@@ -35,7 +35,7 @@ export class FsPublicShareResponseDto {
   @Expose()
   joinLink: string;
 
-  setJoinLink(sharedUniqueHash: string): void {
+  setJoinLink(sharedUniqueHash: string, title: string): void {
     const url = new URL(envService.get('FRONTEND_DOCUMENT_URL'));
     url.pathname = constants.frontendPath.document.collabJoin;
     url.searchParams.set('uniqueHash', sharedUniqueHash);
@@ -43,9 +43,9 @@ export class FsPublicShareResponseDto {
     this.joinLink = url.toString();
   }
 
-  static map(data: FileStructurePublicShare, sharedUniqueHash: string): FsPublicShareResponseDto {
+  static map(data: FileStructurePublicShare, sharedUniqueHash: string, title: string): FsPublicShareResponseDto {
     const response = plainToInstance(FsPublicShareResponseDto, data);
-    response.setJoinLink(sharedUniqueHash);
+    response.setJoinLink(sharedUniqueHash, title);
 
     return response;
   }

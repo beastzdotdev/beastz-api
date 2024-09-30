@@ -31,14 +31,13 @@ export class FileStructurePublicShareController {
   ): Promise<FsPublicShareResponseDto> {
     const response = await this.fsPublicSharePureService.getBy(authPayload, queryParams);
 
-    const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
-      //
+    const { sharedUniqueHash, title } = await this.fileStructureService.getByIdSelect(
       authPayload,
       response.fileStructureId,
-      { sharedUniqueHash: true },
+      { sharedUniqueHash: true, title: true },
     );
 
-    return FsPublicShareResponseDto.map(response, sharedUniqueHash);
+    return FsPublicShareResponseDto.map(response, sharedUniqueHash, title);
   }
 
   @Get('is-enabled/:fsId')
@@ -49,14 +48,14 @@ export class FileStructurePublicShareController {
     const response = await this.fsPublicShareService.isEnabled(authPayload, fsId);
 
     if (response.data) {
-      const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
+      const { sharedUniqueHash, title } = await this.fileStructureService.getByIdSelect(
         authPayload,
         response.data.fileStructureId,
-        { sharedUniqueHash: true },
+        { sharedUniqueHash: true, title: true },
       );
 
       return {
-        data: FsPublicShareResponseDto.map(response.data, sharedUniqueHash),
+        data: FsPublicShareResponseDto.map(response.data, sharedUniqueHash, title),
         enabled: response.enabled,
       };
     }
@@ -75,14 +74,13 @@ export class FileStructurePublicShareController {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.fsPublicShareService.create(authPayload, dto, tx);
 
-      const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
-        //
+      const { sharedUniqueHash, title } = await this.fileStructureService.getByIdSelect(
         authPayload,
         response.fileStructureId,
-        { sharedUniqueHash: true },
+        { sharedUniqueHash: true, title: true },
       );
 
-      return FsPublicShareResponseDto.map(response, sharedUniqueHash);
+      return FsPublicShareResponseDto.map(response, sharedUniqueHash, title);
     });
   }
 
@@ -95,14 +93,13 @@ export class FileStructurePublicShareController {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.fsPublicShareService.updateById(authPayload, id, dto, tx);
 
-      const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
-        //
+      const { sharedUniqueHash, title } = await this.fileStructureService.getByIdSelect(
         authPayload,
         response.fileStructureId,
-        { sharedUniqueHash: true },
+        { sharedUniqueHash: true, title: true },
       );
 
-      return FsPublicShareResponseDto.map(response, sharedUniqueHash);
+      return FsPublicShareResponseDto.map(response, sharedUniqueHash, title);
     });
   }
 }
