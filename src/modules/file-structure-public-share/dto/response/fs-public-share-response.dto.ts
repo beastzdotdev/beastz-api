@@ -39,6 +39,7 @@ export class FsPublicShareResponseDto {
     const url = new URL(envService.get('FRONTEND_DOCUMENT_URL'));
     url.pathname = constants.frontendPath.document.collabJoin;
     url.searchParams.set('uniqueHash', sharedUniqueHash);
+    url.searchParams.set('title', title);
 
     this.joinLink = url.toString();
   }
