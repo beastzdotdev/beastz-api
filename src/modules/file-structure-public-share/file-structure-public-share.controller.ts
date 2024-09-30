@@ -9,6 +9,9 @@ import { FsPublishShareGetByQueryDto } from './dto/fs-publish-share-get-by-query
 import { FsPublicShareUpdateByIdDto } from './dto/fs-public-share-update-by-id.dto';
 import { FsPublicShareResponseDto } from './dto/response/fs-public-share-response.dto';
 import { FsPublicSharePureService } from './fs-public-share-pure.service';
+import { FileStructureService } from '../file-structure/file-structure.service';
+
+//TODO refactor needed move used method in pure service and remove this code from controllers
 
 @Controller('file-structure-public-share')
 export class FileStructurePublicShareController {
@@ -18,6 +21,7 @@ export class FileStructurePublicShareController {
     private readonly prismaService: PrismaService,
     private readonly fsPublicShareService: FileStructurePublicShareService,
     private readonly fsPublicSharePureService: FsPublicSharePureService,
+    private readonly fileStructureService: FileStructureService,
   ) {}
 
   @Get('get-by')
@@ -26,7 +30,15 @@ export class FileStructurePublicShareController {
     @Query() queryParams: FsPublishShareGetByQueryDto,
   ): Promise<FsPublicShareResponseDto> {
     const response = await this.fsPublicSharePureService.getBy(authPayload, queryParams);
-    return FsPublicShareResponseDto.map(response);
+
+    const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
+      //
+      authPayload,
+      response.fileStructureId,
+      { sharedUniqueHash: true },
+    );
+
+    return FsPublicShareResponseDto.map(response, sharedUniqueHash);
   }
 
   @Get('is-enabled/:fsId')
@@ -35,8 +47,22 @@ export class FileStructurePublicShareController {
     @Param('fsId', ParseIntPipe) fsId: number,
   ): Promise<{ enabled: boolean; data: FsPublicShareResponseDto | null }> {
     const response = await this.fsPublicShareService.isEnabled(authPayload, fsId);
+
+    if (response.data) {
+      const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
+        authPayload,
+        response.data.fileStructureId,
+        { sharedUniqueHash: true },
+      );
+
+      return {
+        data: FsPublicShareResponseDto.map(response.data, sharedUniqueHash),
+        enabled: response.enabled,
+      };
+    }
+
     return {
-      data: response.data ? FsPublicShareResponseDto.map(response.data) : null,
+      data: null,
       enabled: response.enabled,
     };
   }
@@ -48,7 +74,15 @@ export class FileStructurePublicShareController {
   ): Promise<FsPublicShareResponseDto> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.fsPublicShareService.create(authPayload, dto, tx);
-      return FsPublicShareResponseDto.map(response);
+
+      const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
+        //
+        authPayload,
+        response.fileStructureId,
+        { sharedUniqueHash: true },
+      );
+
+      return FsPublicShareResponseDto.map(response, sharedUniqueHash);
     });
   }
 
@@ -60,7 +94,15 @@ export class FileStructurePublicShareController {
   ): Promise<FsPublicShareResponseDto> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.fsPublicShareService.updateById(authPayload, id, dto, tx);
-      return FsPublicShareResponseDto.map(response);
+
+      const { sharedUniqueHash } = await this.fileStructureService.getByIdSelect(
+        //
+        authPayload,
+        response.fileStructureId,
+        { sharedUniqueHash: true },
+      );
+
+      return FsPublicShareResponseDto.map(response, sharedUniqueHash);
     });
   }
 }
