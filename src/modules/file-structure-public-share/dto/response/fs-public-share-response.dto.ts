@@ -1,4 +1,4 @@
-import { FileStructurePublicShare } from '@prisma/client';
+import { FileMimeType, FileStructurePublicShare } from '@prisma/client';
 import { Exclude, Expose, plainToInstance } from 'class-transformer';
 import { envService } from '@global/env';
 import { constants } from '../../../../common/constants';
@@ -35,18 +35,25 @@ export class FsPublicShareResponseDto {
   @Expose()
   joinLink: string;
 
-  setJoinLink(sharedUniqueHash: string, title: string): void {
+  setJoinLink(params: { sharedUniqueHash: string; title: string; mimeType: FileMimeType | null }): void {
+    const { sharedUniqueHash, title, mimeType } = params;
     const url = new URL(envService.get('FRONTEND_DOCUMENT_URL'));
+
     url.pathname = constants.frontendPath.document.collabJoin;
     url.searchParams.set('uniqueHash', sharedUniqueHash);
-    url.searchParams.set('title', title);
+
+    const ext = mimeType === FileMimeType.TEXT_PLAIN ? '.txt' : '.md';
+    url.searchParams.set('title', title + ext);
 
     this.joinLink = url.toString();
   }
 
-  static map(data: FileStructurePublicShare, sharedUniqueHash: string, title: string): FsPublicShareResponseDto {
+  static map(
+    data: FileStructurePublicShare,
+    params: { sharedUniqueHash: string; title: string; mimeType: FileMimeType | null },
+  ): FsPublicShareResponseDto {
     const response = plainToInstance(FsPublicShareResponseDto, data);
-    response.setJoinLink(sharedUniqueHash, title);
+    response.setJoinLink(params);
 
     return response;
   }
