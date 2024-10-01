@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Query, Logger, Patch, Param, ParseIntPipe } from '@nestjs/common';
 import { PrismaService, PrismaTx } from '@global/prisma';
+import { plainToInstance } from 'class-transformer';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { transaction } from '../../common/transaction';
@@ -10,6 +11,8 @@ import { FsPublicShareUpdateByIdDto } from './dto/fs-public-share-update-by-id.d
 import { FsPublicShareResponseDto } from './dto/response/fs-public-share-response.dto';
 import { FsPublicSharePureService } from './fs-public-share-pure.service';
 import { FileStructureService } from '../file-structure/file-structure.service';
+import { NoAuth } from '../../decorator/no-auth.decorator';
+import { PublicFsPublicShareResponseDto } from './dto/response/public-fs-public-share-response.dto';
 
 //TODO refactor needed move used method in pure service and remove this code from controllers
 
@@ -63,6 +66,19 @@ export class FileStructurePublicShareController {
     return {
       data: null,
       enabled: response.enabled,
+    };
+  }
+
+  @NoAuth()
+  @Get('is-enabled-public/:sharedUniqueHash')
+  async isEnabledPublic(
+    @Param('sharedUniqueHash') sharedUniqueHash: string,
+  ): Promise<{ enabled: boolean; data: PublicFsPublicShareResponseDto | null }> {
+    const response = await this.fsPublicShareService.isEnabledPublic(sharedUniqueHash);
+
+    return {
+      enabled: response.enabled,
+      data: response.data ? plainToInstance(PublicFsPublicShareResponseDto, response.data) : null,
     };
   }
 

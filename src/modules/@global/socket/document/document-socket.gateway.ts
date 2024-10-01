@@ -237,6 +237,10 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
   @OnEvent(EmitterEventFields['document.pull.doc.full'], { async: true })
   async documentPullDocFull(payload: EmitterEvents['document.pull.doc.full']) {
+    console.log('='.repeat(20));
+    console.log('changes');
+    console.log(payload);
+
     const { userId } = payload;
     const socketId = await this.redis.get(constants.redis.buildUserIdName(userId));
 

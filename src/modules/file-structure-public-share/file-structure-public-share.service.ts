@@ -210,6 +210,24 @@ export class FileStructurePublicShareService {
     };
   }
 
+  async isEnabledPublic(
+    sharedUniqueHash: string,
+  ): Promise<{ enabled: boolean; data: FileStructurePublicShare | null }> {
+    const fsPublicShare = await this.fsPublicShareRepository.getBy({ sharedUniqueHash });
+
+    if (!fsPublicShare) {
+      return {
+        enabled: false,
+        data: null,
+      };
+    }
+
+    return {
+      enabled: !fsPublicShare.isDisabled,
+      data: fsPublicShare,
+    };
+  }
+
   private async getDocumentText(authPayload: AuthPayloadType, fs: FileStructure): Promise<string> {
     const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
     return fsCustom.readFile(sourceContentPath).catch(() => {

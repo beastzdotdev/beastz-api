@@ -27,7 +27,7 @@ export class FileStructurePublicShareRepository {
 
   async getBy(params: GetByMethodParamsInFsPublicShare, tx?: PrismaTx): Promise<FsPublicShareWithRelations | null> {
     const db = tx ?? this.prismaService;
-    const { fileStructureId, userId } = params;
+    const { fileStructureId, userId, sharedUniqueHash } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -37,6 +37,7 @@ export class FileStructurePublicShareRepository {
       where: {
         fileStructureId,
         userId,
+        ...(sharedUniqueHash && { fileStructure: { sharedUniqueHash } }),
       },
       relationLoadStrategy: 'join',
       include: {
