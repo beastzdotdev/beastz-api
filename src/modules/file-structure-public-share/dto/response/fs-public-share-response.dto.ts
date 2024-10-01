@@ -40,7 +40,7 @@ export class FsPublicShareResponseDto {
     const url = new URL(envService.get('FRONTEND_DOCUMENT_URL'));
 
     url.pathname = constants.frontendPath.document.collabJoin;
-    url.searchParams.set('uniqueHash', sharedUniqueHash);
+    url.searchParams.set('sharedUniqueHash', sharedUniqueHash);
 
     const ext = mimeType === FileMimeType.TEXT_PLAIN ? '.txt' : '.md';
     url.searchParams.set('title', title + ext);
