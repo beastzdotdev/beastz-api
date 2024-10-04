@@ -17,7 +17,7 @@ import {
 } from '@nestjs/websockets';
 
 import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
-import { PushDocBody, SocketForUserInject } from './document-socket.type';
+import { PushDocBody, DocumentSocket } from './document-socket.type';
 import { DocumentSocketTokenExtractGuard } from './document-socket-token-extract.guard';
 import { DocumentSocketService } from './document-socket.service';
 import { SocketTokenPayload } from './document-socket-user.decorator';
@@ -25,6 +25,7 @@ import { AccessTokenPayload } from '../../jwt/jwt.type';
 import { constants } from '../../../../common/constants';
 import { EmitterEventFields, EmitterEvents } from '../../event-emitter';
 import { SocketError } from '../../../../exceptions/socket.exception';
+import { assertDocumentSocketForUser } from './document-socket.helper';
 
 // now after lots of things are stable
 //   (+) start adding collab button back first
@@ -68,7 +69,6 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   doc: Text = Text.of(['Start document']);
 
   @WebSocketServer() private wss: Namespace;
-  //
 
   constructor(
     @InjectRedis()
@@ -89,52 +89,64 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     this.wss.use(this.documentSocketInitMiddleware.AuthWsMiddleware());
   }
 
-  async handleConnection(@ConnectedSocket() clientSocket: SocketForUserInject): Promise<void> {
-    console.log('[Connect] Start - ' + clientSocket.id);
+  async handleConnection(@ConnectedSocket() socket: DocumentSocket): Promise<void> {
+    if (socket.handshake.isServant) {
+      //TODO for servant continue
+      console.log('is servant');
+      return;
+    }
+
+    assertDocumentSocketForUser(socket);
+
+    console.log('[Connect] Start - ' + socket.id);
 
     await this.redis.set(
-      constants.redis.buildUserIdName(clientSocket.handshake.accessTokenPayload.userId),
-      clientSocket.id,
+      constants.redis.buildUserIdName(socket.handshake.accessTokenPayload.userId),
+      socket.id,
       'EX',
       constants.redis.twoDayInSec,
     );
 
     try {
-      await Promise.all([
-        this.documentSocketService.setLock(clientSocket),
-        this.documentSocketService.checkSharing(clientSocket),
-      ]);
+      await Promise.all([this.documentSocketService.setLock(socket), this.documentSocketService.checkSharing(socket)]);
 
       // notify myself to fetch document always !
-      this.wss.to(clientSocket.id).emit(constants.socket.events.PullDocFull);
+      this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
     } catch (error) {
       // throwing errors from this method does not seem to be good idea
       // if sometihng bad happens just disconnect client
 
       this.logger.error(error);
-      this.logger.error('[Connect] Early disconnect - ' + clientSocket.id);
+      this.logger.error('[Connect] Early disconnect - ' + socket.id);
 
-      clientSocket.disconnect();
+      socket.disconnect();
       return;
     }
 
-    console.log('[Connect] finish - ' + clientSocket.id);
+    console.log('[Connect] finish - ' + socket.id);
   }
 
-  async handleDisconnect(@ConnectedSocket() clientSocket: SocketForUserInject) {
-    console.log('[Disconnet] Start - ' + clientSocket.id);
+  async handleDisconnect(@ConnectedSocket() socket: DocumentSocket) {
+    if (socket.handshake.isServant) {
+      //TODO for servant continue
+      console.log('is servant');
+      return;
+    }
 
-    await this.redis.del(constants.redis.buildUserIdName(clientSocket.handshake.accessTokenPayload.userId));
+    assertDocumentSocketForUser(socket);
+
+    console.log('[Disconnet] Start - ' + socket.id);
+
+    await this.redis.del(constants.redis.buildUserIdName(socket.handshake.accessTokenPayload.userId));
 
     try {
-      const { fsCollabKeyName, activeServants, fsId } =
-        await this.documentSocketService.getDisconnectParams(clientSocket);
+      const { fsCollabKeyName, activeServants, fsId } = await this.documentSocketService.getDisconnectParams(socket);
 
       if (!activeServants.length) {
-        await this.documentSocketService.removeLock(clientSocket);
+        await this.documentSocketService.removeLock(socket);
 
         //! must be after removing lock
-        await this.documentSocketService.saveFileStructure(clientSocket, { fsId, fsCollabKeyName });
+        await this.documentSocketService.saveFileStructure(socket, { fsId, fsCollabKeyName });
 
         //! must be after saving fs
         await this.redis.del(fsCollabKeyName);
@@ -142,23 +154,31 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
       // notify everyone
       for (const socketId of activeServants) {
-        this.wss.to(socketId).emit(constants.socket.events.UserLeft, { socketId: clientSocket.id });
+        this.wss.to(socketId).emit(constants.socket.events.UserLeft, { socketId: socket.id });
       }
     } catch (error) {
       this.logger.error(error);
-      this.logger.error('[Disconnet] Early return - ' + clientSocket.id);
+      this.logger.error('[Disconnet] Early return - ' + socket.id);
 
       // if forcefully disconnected from handleconnection then forcefull disconnect is not needed here
-      clientSocket.connected ? clientSocket.disconnect() : undefined;
+      socket.connected ? socket.disconnect() : undefined;
       return;
     }
 
-    console.log('[Disconnet] Finish - ' + clientSocket.id);
+    console.log('[Disconnet] Finish - ' + socket.id);
   }
 
   @UseGuards(DocumentSocketTokenExtractGuard)
   @SubscribeMessage(constants.socket.events.PushDoc)
-  async handlePushUpdates(@ConnectedSocket() socket: Socket, @MessageBody() body: PushDocBody) {
+  async handlePushUpdates(@ConnectedSocket() socket: DocumentSocket, @MessageBody() body: PushDocBody) {
+    if (socket.handshake.isServant) {
+      //TODO for servant continue
+      console.log('is servant');
+      return;
+    }
+
+    assertDocumentSocketForUser(socket);
+
     let isError = false;
 
     const { changes, sharedUniqueHash } = body;
@@ -203,16 +223,21 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   }
 
   @SubscribeMessage(constants.socket.events.PullDocFull)
-  async handlePullUpdates(@ConnectedSocket() socket: Socket) {
+  async handlePullUpdates(@ConnectedSocket() socket: DocumentSocket) {
     this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
   }
 
   @UseGuards(DocumentSocketTokenExtractGuard)
   @SubscribeMessage('test')
-  async handleUpdatex(
-    @ConnectedSocket() socket: SocketForUserInject,
-    @SocketTokenPayload() payload: AccessTokenPayload,
-  ) {
+  async handleUpdatex(@ConnectedSocket() socket: DocumentSocket, @SocketTokenPayload() payload: AccessTokenPayload) {
+    if (socket.handshake.isServant) {
+      //TODO for servant continue
+      console.log('is servant');
+      return;
+    }
+
+    assertDocumentSocketForUser(socket);
+
     this.logger.debug('='.repeat(20));
     this.logger.debug('test');
     this.logger.debug('socket id', socket.id);
@@ -252,8 +277,8 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     this.wss.to(socketId).emit(constants.socket.events.PullDocFull);
   }
 
-  @OnEvent(EmitterEventFields['admin.socket.test'])
-  testSocketFromAdmin(payload: EmitterEvents['admin.socket.test']) {
+  @OnEvent(EmitterEventFields['admin.socket.test'], { async: true })
+  async testSocketFromAdmin(payload: EmitterEvents['admin.socket.test']) {
     // emit to all connected clients in this namespace
     if (payload.type === 'namespace') {
       this.wss.emit('admin_test', payload.message);

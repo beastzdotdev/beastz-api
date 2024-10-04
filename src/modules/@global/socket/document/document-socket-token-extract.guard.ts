@@ -6,6 +6,7 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -18,7 +19,7 @@ import { InjectEnv } from '../../env/env.decorator';
 import { EnvService } from '../../env/env.service';
 import { JwtService } from '../../jwt/jwt.service';
 import { constants } from '../../../../common/constants';
-import { SocketForUserInject } from './document-socket.type';
+import { DocumentSocket } from './document-socket.type';
 import { UserService } from '../../../user/user.service';
 
 /**
@@ -41,11 +42,11 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const socket = context.switchToWs().getClient<SocketForUserInject>();
+    const socket = context.switchToWs().getClient<DocumentSocket>();
     return this.errorWrapper(socket, () => this.interceptEvent(socket));
   }
 
-  async errorWrapper(socket: SocketForUserInject, callback: () => Promise<void>): Promise<boolean> {
+  private async errorWrapper(socket: DocumentSocket, callback: () => Promise<void>): Promise<boolean> {
     try {
       await callback();
       return true;
@@ -85,7 +86,12 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
     }
   }
 
-  private async interceptEvent(socket: SocketForUserInject) {
+  private async interceptEvent(socket: DocumentSocket) {
+    if (socket.handshake.isServant) {
+      this.logger.debug('Validating user and was servant');
+      throw new InternalServerErrorException('THis should not happend');
+    }
+
     const { authorizationHeader, platform } = this.validateHeaders(socket);
 
     let accessToken: string | undefined;
@@ -136,7 +142,7 @@ export class DocumentSocketTokenExtractGuard implements CanActivate {
     socket.handshake.user = { uuid };
   }
 
-  private validateHeaders(socket: SocketForUserInject) {
+  private validateHeaders(socket: DocumentSocket) {
     const authorizationHeader =
       <string>socket.handshake.headers[constants.AUTH_HEADER_NAME.toLowerCase()] ||
       <string>socket.handshake.headers[constants.AUTH_HEADER_NAME];

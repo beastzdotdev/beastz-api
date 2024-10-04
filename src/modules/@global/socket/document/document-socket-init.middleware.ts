@@ -2,7 +2,13 @@ import cookie from 'cookie';
 import cookieParser from 'cookie-parser';
 import { Socket } from 'socket.io';
 import { PlatformForJwt } from '@prisma/client';
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { encryption } from '../../../../common/encryption';
 import { enumValueIncludes } from '../../../../common/helper';
 import { AccessTokenExpiredException } from '../../../../exceptions/access-token-expired.exception';
@@ -14,7 +20,7 @@ import { InjectEnv } from '../../env/env.decorator';
 import { EnvService } from '../../env/env.service';
 import { JwtService } from '../../jwt/jwt.service';
 import { constants } from '../../../../common/constants';
-import { SocketForUserInject } from './document-socket.type';
+import { DocumentSocket } from './document-socket.type';
 import { UserService } from '../../../user/user.service';
 
 @Injectable()
@@ -30,12 +36,23 @@ export class DocumentSocketInitMiddleware {
   ) {}
 
   AuthWsMiddleware() {
-    return async (socket: Socket | SocketForUserInject, next: (err?: Error) => void) => {
-      try {
-        await this.validate(socket as SocketForUserInject);
+    return async (socket: Socket | DocumentSocket, next: (err?: Error) => void) => {
+      console.log('='.repeat(20));
+      // console.log(socket);
+      console.log(socket.handshake);
 
-        if (!socket.handshake.auth?.filesStructureId) {
-          throw new NotFoundException(ExceptionMessageCode.DOCUMENT_ID_MISSING);
+      try {
+        const isServant = socket.handshake.auth?.sharedUniqueHash;
+        socket.handshake['isServant'] = isServant;
+
+        if (isServant) {
+          this.validateServant(socket as DocumentSocket);
+        } else {
+          await this.validate(socket as DocumentSocket);
+
+          if (!socket.handshake.auth?.filesStructureId) {
+            throw new NotFoundException(ExceptionMessageCode.DOCUMENT_ID_MISSING);
+          }
         }
 
         next();
@@ -71,8 +88,21 @@ export class DocumentSocketInitMiddleware {
       }
     };
   }
+  private validateServant(socket: DocumentSocket) {
+    if (!socket.handshake.isServant) {
+      this.logger.debug('Validating servant and was not servant');
+      throw new InternalServerErrorException('This should not happend');
+    }
 
-  private async validate(socket: SocketForUserInject) {
+    // I guess for now nothing is here to validate but in future it will be needed
+  }
+
+  private async validate(socket: DocumentSocket) {
+    if (socket.handshake.isServant) {
+      this.logger.debug('Validating user and was servant');
+      throw new InternalServerErrorException('THis should not happend');
+    }
+
     const { authorizationHeader, platform } = this.validateHeaders(socket);
 
     let accessToken: string | undefined;

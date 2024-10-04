@@ -1,6 +1,5 @@
 import { Controller, Post, Body, Get, Query, Logger, Patch, Param, ParseIntPipe } from '@nestjs/common';
 import { PrismaService, PrismaTx } from '@global/prisma';
-import { plainToInstance } from 'class-transformer';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
 import { AuthPayloadType } from '../../model/auth.types';
 import { transaction } from '../../common/transaction';
@@ -10,9 +9,9 @@ import { FsPublishShareGetByQueryDto } from './dto/fs-publish-share-get-by-query
 import { FsPublicShareUpdateByIdDto } from './dto/fs-public-share-update-by-id.dto';
 import { FsPublicShareResponseDto } from './dto/response/fs-public-share-response.dto';
 import { FsPublicSharePureService } from './fs-public-share-pure.service';
-import { FileStructureService } from '../file-structure/file-structure.service';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { PublicFsPublicShareResponseDto } from './dto/response/public-fs-public-share-response.dto';
+import { FileStructurePublicShareMapper } from './file-structure-public-share.mapper';
 
 //TODO refactor needed move used method in pure service and remove this code from controllers
 
@@ -24,7 +23,7 @@ export class FileStructurePublicShareController {
     private readonly prismaService: PrismaService,
     private readonly fsPublicShareService: FileStructurePublicShareService,
     private readonly fsPublicSharePureService: FsPublicSharePureService,
-    private readonly fileStructureService: FileStructureService,
+    private readonly fileStructurePublicShareMapper: FileStructurePublicShareMapper,
   ) {}
 
   @Get('get-by')
@@ -34,13 +33,9 @@ export class FileStructurePublicShareController {
   ): Promise<FsPublicShareResponseDto> {
     const response = await this.fsPublicSharePureService.getBy(authPayload, queryParams);
 
-    const { sharedUniqueHash, title, mimeType } = await this.fileStructureService.getByIdSelect(
-      authPayload,
-      response.fileStructureId,
-      { sharedUniqueHash: true, title: true, mimeType: true },
-    );
+    const x = await this.fileStructurePublicShareMapper.amap<false>(authPayload, response);
 
-    return FsPublicShareResponseDto.map(response, { sharedUniqueHash, title, mimeType });
+    return this.fileStructurePublicShareMapper.map(authPayload, response);
   }
 
   @Get('is-enabled/:fsId')
@@ -49,22 +44,10 @@ export class FileStructurePublicShareController {
     @Param('fsId', ParseIntPipe) fsId: number,
   ): Promise<{ enabled: boolean; data: FsPublicShareResponseDto | null }> {
     const response = await this.fsPublicShareService.isEnabled(authPayload, fsId);
-
-    if (response.data) {
-      const { sharedUniqueHash, title, mimeType } = await this.fileStructureService.getByIdSelect(
-        authPayload,
-        response.data.fileStructureId,
-        { sharedUniqueHash: true, title: true, mimeType: true },
-      );
-
-      return {
-        data: FsPublicShareResponseDto.map(response.data, { sharedUniqueHash, title, mimeType }),
-        enabled: response.enabled,
-      };
-    }
+    const data = await this.fileStructurePublicShareMapper.mapOrNull(authPayload, response.data);
 
     return {
-      data: null,
+      data,
       enabled: response.enabled,
     };
   }
@@ -78,7 +61,7 @@ export class FileStructurePublicShareController {
 
     return {
       enabled: response.enabled,
-      data: response.data ? plainToInstance(PublicFsPublicShareResponseDto, response.data) : null,
+      data: this.fileStructurePublicShareMapper.mapPublic(response.data),
     };
   }
 
@@ -89,14 +72,7 @@ export class FileStructurePublicShareController {
   ): Promise<FsPublicShareResponseDto> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.fsPublicShareService.create(authPayload, dto, tx);
-
-      const { sharedUniqueHash, title, mimeType } = await this.fileStructureService.getByIdSelect(
-        authPayload,
-        response.fileStructureId,
-        { sharedUniqueHash: true, title: true, mimeType: true },
-      );
-
-      return FsPublicShareResponseDto.map(response, { sharedUniqueHash, title, mimeType });
+      return this.fileStructurePublicShareMapper.map(authPayload, response);
     });
   }
 
@@ -108,14 +84,7 @@ export class FileStructurePublicShareController {
   ): Promise<FsPublicShareResponseDto> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const response = await this.fsPublicShareService.updateById(authPayload, id, dto, tx);
-
-      const { sharedUniqueHash, title, mimeType } = await this.fileStructureService.getByIdSelect(
-        authPayload,
-        response.fileStructureId,
-        { sharedUniqueHash: true, title: true, mimeType: true },
-      );
-
-      return FsPublicShareResponseDto.map(response, { sharedUniqueHash, title, mimeType });
+      return this.fileStructurePublicShareMapper.map(authPayload, response);
     });
   }
 }

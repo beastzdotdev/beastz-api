@@ -6,9 +6,15 @@ import { FileStructureBinModule } from '../file-structure-bin/file-structure-bin
 import { FileStructureRawQueryRepository } from './file-structure-raw-query.repositor';
 import { FileStructureEncryptionModule } from '../file-structure-encryption/file-structure-encryption.module';
 import { FileStructurePublicShareModule } from '../file-structure-public-share/file-structure-public-share.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [FileStructureBinModule, FileStructureEncryptionModule, forwardRef(() => FileStructurePublicShareModule)],
+  imports: [
+    FileStructureBinModule,
+    FileStructureEncryptionModule,
+    forwardRef(() => FileStructurePublicShareModule),
+    UserModule,
+  ],
   controllers: [FileStructureController],
   providers: [FileStructureService, FileStructureRepository, FileStructureRawQueryRepository],
   exports: [FileStructureService],

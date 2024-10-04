@@ -64,6 +64,7 @@ import {
   absUserDeletedForeverPath,
   absUserTempFolderZipPath,
 } from './file-structure.helper';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class FileStructureService {
@@ -78,6 +79,7 @@ export class FileStructureService {
     private readonly fsRawQueryRepository: FileStructureRawQueryRepository,
     private readonly fsBinService: FileStructureBinService,
     private readonly fsEncryptionService: FileStructureEncryptionService,
+    private readonly userService: UserService,
   ) {}
 
   async checkDocEditingCurrently(fsId: number): Promise<void> {
@@ -358,6 +360,30 @@ export class FileStructureService {
 
     if (text === null) {
       const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fsPath);
+      const documentText = await fsCustom.readFile(sourceContentPath).catch(() => {
+        throw new BadRequestException('File not found');
+      });
+
+      return documentText;
+    }
+
+    return text;
+  }
+
+  async getDocumentTextByIdPublic(sharedUniqueHash: string) {
+    const fileStructure = await this.fsRepository.getBy({ sharedUniqueHash });
+
+    if (!fileStructure) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    const uuid = await this.userService.getUUIDById(fileStructure.userId);
+
+    const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
+    const text = await this.redis.hget(fsCollabKeyName, 'doc');
+
+    if (text === null) {
+      const sourceContentPath = path.join(absUserContentPath(uuid), fileStructure.path);
       const documentText = await fsCustom.readFile(sourceContentPath).catch(() => {
         throw new BadRequestException('File not found');
       });

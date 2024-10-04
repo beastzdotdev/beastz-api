@@ -105,7 +105,7 @@ export class FileStructureRepository {
   async getBy(params: GetByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure | null> {
     const db = tx ?? this.prismaService;
 
-    const { depth, isFile, title, userId, path, parentId, fileExstensionRaw, mimeTypeRaw } = params;
+    const { depth, isFile, title, userId, path, parentId, fileExstensionRaw, mimeTypeRaw, sharedUniqueHash } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -122,6 +122,7 @@ export class FileStructureRepository {
         parentId,
         fileExstensionRaw,
         isInBin: false,
+        sharedUniqueHash,
       },
     });
   }

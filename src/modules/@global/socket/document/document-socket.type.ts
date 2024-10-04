@@ -6,16 +6,24 @@ export type PushDocBody = {
   changes: unknown;
 };
 
-export type SocketForUserInject = Socket & {
+type DocumentSocketForUser = Socket & {
   handshake: Socket['handshake'] & {
+    isServant: false;
     accessTokenPayload: AccessTokenPayload;
     user: { uuid: string };
     auth: Socket['handshake']['auth'] & { filesStructureId: number };
   };
 };
-
-export type CollaborationSession = {
-  //TODO resume here
-  //TODO and after this I think it would be better if I finish db and api stuff first
-  //TODO then move to redis because join token is needed from frontend
+type DocumentSocketForServant = Socket & {
+  handshake: Socket['handshake'] & {
+    isServant: true;
+    sharedUniqueHash: string;
+    auth: Socket['handshake']['auth'] & { sharedUniqueHash?: string };
+  };
 };
+
+export type DocumentSocket<T = 'user' | 'servant'> = T extends 'user'
+  ? DocumentSocketForUser
+  : T extends 'servant'
+    ? DocumentSocketForServant
+    : DocumentSocketForUser | DocumentSocketForServant;

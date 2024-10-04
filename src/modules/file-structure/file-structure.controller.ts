@@ -22,6 +22,7 @@ import { transaction } from '../../common/transaction';
 import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
+import { NoAuth } from '../../decorator/no-auth.decorator';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -100,6 +101,12 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<string> {
     return this.fileStructureService.getDocumentTextById(authPayload, id);
+  }
+
+  @NoAuth()
+  @Get('document-text-public/:sharedUniqueHash')
+  async getDocumentTextByIdPublic(@Param('sharedUniqueHash') sharedUniqueHash: string): Promise<string> {
+    return this.fileStructureService.getDocumentTextByIdPublic(sharedUniqueHash);
   }
 
   @Post('duplicate-status')
