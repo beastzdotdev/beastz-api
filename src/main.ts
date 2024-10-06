@@ -73,7 +73,9 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
 
   // Measure startup time
   const totalTimeInMs = (performance.now() - startingTime).toFixed(3) + ' ms';
-  logger.verbose(`Nest application initialized (Node: ${process.versions.node}) (${totalTimeInMs})`);
+  logger.verbose(
+    `Nest application initialized (Node: ${process.versions.node}) (TZ: ${process.env.TZ}) (${totalTimeInMs})`,
+  );
 
   // Log misc stuff
   appLogger.cyanLog(

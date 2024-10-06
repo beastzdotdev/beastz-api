@@ -56,6 +56,7 @@ export const constants = Object.freeze({
 
     buildFSLockName: (fsId: number) => `fs::lock::${fsId}`,
     buildUserIdName: (userId: number) => `user::${userId}`,
+    buildServantsName: (socketId: string) => `servant::${socketId}`,
     buildFSCollabName: (sharedUniqueHash: string) => `fs::collab::${sharedUniqueHash}`,
   },
 

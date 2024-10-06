@@ -10,6 +10,22 @@ export class CollabRedis {
     private readonly redis: Redis,
   ) {}
 
+  async getMasterSocketId(key: string): Promise<string | null> {
+    const masterSocketId = await this.redis.hget(key, 'masterSocketId');
+
+    return masterSocketId === JSON.stringify(null) ? null : masterSocketId;
+  }
+
+  async addServant(key: string, id: string): Promise<void> {
+    const servants = await this.getServants(key);
+
+    if (servants.includes(id)) {
+      return;
+    }
+
+    await this.redis.hset(key, 'servants', JSON.stringify([...servants, id]));
+  }
+
   async getServants(key: string): Promise<string[]> {
     const servants = await this.redis.hget(key, 'servants');
 
@@ -33,7 +49,7 @@ export class CollabRedis {
       updates: string[];
       masterSocketId: string | null;
     },
-  ) {
+  ): Promise<void> {
     const { doc, masterUserId, servants, updates, masterSocketId } = params;
 
     // create hash table

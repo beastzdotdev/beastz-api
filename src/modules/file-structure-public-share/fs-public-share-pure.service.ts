@@ -1,3 +1,4 @@
+import { PrismaTx } from '@global/prisma';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { FileStructurePublicShare } from '@prisma/client';
 import { FileStructurePublicShareRepository } from './file-structure-public-share.repository';
@@ -11,13 +12,17 @@ export class FsPublicSharePureService {
   async getBy(
     authPayload: AuthPayloadType | { user: { id: number } },
     queryParams: FsPublishShareGetByQueryDto,
+    tx?: PrismaTx,
   ): Promise<FileStructurePublicShare> {
     const { fileStructureId } = queryParams;
 
-    const fsPublicShare = await this.fsPublicShareRepository.getBy({
-      userId: authPayload.user.id,
-      fileStructureId,
-    });
+    const fsPublicShare = await this.fsPublicShareRepository.getBy(
+      {
+        userId: authPayload.user.id,
+        fileStructureId,
+      },
+      tx,
+    );
 
     if (!fsPublicShare) {
       throw new NotFoundException();

@@ -32,9 +32,6 @@ export class FileStructurePublicShareController {
     @Query() queryParams: FsPublishShareGetByQueryDto,
   ): Promise<FsPublicShareResponseDto> {
     const response = await this.fsPublicSharePureService.getBy(authPayload, queryParams);
-
-    const x = await this.fileStructurePublicShareMapper.amap<false>(authPayload, response);
-
     return this.fileStructurePublicShareMapper.map(authPayload, response);
   }
 
@@ -44,11 +41,11 @@ export class FileStructurePublicShareController {
     @Param('fsId', ParseIntPipe) fsId: number,
   ): Promise<{ enabled: boolean; data: FsPublicShareResponseDto | null }> {
     const response = await this.fsPublicShareService.isEnabled(authPayload, fsId);
-    const data = await this.fileStructurePublicShareMapper.mapOrNull(authPayload, response.data);
+    const data = await this.fileStructurePublicShareMapper.map(authPayload, response.data);
 
     return {
-      data,
       enabled: response.enabled,
+      data,
     };
   }
 
@@ -58,10 +55,10 @@ export class FileStructurePublicShareController {
     @Param('sharedUniqueHash') sharedUniqueHash: string,
   ): Promise<{ enabled: boolean; data: PublicFsPublicShareResponseDto | null }> {
     const response = await this.fsPublicShareService.isEnabledPublic(sharedUniqueHash);
-
+    const data = this.fileStructurePublicShareMapper.mapPublic(response.data);
     return {
       enabled: response.enabled,
-      data: this.fileStructurePublicShareMapper.mapPublic(response.data),
+      data,
     };
   }
 

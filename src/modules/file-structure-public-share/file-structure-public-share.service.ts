@@ -191,11 +191,15 @@ export class FileStructurePublicShareService {
   async isEnabled(
     authPayload: AuthPayloadType | { user: { id: number } },
     fsId: number,
+    tx?: PrismaTx,
   ): Promise<{ enabled: boolean; data: FileStructurePublicShare | null }> {
-    const fsPublicShare = await this.fsPublicShareRepository.getBy({
-      userId: authPayload.user.id,
-      fileStructureId: fsId,
-    });
+    const fsPublicShare = await this.fsPublicShareRepository.getBy(
+      {
+        userId: authPayload.user.id,
+        fileStructureId: fsId,
+      },
+      tx,
+    );
 
     if (!fsPublicShare) {
       return {

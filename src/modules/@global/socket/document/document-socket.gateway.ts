@@ -1,8 +1,8 @@
 import { Redis } from 'ioredis';
 import { performance } from 'node:perf_hooks';
-import { Socket, Namespace } from 'socket.io';
+import { Namespace } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ChangeSet, Text } from '@codemirror/state';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
@@ -18,7 +18,6 @@ import {
 
 import { DocumentSocketInitMiddleware } from './document-socket-init.middleware';
 import { PushDocBody, DocumentSocket } from './document-socket.type';
-import { DocumentSocketTokenExtractGuard } from './document-socket-token-extract.guard';
 import { DocumentSocketService } from './document-socket.service';
 import { SocketTokenPayload } from './document-socket-user.decorator';
 import { AccessTokenPayload } from '../../jwt/jwt.type';
@@ -26,6 +25,7 @@ import { constants } from '../../../../common/constants';
 import { EmitterEventFields, EmitterEvents } from '../../event-emitter';
 import { SocketError } from '../../../../exceptions/socket.exception';
 import { assertDocumentSocketForUser } from './document-socket.helper';
+import { CollabRedis } from '../../redis';
 
 // now after lots of things are stable
 //   (+) start adding collab button back first
@@ -76,11 +76,13 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
     private readonly documentSocketInitMiddleware: DocumentSocketInitMiddleware,
     private readonly documentSocketService: DocumentSocketService,
-  ) {
-    this.documentSocketService.wss = this.wss;
-  }
+    private readonly collabRedis: CollabRedis,
+  ) {}
 
   afterInit() {
+    //! Very important this code does only work in afterInit not in constructor
+    this.documentSocketService.wss = this.wss;
+
     const totalTimeInMs = (performance.now() - this.time).toFixed(3) + 'ms';
     this.logger.verbose(`socket under namespace of "${constants.socket.DOC_NAMESPACE}" initialized (${totalTimeInMs})`);
 
@@ -90,25 +92,27 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   }
 
   async handleConnection(@ConnectedSocket() socket: DocumentSocket): Promise<void> {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return;
-    }
-
-    assertDocumentSocketForUser(socket);
-
     console.log('[Connect] Start - ' + socket.id);
+    console.log('isServant - ' + !!socket.handshake.isServant);
 
-    await this.redis.set(
-      constants.redis.buildUserIdName(socket.handshake.accessTokenPayload.userId),
-      socket.id,
-      'EX',
-      constants.redis.twoDayInSec,
-    );
+    const keyName = socket.handshake.isServant
+      ? constants.redis.buildServantsName(socket.id)
+      : constants.redis.buildUserIdName(socket.handshake.accessTokenPayload.userId);
+
+    const keyValue = socket.handshake.isServant
+      ? socket.handshake.data.sharedUniqueHash
+      : socket.handshake.accessTokenPayload.userId;
+
+    await this.redis.set(keyName, keyValue, 'EX', constants.redis.twoDayInSec);
 
     try {
-      await Promise.all([this.documentSocketService.setLock(socket), this.documentSocketService.checkSharing(socket)]);
+      await Promise.all([
+        this.documentSocketService.setLock(socket),
+
+        socket.handshake.isServant
+          ? this.documentSocketService.checkSharingForServant(socket as DocumentSocket<'servant'>)
+          : this.documentSocketService.checkSharing(socket as DocumentSocket<'user'>),
+      ]);
 
       // notify myself to fetch document always !
       this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
@@ -127,34 +131,48 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   }
 
   async handleDisconnect(@ConnectedSocket() socket: DocumentSocket) {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return;
-    }
-
-    assertDocumentSocketForUser(socket);
-
     console.log('[Disconnet] Start - ' + socket.id);
 
-    await this.redis.del(constants.redis.buildUserIdName(socket.handshake.accessTokenPayload.userId));
+    const delKeyName = socket.handshake.isServant
+      ? constants.redis.buildServantsName(socket.id)
+      : constants.redis.buildUserIdName(socket.handshake.accessTokenPayload.userId);
+
+    await this.redis.del(delKeyName);
 
     try {
       const { fsCollabKeyName, activeServants, fsId } = await this.documentSocketService.getDisconnectParams(socket);
 
-      if (!activeServants.length) {
+      let totalPeopleLeftExceptCaller: string[];
+
+      if (socket.handshake.isServant) {
+        const masterSocketId = await this.collabRedis.getMasterSocketId(fsCollabKeyName);
+        const servantExceptCurrent = activeServants.filter(id => id !== socket.id);
+
+        totalPeopleLeftExceptCaller = [masterSocketId, ...servantExceptCurrent].filter(Boolean);
+      } else {
+        totalPeopleLeftExceptCaller = activeServants;
+      }
+
+      if (!totalPeopleLeftExceptCaller.length) {
         await this.documentSocketService.removeLock(socket);
 
+        const uuid = socket.handshake.isServant ? socket.handshake.data.user.uuid : socket.handshake.user.uuid;
+        const userId = socket.handshake.isServant
+          ? socket.handshake.data.user.id
+          : socket.handshake.accessTokenPayload.userId;
+
         //! must be after removing lock
-        await this.documentSocketService.saveFileStructure(socket, { fsId, fsCollabKeyName });
+        await this.documentSocketService.saveFileStructure({ fsId, fsCollabKeyName, userId, uuid });
 
         //! must be after saving fs
         await this.redis.del(fsCollabKeyName);
       }
 
       // notify everyone
-      for (const socketId of activeServants) {
-        this.wss.to(socketId).emit(constants.socket.events.UserLeft, { socketId: socket.id });
+      for (const socketId of totalPeopleLeftExceptCaller) {
+        if (socketId !== socket.id) {
+          this.wss.to(socketId).emit(constants.socket.events.UserLeft, { socketId: socket.id });
+        }
       }
     } catch (error) {
       this.logger.error(error);
@@ -168,23 +186,15 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     console.log('[Disconnet] Finish - ' + socket.id);
   }
 
-  @UseGuards(DocumentSocketTokenExtractGuard)
   @SubscribeMessage(constants.socket.events.PushDoc)
   async handlePushUpdates(@ConnectedSocket() socket: DocumentSocket, @MessageBody() body: PushDocBody) {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return;
-    }
-
-    assertDocumentSocketForUser(socket);
-
+    // const now = performance.now();
     let isError = false;
 
     const { changes, sharedUniqueHash } = body;
 
+    const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
     try {
-      const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
       const doc = await this.redis.hget(fsCollabKeyName, 'doc');
 
       if (doc !== null) {
@@ -194,10 +204,15 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
         await this.redis.hset(fsCollabKeyName, 'doc', newDoc);
       } else {
-        const { servants } = await this.documentSocketService.getServantsBySharedUniqueHash(sharedUniqueHash);
+        const [{ servants }, masterSocketId] = await Promise.all([
+          this.documentSocketService.getServantsBySharedUniqueHash(sharedUniqueHash),
+          this.collabRedis.getMasterSocketId(fsCollabKeyName),
+        ]);
+
+        const receivers = new Set([...servants, masterSocketId].filter(Boolean));
 
         // notify everyone
-        for (const socketId of servants.concat(socket.id)) {
+        for (const socketId of receivers) {
           this.wss.to(socketId).emit(constants.socket.events.RetryConnection);
         }
 
@@ -212,14 +227,30 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     if (!isError) {
       const { servants } = await this.documentSocketService.getServantsBySharedUniqueHash(sharedUniqueHash);
 
+      const final = servants;
+
+      // fill master socket id as well
+      if (socket.handshake.isServant) {
+        const masterSocketId = await this.collabRedis.getMasterSocketId(fsCollabKeyName);
+
+        if (masterSocketId) {
+          final.push(masterSocketId);
+        }
+      }
+
       // notify all servant
       for (const socketId of servants) {
-        this.wss.to(socketId).emit(constants.socket.events.PullDoc, changes);
+        if (socketId !== socket.id) {
+          this.wss.to(socketId).emit(constants.socket.events.PullDoc, changes);
+        }
       }
     } else {
       // if error happens
       this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
     }
+
+    // const totalTimeInMs = (performance.now() - now).toFixed(3) + 'ms';
+    // this.logger.verbose(`[PushDoc] ${totalTimeInMs}`);
   }
 
   @SubscribeMessage(constants.socket.events.PullDocFull)
@@ -227,19 +258,34 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
   }
 
-  @UseGuards(DocumentSocketTokenExtractGuard)
   @SubscribeMessage('test')
   async handleUpdatex(@ConnectedSocket() socket: DocumentSocket, @SocketTokenPayload() payload: AccessTokenPayload) {
     if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
+      assertDocumentSocketForUser(socket);
+
+      this.logger.debug('='.repeat(20));
+      this.logger.debug('test from servant');
+      this.logger.debug('socket id', socket.id);
+      this.logger.debug('socket handshake', socket.handshake);
+      this.logger.debug('payload', payload);
+
+      socket.emit('test', 'trigerring from backend');
+      this.logger.debug('Emitted from server to test event');
+      this.logger.debug('='.repeat(20));
+
+      socket.emit(
+        'error',
+        new SocketError('Something went wrong', {
+          description: `Caught general error (UNINTENDED ERROR)`,
+        }),
+      );
       return;
     }
 
     assertDocumentSocketForUser(socket);
 
     this.logger.debug('='.repeat(20));
-    this.logger.debug('test');
+    this.logger.debug('test from user');
     this.logger.debug('socket id', socket.id);
     this.logger.debug('socket handshake', socket.handshake);
     this.logger.debug('checking if payload works', payload.userId === socket.handshake.accessTokenPayload.userId);

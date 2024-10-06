@@ -3,12 +3,14 @@ import cookieParser from 'cookie-parser';
 import { Socket } from 'socket.io';
 import { PlatformForJwt } from '@prisma/client';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+
 import { encryption } from '../../../../common/encryption';
 import { enumValueIncludes } from '../../../../common/helper';
 import { AccessTokenExpiredException } from '../../../../exceptions/access-token-expired.exception';
@@ -22,6 +24,7 @@ import { JwtService } from '../../jwt/jwt.service';
 import { constants } from '../../../../common/constants';
 import { DocumentSocket } from './document-socket.type';
 import { UserService } from '../../../user/user.service';
+import { FileStructurePublicShareService } from '../../../file-structure-public-share/file-structure-public-share.service';
 
 @Injectable()
 export class DocumentSocketInitMiddleware {
@@ -33,26 +36,19 @@ export class DocumentSocketInitMiddleware {
 
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
+    private readonly fsPublicShareService: FileStructurePublicShareService,
   ) {}
 
   AuthWsMiddleware() {
     return async (socket: Socket | DocumentSocket, next: (err?: Error) => void) => {
-      console.log('='.repeat(20));
-      // console.log(socket);
-      console.log(socket.handshake);
-
       try {
-        const isServant = socket.handshake.auth?.sharedUniqueHash;
+        const isServant = !!(socket.handshake.auth?.sharedUniqueHash && socket.handshake.auth?.filesStructureId);
         socket.handshake['isServant'] = isServant;
 
         if (isServant) {
-          this.validateServant(socket as DocumentSocket);
+          await this.validateServant(socket as DocumentSocket);
         } else {
-          await this.validate(socket as DocumentSocket);
-
-          if (!socket.handshake.auth?.filesStructureId) {
-            throw new NotFoundException(ExceptionMessageCode.DOCUMENT_ID_MISSING);
-          }
+          await this.validateUser(socket as DocumentSocket);
         }
 
         next();
@@ -76,6 +72,7 @@ export class DocumentSocketInitMiddleware {
               }),
             }),
           );
+
           return;
         }
 
@@ -88,19 +85,56 @@ export class DocumentSocketInitMiddleware {
       }
     };
   }
-  private validateServant(socket: DocumentSocket) {
+
+  private async validateServant(socket: DocumentSocket) {
     if (!socket.handshake.isServant) {
       this.logger.debug('Validating servant and was not servant');
       throw new InternalServerErrorException('This should not happend');
     }
 
-    // I guess for now nothing is here to validate but in future it will be needed
+    const sharedUniqueHash = socket.handshake.auth?.sharedUniqueHash;
+    const fsId = socket.handshake.auth?.filesStructureId;
+
+    if (!fsId) {
+      throw new BadRequestException('Sorry something went wrong 1');
+    }
+
+    if (!sharedUniqueHash) {
+      throw new BadRequestException('Sorry something went wrong 2');
+    }
+
+    const { enabled, data } = await this.fsPublicShareService.isEnabledPublic(sharedUniqueHash);
+
+    if (!data) {
+      throw new NotFoundException(ExceptionMessageCode.DOCUMENT_NOT_FOUND);
+    }
+
+    if (!enabled) {
+      throw new BadRequestException(ExceptionMessageCode.DOCUMENT_DISABLED);
+    }
+
+    const uuid = await this.userService.getUUIDById(data.userId);
+
+    //! Fill data
+    socket.handshake.data = {
+      user: {
+        id: data.userId,
+        uuid,
+      },
+      filesStructureId: parseInt(fsId),
+      fsPublicShare: data,
+      sharedUniqueHash,
+    };
   }
 
-  private async validate(socket: DocumentSocket) {
+  private async validateUser(socket: DocumentSocket) {
     if (socket.handshake.isServant) {
       this.logger.debug('Validating user and was servant');
       throw new InternalServerErrorException('THis should not happend');
+    }
+
+    if (!socket.handshake.auth?.filesStructureId) {
+      throw new NotFoundException(ExceptionMessageCode.DOCUMENT_ID_MISSING);
     }
 
     const { authorizationHeader, platform } = this.validateHeaders(socket);

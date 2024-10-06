@@ -2,8 +2,8 @@ import path from 'path';
 import Redis from 'ioredis';
 import { Namespace } from 'socket.io';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { BadRequestException, Injectable, Scope } from '@nestjs/common';
 
-import { BadRequestException, Injectable } from '@nestjs/common';
 import { DocumentSocket } from './document-socket.type';
 import { constants } from '../../../../common/constants';
 import { FileStructurePublicShareService } from '../../../file-structure-public-share/file-structure-public-share.service';
@@ -29,13 +29,9 @@ export class DocumentSocketService {
   ) {}
 
   async setLock(socket: DocumentSocket) {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return;
-    }
-
-    const lockKeyName = constants.redis.buildFSLockName(socket.handshake.auth.filesStructureId);
+    const lockKeyName = socket.handshake.isServant
+      ? constants.redis.buildFSLockName(socket.handshake.data.filesStructureId)
+      : constants.redis.buildFSLockName(socket.handshake.auth.filesStructureId);
 
     await this.redis.set(
       // expire after 2 day if something happens
@@ -48,23 +44,14 @@ export class DocumentSocketService {
   }
 
   async removeLock(socket: DocumentSocket) {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return;
-    }
+    const lockKeyName = socket.handshake.isServant
+      ? constants.redis.buildFSLockName(socket.handshake.data.filesStructureId)
+      : constants.redis.buildFSLockName(socket.handshake.auth.filesStructureId);
 
-    const lockKeyName = constants.redis.buildFSLockName(socket.handshake.auth.filesStructureId);
     await this.redis.del(lockKeyName);
   }
 
-  async checkSharing(socket: DocumentSocket) {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return;
-    }
-
+  async checkSharing(socket: DocumentSocket<'user'>) {
     const { enabled } = await this.fsPublicShareService.isEnabled(
       { user: { id: socket.handshake.accessTokenPayload.userId } },
       socket.handshake.auth.filesStructureId,
@@ -115,14 +102,60 @@ export class DocumentSocketService {
     }
   }
 
-  async saveFileStructure(socket: DocumentSocket, props: { fsCollabKeyName: string; fsId: number }): Promise<void> {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return;
+  async checkSharingForServant(socket: DocumentSocket<'servant'>) {
+    // enabling logic is checked in socket middleware
+    const data = socket.handshake.data;
+    const fsCollabKeyName = constants.redis.buildFSCollabName(data.sharedUniqueHash);
+
+    //! Exists must be before setting masterSocketId
+    const exists = await this.redis.exists(fsCollabKeyName);
+
+    if (!exists) {
+      const { path: fsPath } = await this.fsService.getByIdSelect(
+        { user: { id: data.user.id } },
+        data.filesStructureId,
+        { path: true },
+      );
+
+      const sourceContentPath = path.join(absUserContentPath(data.user.uuid), fsPath);
+
+      const documentText = await fsCustom.readFile(sourceContentPath).catch(() => {
+        throw new BadRequestException('File not found');
+      });
+
+      // create hash table
+      await this.collabRedis.createFsCollabHashTable(fsCollabKeyName, {
+        doc: documentText,
+        masterSocketId: null,
+        masterUserId: data.user.id,
+        servants: [socket.id],
+        updates: [],
+      });
+    } else {
+      // add servant
+      await this.collabRedis.addServant(fsCollabKeyName, socket.id);
     }
 
-    const { fsId, fsCollabKeyName } = props;
+    // notify everyone the join
+    const [servants, masterSocketId] = await Promise.all([
+      this.collabRedis.getServants(fsCollabKeyName),
+      this.collabRedis.getMasterSocketId(fsCollabKeyName),
+    ]);
+
+    for (const socketId of servants.concat(masterSocketId ?? '').filter(Boolean)) {
+      if (socketId !== socket.id) {
+        this.wss.to(socketId).emit(constants.socket.events.UserJoined, { socketId: socket.id });
+      }
+    }
+  }
+
+  async saveFileStructure(props: {
+    fsCollabKeyName: string;
+    fsId: number;
+    userId: number;
+    uuid: string;
+  }): Promise<void> {
+    const { fsId, fsCollabKeyName, userId, uuid } = props;
 
     const text = await this.redis.hget(fsCollabKeyName, 'doc');
 
@@ -130,34 +163,26 @@ export class DocumentSocketService {
       return;
     }
 
-    await this.fsService.replaceText(
-      fsId,
-      { text },
-      { user: { id: socket.handshake.accessTokenPayload.userId, uuid: socket.handshake.user.uuid } },
-    );
+    await this.fsService.replaceText(fsId, { text }, { user: { id: userId, uuid } });
   }
 
   async getDisconnectParams(
     socket: DocumentSocket,
   ): Promise<{ activeServants: string[]; fsCollabKeyName: string; fsId: number }> {
-    if (socket.handshake.isServant) {
-      //TODO for servant continue
-      console.log('is servant');
-      return {
-        activeServants: [],
-        fsCollabKeyName: '',
-        fsId: 0,
-      };
-    }
+    const fsId: number = socket.handshake.isServant
+      ? socket.handshake.data.filesStructureId
+      : socket.handshake.auth?.filesStructureId;
 
-    const fsId: number = socket.handshake.auth?.filesStructureId;
+    const userId = socket.handshake.isServant
+      ? socket.handshake.data.user.id
+      : socket.handshake.accessTokenPayload.userId;
 
     // This should not happend if happens then just disconnect
     if (!fsId) {
       throw new BadRequestException('Missing filesStructureId or userId');
     }
 
-    const fs = await this.fsService.getById({ user: { id: socket.handshake.accessTokenPayload.userId } }, fsId);
+    const fs = await this.fsService.getById({ user: { id: userId } }, fsId);
     const { fsCollabKeyName, servants } = await this.getServantsBySharedUniqueHash(fs.sharedUniqueHash);
 
     return {
