@@ -149,6 +149,11 @@ export class DocumentSocketService {
     }
   }
 
+  async removeServant(fsCollabKeyName: string, socket: DocumentSocket<'servant'>, activeServants: string[]) {
+    const newServants = activeServants.filter(id => id !== socket.id);
+    await this.collabRedis.setServants(fsCollabKeyName, newServants);
+  }
+
   async saveFileStructure(props: {
     fsCollabKeyName: string;
     fsId: number;

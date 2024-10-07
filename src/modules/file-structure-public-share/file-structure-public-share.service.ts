@@ -160,12 +160,18 @@ export class FileStructurePublicShareService {
         throw new BadRequestException('File not found');
       }
 
-      await this.fsService.replaceText(fs.id, { text, checkEditMode: false }, authPayload, tx);
+      const [_, activeServants] = await Promise.all([
+        this.fsService.replaceText(fs.id, { text, checkEditMode: false }, authPayload, tx),
+        this.collabRedis.getServants(fsCollabKeyName),
+      ]);
 
       await Promise.all([
         this.redis.del(fsCollabKeyName),
         this.eventEmitter.emitAsync('document.pull.doc.full', { userId: authPayload.user.id }),
-        this.eventEmitter.emitAsync('document.share.disabled', { sharedUniqueHash: fs.sharedUniqueHash }),
+        this.eventEmitter.emitAsync('document.share.disabled', {
+          sharedUniqueHash: fs.sharedUniqueHash,
+          activeServants,
+        }),
       ]);
     } else {
       const [documentText, servants] = await Promise.all([

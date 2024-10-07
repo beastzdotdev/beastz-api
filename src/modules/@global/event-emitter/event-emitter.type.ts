@@ -3,5 +3,5 @@ export type EmitterEvents = {
   'admin.socket.test': { message: string; type: 'namespace' | 'all' };
 
   'document.pull.doc.full': { userId: number; doc?: string | null };
-  'document.share.disabled': { sharedUniqueHash: string };
+  'document.share.disabled': { sharedUniqueHash: string; activeServants: string[] };
 };

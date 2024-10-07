@@ -40,6 +40,10 @@ export class CollabRedis {
     }
   }
 
+  async setServants(key: string, newServants: string[]) {
+    return this.redis.hset(key, 'servants', JSON.stringify(newServants));
+  }
+
   async createFsCollabHashTable(
     key: string,
     params: {

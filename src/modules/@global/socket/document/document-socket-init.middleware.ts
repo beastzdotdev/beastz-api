@@ -110,7 +110,7 @@ export class DocumentSocketInitMiddleware {
     }
 
     if (!enabled) {
-      throw new BadRequestException(ExceptionMessageCode.DOCUMENT_DISABLED);
+      throw new SocketError(ExceptionMessageCode.DOCUMENT_DISABLED, { test: 123 });
     }
 
     const uuid = await this.userService.getUUIDById(data.userId);

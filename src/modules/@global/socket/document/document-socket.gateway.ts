@@ -27,29 +27,6 @@ import { SocketError } from '../../../../exceptions/socket.exception';
 import { assertDocumentSocketForUser } from './document-socket.helper';
 import { CollabRedis } from '../../redis';
 
-// now after lots of things are stable
-//   (+) start adding collab button back first
-//   (+) fix activating collab extension in front
-//   (+) after that start adding back push doc
-//   (+) after that start adding back pull doc
-// check multiple processes
-//      (+) when user connects and share is enabled
-//      (+) when user connects and share is disabled
-//      (+) when user reconnects and share is enabled
-//      (+) when user reconnects and share is disabled
-//      (+) when user enables collab and start typing
-//      (+) when user disables collab and start typing
-//TODO after adding others then test this
-//TODO      * fix people component in front and start
-//TODO      * when others rejoin
-//TODO      * when other reconnect
-
-//TODO      * when user disconnects and others are still active
-//TODO      * when user disables collab and others are still active
-
-//TODO      * add cursor at the very end
-//TODO      * collab people missing people :D
-
 /**
  * @description Namespace for Document, Extra configurations are in adapter
  *
@@ -166,6 +143,15 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
         //! must be after saving fs
         await this.redis.del(fsCollabKeyName);
+      } else {
+        // if there is people left remove servant or master
+        if (socket.handshake.isServant) {
+          await this.documentSocketService.removeServant(
+            fsCollabKeyName,
+            socket as DocumentSocket<'servant'>,
+            activeServants,
+          );
+        }
       }
 
       // notify everyone
@@ -194,6 +180,11 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     const { changes, sharedUniqueHash } = body;
 
     const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
+
+    if (!(await this.redis.exists(fsCollabKeyName))) {
+      return; // just ignore this scenario will happen if user disables collaboration while socket is active
+    }
+
     try {
       const doc = await this.redis.hget(fsCollabKeyName, 'doc');
 
@@ -258,6 +249,41 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
   }
 
+  //================================================================
+  // Via Event Emitter
+  //================================================================
+
+  @OnEvent(EmitterEventFields['document.pull.doc.full'], { async: true })
+  async documentPullDocFull(payload: EmitterEvents['document.pull.doc.full']) {
+    console.log('='.repeat(20));
+    console.log('changes');
+    console.log(payload);
+
+    const { userId } = payload;
+    const socketId = await this.redis.get(constants.redis.buildUserIdName(userId));
+
+    if (!socketId) {
+      this.logger.error(`User ${userId} not found in redis`);
+      return;
+    }
+
+    this.wss.to(socketId).emit(constants.socket.events.PullDocFull);
+  }
+
+  @OnEvent(EmitterEventFields['document.share.disabled'], { async: true })
+  async documentPullDoc(payload: EmitterEvents['document.share.disabled']) {
+    const { activeServants } = payload;
+
+    // this event only happend from master connection
+    for (const socketId of activeServants) {
+      this.wss.to(socketId).emit(constants.socket.events.RetryConnection);
+    }
+  }
+
+  //================================================================
+  // Tests
+  //================================================================
+
   @SubscribeMessage('test')
   async handleUpdatex(@ConnectedSocket() socket: DocumentSocket, @SocketTokenPayload() payload: AccessTokenPayload) {
     if (socket.handshake.isServant) {
@@ -300,27 +326,6 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
         description: `Caught general error (UNINTENDED ERROR)`,
       }),
     );
-  }
-
-  //================================================================
-  // Via Event Emitter
-  //================================================================
-
-  @OnEvent(EmitterEventFields['document.pull.doc.full'], { async: true })
-  async documentPullDocFull(payload: EmitterEvents['document.pull.doc.full']) {
-    console.log('='.repeat(20));
-    console.log('changes');
-    console.log(payload);
-
-    const { userId } = payload;
-    const socketId = await this.redis.get(constants.redis.buildUserIdName(userId));
-
-    if (!socketId) {
-      this.logger.error(`User ${userId} not found in redis`);
-      return;
-    }
-
-    this.wss.to(socketId).emit(constants.socket.events.PullDocFull);
   }
 
   @OnEvent(EmitterEventFields['admin.socket.test'], { async: true })
