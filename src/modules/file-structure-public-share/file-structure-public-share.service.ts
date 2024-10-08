@@ -21,7 +21,6 @@ import {
   FsPublicShareWithRelations,
   GetByMethodParamsInFsPublicShare,
 } from './file-structure-public-share.type';
-import { FsPublicSharePublicActiveParticipantQueryDto } from './dto/fs-public-share-public-active-participant-query.dto';
 
 @Injectable()
 export class FileStructurePublicShareService {
@@ -239,10 +238,7 @@ export class FileStructurePublicShareService {
     };
   }
 
-  async collabActiveParticipantsPublic(
-    fsId: number,
-    _queryParams: FsPublicSharePublicActiveParticipantQueryDto,
-  ): Promise<string[]> {
+  async collabActiveParticipantsPublic(fsId: number): Promise<string[]> {
     const { sharedUniqueHash } = await this.fsService.getByIdSelect(null, fsId, { sharedUniqueHash: true });
     const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
 

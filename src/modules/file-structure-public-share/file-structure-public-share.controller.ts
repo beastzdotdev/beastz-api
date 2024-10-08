@@ -12,7 +12,6 @@ import { FsPublicSharePureService } from './fs-public-share-pure.service';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { PublicFsPublicShareResponseDto } from './dto/response/public-fs-public-share-response.dto';
 import { FileStructurePublicShareMapper } from './file-structure-public-share.mapper';
-import { FsPublicSharePublicActiveParticipantQueryDto } from './dto/fs-public-share-public-active-participant-query.dto';
 
 //TODO refactor needed move used method in pure service and remove this code from controllers
 
@@ -62,13 +61,11 @@ export class FileStructurePublicShareController {
       data,
     };
   }
+
   @NoAuth()
   @Get('collab-active-participants-public/:fsId')
-  async collabActiveParticipantsPublic(
-    @Param('fsId', ParseIntPipe) fsId: number,
-    @Query() queryParams: FsPublicSharePublicActiveParticipantQueryDto,
-  ): Promise<string[]> {
-    const response = await this.fsPublicShareService.collabActiveParticipantsPublic(fsId, queryParams);
+  async collabActiveParticipantsPublic(@Param('fsId', ParseIntPipe) fsId: number): Promise<string[]> {
+    const response = await this.fsPublicShareService.collabActiveParticipantsPublic(fsId);
     return response;
   }
 
