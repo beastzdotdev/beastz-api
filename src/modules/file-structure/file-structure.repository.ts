@@ -68,7 +68,7 @@ export class FileStructureRepository {
 
   async getByIdSelect<T extends Prisma.FileStructureSelect>(
     id: number,
-    params: { userId: number; isInBin?: boolean },
+    params: { userId?: number; isInBin?: boolean },
     select: T,
     tx?: PrismaTx,
   ): Promise<Prisma.FileStructureGetPayload<{ select: T }> | null> {

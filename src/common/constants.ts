@@ -44,6 +44,7 @@ export const constants = Object.freeze({
       PushDoc: 'push_doc',
       PullDoc: 'pull_doc',
       PullDocFull: 'pull_doc_full',
+      CursorLocation: 'cursor_location',
       UserLeft: 'user_left',
       UserJoined: 'user_joined',
       RetryConnection: 'retry_connection',

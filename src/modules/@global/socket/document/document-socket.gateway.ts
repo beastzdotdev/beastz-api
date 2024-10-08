@@ -151,6 +151,8 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
             socket as DocumentSocket<'servant'>,
             activeServants,
           );
+        } else {
+          await this.collabRedis.removeMasterSocketId(fsCollabKeyName);
         }
       }
 
@@ -248,6 +250,9 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   async handlePullUpdates(@ConnectedSocket() socket: DocumentSocket) {
     this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
   }
+
+  // @SubscribeMessage(constants.socket.events.CursorLocation)
+  // async handleCursorLocation(@ConnectedSocket() socket: DocumentSocket) {}
 
   //================================================================
   // Via Event Emitter

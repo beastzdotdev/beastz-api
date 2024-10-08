@@ -44,6 +44,10 @@ export class CollabRedis {
     return this.redis.hset(key, 'servants', JSON.stringify(newServants));
   }
 
+  async removeMasterSocketId(fsCollabKeyName: string) {
+    await this.redis.hset(fsCollabKeyName, 'masterSocketId', JSON.stringify(null));
+  }
+
   async createFsCollabHashTable(
     key: string,
     params: {

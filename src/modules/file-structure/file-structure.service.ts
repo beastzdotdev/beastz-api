@@ -222,12 +222,17 @@ export class FileStructureService {
   }
 
   async getByIdSelect<T extends Prisma.FileStructureSelect>(
-    authPayload: AuthPayloadType | { user: { id: number } },
+    authPayload: AuthPayloadType | { user: { id: number } } | null,
     id: number,
     select: T,
     tx?: PrismaTx,
   ): Promise<Prisma.FileStructureGetPayload<{ select: T }>> {
-    const fileStructure = await this.fsRepository.getByIdSelect(id, { userId: authPayload.user.id }, select, tx);
+    const fileStructure = await this.fsRepository.getByIdSelect(
+      id,
+      { userId: authPayload ? authPayload.user.id : undefined },
+      select,
+      tx,
+    );
 
     if (!fileStructure) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
