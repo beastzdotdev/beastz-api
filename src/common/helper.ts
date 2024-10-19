@@ -163,7 +163,10 @@ export function getMessageAsExceptionMessageCode(error: ImportantExceptionBody):
   }
 
   if (
-    enumValueIncludes(ExceptionMessageCode, error?.message.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString())
+    enumValueIncludes(
+      ExceptionMessageCode,
+      error?.message?.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString(),
+    )
   ) {
     message = error?.message as ExceptionMessageCode;
   }

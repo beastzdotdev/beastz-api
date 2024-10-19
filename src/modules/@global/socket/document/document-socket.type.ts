@@ -5,6 +5,7 @@ import { AccessTokenPayload } from '../../jwt/jwt.type';
 export type PushDocBody = {
   sharedUniqueHash: string;
   changes: unknown;
+  cursorCharacterPos: number;
 };
 
 type DocumentSocketForUser = Socket & {

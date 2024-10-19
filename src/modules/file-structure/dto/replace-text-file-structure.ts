@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class ReplaceTextFileStructure {
   @IsNotEmpty()
@@ -6,7 +6,7 @@ export class ReplaceTextFileStructure {
   @MinLength(1)
   text: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsBoolean()
   checkEditMode?: boolean;
 }

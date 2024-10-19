@@ -179,7 +179,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
     // const now = performance.now();
     let isError = false;
 
-    const { changes, sharedUniqueHash } = body;
+    const { changes, sharedUniqueHash, cursorCharacterPos } = body;
 
     const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
 
@@ -234,7 +234,9 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       // notify all servant
       for (const socketId of servants) {
         if (socketId !== socket.id) {
-          this.wss.to(socketId).emit(constants.socket.events.PullDoc, changes);
+          this.wss
+            .to(socketId)
+            .emit(constants.socket.events.PullDoc, { changes, cursorCharacterPos, socketId: socket.id });
         }
       }
     } else {
@@ -250,9 +252,6 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   async handlePullUpdates(@ConnectedSocket() socket: DocumentSocket) {
     this.wss.to(socket.id).emit(constants.socket.events.PullDocFull);
   }
-
-  // @SubscribeMessage(constants.socket.events.CursorLocation)
-  // async handleCursorLocation(@ConnectedSocket() socket: DocumentSocket) {}
 
   //================================================================
   // Via Event Emitter
