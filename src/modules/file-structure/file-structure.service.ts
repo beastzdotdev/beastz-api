@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import moment from 'moment';
 import mime from 'mime';
-import crypto from 'crypto';
+import crypto, { privateDecrypt } from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
 
@@ -63,8 +63,11 @@ import {
   absUserContentPath,
   absUserDeletedForeverPath,
   absUserTempFolderZipPath,
+  absUserUploadPath,
 } from './file-structure.helper';
 import { UserService } from '../user/user.service';
+import { UploadDocumentImagePreviewPathDto } from './dto/upload-document-image-preview-path.dto';
+import { EnvService, InjectEnv } from '../@global/env';
 
 @Injectable()
 export class FileStructureService {
@@ -73,6 +76,9 @@ export class FileStructureService {
   constructor(
     @InjectRedis()
     private readonly redis: Redis,
+
+    @InjectEnv()
+    private readonly env: EnvService,
 
     private readonly prismaService: PrismaService,
     private readonly fsRepository: FileStructureRepository,
@@ -522,6 +528,7 @@ export class FileStructureService {
         isLocked: false,
         lastModifiedAt: lastModifiedAt ?? null,
         sharedUniqueHash: random.getRandomString(16),
+        documentImagePreviewPath: null,
 
         //! important
         rootParentId: rootParentId ?? null,
@@ -738,6 +745,7 @@ export class FileStructureService {
       isLocked: false,
       lastModifiedAt: new Date(Date.now()),
       sharedUniqueHash: random.getRandomString(16),
+      documentImagePreviewPath: null,
 
       //! important
       rootParentId: rootParentId ?? null,
@@ -808,6 +816,78 @@ export class FileStructureService {
     ]);
 
     return updatedFs;
+  }
+
+  async uploadDocumentImagePreviewPath(
+    id: number,
+    dto: UploadDocumentImagePreviewPathDto,
+    authPayload: AuthPayloadType,
+    tx?: PrismaTx,
+  ): Promise<string> {
+    const { img } = dto;
+    const fs = await this.getById(authPayload, id, tx);
+
+    if (!fs.isFile) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
+    }
+
+    if (fs.isEncrypted) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_ALREADY_ENCRYPTED);
+    }
+
+    const ext = mime.extension(img.mimetype);
+
+    if (!ext) {
+      this.logger.debug(`File has no extension ${ext}`);
+      throw new BadRequestException('Sorry, something went wrong. Please try again.');
+    }
+
+    const newPath = `image-preview-fsId-${id}-${moment().valueOf()}.${ext}`;
+    const newAbsFilePath = path.join(absUserUploadPath(authPayload.user.uuid), newPath);
+
+    // check if folder exists before creation
+    const folderCreationSuccess = await fsCustom.checkDirOrCreate(newAbsFilePath, {
+      isFile: true,
+      createIfNotExists: true,
+    });
+
+    if (!folderCreationSuccess) {
+      this.logger.debug(`Folder check error ${newAbsFilePath}`);
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    await fsCustom.writeFile(newAbsFilePath, img.buffer).catch(e => {
+      this.logger.debug(e);
+      throw new InternalServerErrorException('Something went wrong');
+    });
+
+    if (fs.documentImagePreviewPath) {
+      const existingAbsFilePath = path.join(absUserUploadPath(authPayload.user.uuid), fs.documentImagePreviewPath);
+
+      fsCustom.delete(existingAbsFilePath).catch(err => {
+        this.logger.debug(`Error happend in file delete ${existingAbsFilePath}`);
+        this.logger.error(err);
+
+        throw new InternalServerErrorException('Something went wrong');
+      });
+    }
+
+    await this.fsRepository.updateById(
+      id,
+      {
+        documentImagePreviewPath: newPath,
+      },
+      {
+        userId: authPayload.user.id,
+        isInBin: false,
+      },
+      tx,
+    );
+
+    const url = new URL(this.env.get('BACKEND_URL'));
+    url.pathname = path.join(constants.assets.userUploadFolderName, newPath);
+
+    return url.toString();
   }
 
   async moveToBin(id: number, authPayload: AuthPayloadType): Promise<FileStructureBin> {

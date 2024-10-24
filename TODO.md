@@ -101,3 +101,6 @@ TODO add absolute path to each BasicFileStructure by using class-transforemr or 
 
 TODO account delete
 //TODO admin roles
+
+//TODO upload-document-image-preview-path this endpoint could use compress library like sharp from npm written in c++
+// and for example create CompressImageInterceptor and add it to interceptors array after fileInterceptors

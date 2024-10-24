@@ -23,6 +23,7 @@ import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
 import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
 import { NoAuth } from '../../decorator/no-auth.decorator';
+import { UploadDocumentImagePreviewPathDto } from './dto/upload-document-image-preview-path.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -168,6 +169,17 @@ export class FileStructureController {
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.replaceText(id, dto, authPayload);
     return BasicFileStructureResponseDto.map(response);
+  }
+
+  @FileUploadInterceptor(...fileInterceptors(UploadDocumentImagePreviewPathDto))
+  @Patch('upload-document-image-preview-path/:id')
+  async uploadDocumentImagePreviewPath(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UploadDocumentImagePreviewPathDto,
+  ): Promise<string> {
+    const response = await this.fileStructureService.uploadDocumentImagePreviewPath(id, dto, authPayload);
+    return response;
   }
 
   @Patch('move-to-bin/:id')

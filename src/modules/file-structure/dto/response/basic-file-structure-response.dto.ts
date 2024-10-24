@@ -63,19 +63,33 @@ export class BasicFileStructureResponseDto {
   sharedUniqueHash: string;
 
   @Expose()
+  documentImagePreviewPath: string | null;
+
+  @Expose()
   absRelativePath: string | null = null;
 
   @Expose()
   children: BasicFileStructureResponseDto[] | null; // do not use @Type decorator here
 
-  setAbsRelativePathContent() {
+  private setAbsRelativePathContent(): void {
     const url = new URL(envService.get('BACKEND_URL'));
     url.pathname = path.join(constants.assets.userContentFolderName, this.path);
 
     this.absRelativePath = url.toString();
   }
 
-  setAbsRelativePathBin(binPath: string) {
+  private setAbsRelativePathDocumentImagePreviewPath(): void {
+    if (!this.documentImagePreviewPath) {
+      return;
+    }
+
+    const url = new URL(envService.get('BACKEND_URL'));
+    url.pathname = path.join(constants.assets.userUploadFolderName, this.documentImagePreviewPath);
+
+    this.documentImagePreviewPath = url.toString();
+  }
+
+  public setAbsRelativePathBin(binPath: string): void {
     const url = new URL(envService.get('BACKEND_URL'));
     url.pathname = path.join(constants.assets.userBinFolderName, binPath);
 
@@ -88,6 +102,8 @@ export class BasicFileStructureResponseDto {
     if (!flags?.isInBin) {
       response.setAbsRelativePathContent();
     }
+
+    response.setAbsRelativePathDocumentImagePreviewPath();
 
     if (data.isFile) {
       response.children = null;

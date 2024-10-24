@@ -51,6 +51,9 @@ export class FileStructureFromRaw implements FileStructure {
   @Expose({ name: 'is_locked' })
   isLocked: boolean;
 
+  @Expose({ name: 'document_image_preview_path' })
+  documentImagePreviewPath: string | null;
+
   @Expose({ name: 'last_modified_at' })
   lastModifiedAt: Date | null;
 
