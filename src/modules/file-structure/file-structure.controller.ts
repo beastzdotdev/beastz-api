@@ -178,8 +178,10 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UploadDocumentImagePreviewPathDto,
   ): Promise<string> {
-    const response = await this.fileStructureService.uploadDocumentImagePreviewPath(id, dto, authPayload);
-    return response;
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const response = await this.fileStructureService.uploadDocumentImagePreviewPath(id, dto, authPayload, tx);
+      return response;
+    });
   }
 
   @Patch('move-to-bin/:id')
