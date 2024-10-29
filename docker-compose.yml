@@ -1,6 +1,8 @@
 volumes:
   redis_master:
   redis_slave:
+  postgres_data:
+  beastz_api_data:
 
 services:
   beastz-api:
@@ -43,11 +45,11 @@ services:
       - redis-master
       - redis-slave
     volumes:
-      - /beastz-data/hub:/app/hub
-      - /beastz-data/user-bin:/app/user-bin
-      - /beastz-data/user-content:/app/user-content
-      - /beastz-data/user-upload:/app/user-upload
-      - /beastz-data/user-deleted-forever:/app/user-deleted-forever
+      - beastz_api_data:/app/hub
+      - beastz_api_data:/app/user-bin
+      - beastz_api_data:/app/user-content
+      - beastz_api_data:/app/user-upload
+      - beastz_api_data:/app/user-deleted-forever
 
   beastz-database:
     image: postgres:14.5-alpine
@@ -65,7 +67,7 @@ services:
       start_period: 30s
       timeout: 10s
     volumes:
-      - /beastz-database:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
 
   redis-master:
     image: redis:7.4.0
