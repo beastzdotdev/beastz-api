@@ -21,8 +21,6 @@ export const envConfig = ({ envLogger, time, options }: Params): ConfigModuleOpt
       enableImplicitConversion: false,
     });
 
-    console.log(finalConfig);
-
     const errors = validateSync(finalConfig, {
       forbidNonWhitelisted: false,
       forbidUnknownValues: false,
