@@ -35,6 +35,7 @@ jobs:
       DATABASE_LOG_QUERY: ${{vars.DATABASE_LOG_QUERY}}
       DATABASE_URL: ${{vars.DATABASE_URL}}
       REDIS_URL: ${{vars.REDIS_URL}}
+      REDIS_HOST: ${{vars.REDIS_HOST}}
       MAIL_URL: ${{vars.MAIL_URL}}
       MAIL_USERNAME: ${{vars.MAIL_USERNAME}}
       MAIL_FROM: ${{vars.MAIL_FROM}}

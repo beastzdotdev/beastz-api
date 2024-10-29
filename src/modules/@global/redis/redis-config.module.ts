@@ -15,7 +15,13 @@ export class RedisConfigModule {
       module: RedisConfigModule,
       imports: [
         RedisModule.forRootAsync({
-          useFactory: (env: EnvService): RedisModuleOptions => redisConfig(env),
+          useFactory: (env: EnvService): RedisModuleOptions => {
+            const config = redisConfig(env);
+            console.log('='.repeat(20));
+            console.log(config);
+
+            return config;
+          },
           inject: [ENV_SERVICE_TOKEN],
         }),
       ],
