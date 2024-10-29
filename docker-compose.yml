@@ -1,5 +1,4 @@
 volumes:
-  local_postgres_data:
   redis_master:
   redis_slave:
 
@@ -59,35 +58,30 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USERNAME}
       POSTGRES_DB: ${POSTGRES_DB}
-
-    volumes:
-      - local_postgres_data:/var/lib/postgresql/data
-
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_DB}']
       interval: 10s
       retries: 10
       start_period: 30s
       timeout: 10s
-      #! Only in dev mode
-      # test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p 5000']
+    volumes:
+      - /beastz-database:/var/lib/postgresql/data
 
   redis-master:
     image: redis:7.4.0
     container_name: redis-master
     restart: always
-    #! Volume will ensure so that if container restarts redis data will not be lost
-    volumes:
-      - redis_master:/data
     ports:
       - 6379:6379
+    volumes:
+      - redis_master:/data
 
   redis-slave:
     image: redis:7.4.0
     container_name: redis-slave
     restart: always
-    volumes:
-      - redis_slave:/data
+    command: redis-server --slaveof redis-master 6379
     ports:
       - 6479:6379
-    command: redis-server --slaveof redis-master 6379
+    volumes:
+      - redis_slave:/data
