@@ -1,6 +1,5 @@
 import figlet from 'figlet';
 import helmet from 'helmet';
-import Redis from 'ioredis';
 import path from 'node:path';
 import express from 'express';
 import nunjucks from 'nunjucks';
@@ -12,7 +11,6 @@ import { performance } from 'node:perf_hooks';
 import { Logger } from '@nestjs/common';
 import { NestApplication, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 
 import { DocumentSocketAdapter } from '@global/socket';
 import { EnvService, ENV_SERVICE_TOKEN } from '@global/env';
@@ -64,9 +62,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   app.use('/public', express.static(absPublicPath()));
 
   // Wrap socket
-  const redis = app.get<Redis>(getRedisConnectionToken());
-  const documentSocketAdapter = new DocumentSocketAdapter(app, redis, envService);
-  await documentSocketAdapter.connectToRedis();
+  const documentSocketAdapter = new DocumentSocketAdapter(app, envService);
   app.useWebSocketAdapter(documentSocketAdapter);
 
   await app.listen(envService.get('PORT'), hostname);
