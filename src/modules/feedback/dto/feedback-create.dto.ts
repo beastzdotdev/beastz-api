@@ -12,5 +12,5 @@ export class FeedbackCreateDto {
   text: string;
 
   @IsOptional()
-  images?: Array<Express.Multer.File>;
+  images?: Express.Multer.File[];
 }

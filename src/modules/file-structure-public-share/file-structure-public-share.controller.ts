@@ -13,8 +13,6 @@ import { NoAuth } from '../../decorator/no-auth.decorator';
 import { PublicFsPublicShareResponseDto } from './dto/response/public-fs-public-share-response.dto';
 import { FileStructurePublicShareMapper } from './file-structure-public-share.mapper';
 
-//TODO refactor needed move used method in pure service and remove this code from controllers
-
 @Controller('file-structure-public-share')
 export class FileStructurePublicShareController {
   private readonly logger = new Logger(FileStructurePublicShareController.name);

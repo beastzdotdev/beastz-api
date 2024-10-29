@@ -48,7 +48,6 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   private readonly time = performance.now();
   private readonly logger = new Logger(DocumentSocketGateway.name);
 
-  //TODO: Temp properties, move to redis
   updates: Update[] = [];
   doc: Text = Text.of(['Start document']);
   pending: ((value: any) => void)[] = [];
@@ -170,13 +169,8 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
 
   @SubscribeMessage('test')
   async handleUpdatex(@ConnectedSocket() socket: Socket) {
-    //TODO: in sockets eror not work great, try exception filter for socket io or if not then
-    //TODO: socket io response error middleware
     console.log('test');
-
     socket.emit('test', 142);
-    // throw new Error('142');
-    // return 12;
   }
 }
 ```

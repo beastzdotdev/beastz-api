@@ -112,7 +112,6 @@ export class AuthGuard implements CanActivate {
       <string>request.headers[constants.AUTH_HEADER_NAME];
     let platformValue = request.headers?.[constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
 
-    //TODO needs some check for example can be moved to hub
     if (
       request.url.startsWith(path.join('/', constants.assets.userContentFolderName)) ||
       request.url.startsWith(path.join('/', constants.assets.userUploadFolderName)) ||

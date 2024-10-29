@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import moment from 'moment';
 import mime from 'mime';
-import crypto, { privateDecrypt } from 'crypto';
+import crypto from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
 
@@ -28,6 +28,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { EnvService, InjectEnv } from '@global/env';
 import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
@@ -67,7 +68,6 @@ import {
 } from './file-structure.helper';
 import { UserService } from '../user/user.service';
 import { UploadDocumentImagePreviewPathDto } from './dto/upload-document-image-preview-path.dto';
-import { EnvService, InjectEnv } from '../@global/env';
 
 @Injectable()
 export class FileStructureService {

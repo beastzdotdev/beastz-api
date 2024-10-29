@@ -2,7 +2,7 @@ import path from 'path';
 import Redis from 'ioredis';
 import { Namespace } from 'socket.io';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { BadRequestException, Injectable, Scope } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { DocumentSocket } from './document-socket.type';
 import { constants } from '../../../../common/constants';

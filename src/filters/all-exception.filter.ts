@@ -35,7 +35,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let errorBody: AllExceptionBody;
 
-    //TODO needs some check for example can be moved to hub
     if (
       url.startsWith(path.join('/', constants.assets.userContentFolderName)) ||
       url.startsWith(path.join('/', constants.assets.userUploadFolderName)) ||

@@ -207,7 +207,7 @@ export class AuthenticationService {
         // send email for resue detection
         if (userIdentity.strictMode) {
           await Promise.all([
-            this.userIdentityService.updateIsLockedById(userIdentity.id, true, tx),
+            this.userIdentityService.updateBy({ id: userIdentity.id }, { isLocked: true }, tx),
             this.authenticationMailService.sendReuse(user.email, true),
           ]);
         } else {
@@ -486,7 +486,7 @@ export class AuthenticationService {
           // send email for resue detection
           if (user.userIdentity.strictMode) {
             await Promise.all([
-              this.userIdentityService.updateIsLockedById(user.userIdentity.id, true, tx),
+              this.userIdentityService.updateBy({ id: user.userIdentity.id }, { isLocked: true }, tx),
               this.authenticationMailService.sendReuse(user.email, true),
             ]);
           } else {
@@ -521,7 +521,7 @@ export class AuthenticationService {
       });
 
       await Promise.all([
-        this.userIdentityService.updatePasswordById(user.userIdentity.id, resetPassword.newPassword, tx),
+        this.userIdentityService.updateBy({ id: user.userIdentity.id }, { password: resetPassword.newPassword }, tx),
         this.resetPasswordService.softDelete(resetPassword.id, tx),
         this.resetPasswordAttemptCountService.softDelete(resetPassword.id, tx),
       ]);
@@ -568,7 +568,7 @@ export class AuthenticationService {
           // send email for resue detection
           if (user.userIdentity.strictMode) {
             await Promise.all([
-              this.userIdentityService.updateIsLockedById(user.userIdentity.id, true, tx),
+              this.userIdentityService.updateBy({ id: user.userIdentity.id }, { isLocked: true }, tx),
               this.authenticationMailService.sendReuse(user.email, true),
             ]);
           } else {
@@ -603,7 +603,7 @@ export class AuthenticationService {
       });
 
       await Promise.all([
-        this.userIdentityService.updatePasswordById(user.userIdentity.id, recoverPassword.newPassword, tx),
+        this.userIdentityService.updateBy({ id: user.userIdentity.id }, { password: recoverPassword.newPassword }, tx),
         this.recoverPasswordService.softDelete(recoverPassword.id, tx),
         this.recoverPasswordAttemptCountService.softDelete(recoverPassword.id, tx),
       ]);
@@ -650,7 +650,7 @@ export class AuthenticationService {
           // send email for resue detection
           if (user.userIdentity.strictMode) {
             await Promise.all([
-              this.userIdentityService.updateIsLockedById(user.userIdentity.id, true, tx),
+              this.userIdentityService.updateBy({ id: user.userIdentity.id }, { isLocked: true }, tx),
               this.authenticationMailService.sendReuse(user.email, true),
             ]);
           } else {
@@ -685,14 +685,14 @@ export class AuthenticationService {
       });
 
       await Promise.all([
-        //TODO same method combine
-        this.userIdentityService.updateIsAccVerified(userId, true, tx),
-        this.userIdentityService.updateIsLockedById(user.userIdentity.id, false, tx),
+        this.userIdentityService.updateBy(
+          { id: user.userIdentity.id },
+          { isAccountVerified: true, isLocked: false },
+          tx,
+        ),
         this.accountVerificationService.softDelete(accountVerify.id, tx),
         this.accVerifyAttemptCountService.softDelete(accountVerify.id, tx),
       ]);
-
-      //TODO on success for user create every folder with user {uuid} unser user-content, user-bin, etc ...
 
       // show success page and button for redirecting to front end
       res.render('view/auth-response', <AuthResponseViewJsonParams>{

@@ -51,18 +51,8 @@ export const fileStructureHelper = Object.freeze({
   },
 });
 
-export const OnlyImgMimetypeRaw = [
-  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
-  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
-  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_GIF,
-  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
-  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
-  fileStructureHelper.fileTypeEnumToRawMime.IMAGE_SVG,
-];
-
 const rooPath = path.join(require.main!.path, '../..');
 const {
-  //
   publicAssets,
   publicAssetsImage,
   userContentFolderName,

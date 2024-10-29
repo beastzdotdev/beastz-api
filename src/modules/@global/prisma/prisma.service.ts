@@ -21,7 +21,6 @@ export class PrismaService
 
   async onModuleInit() {
     const time = performance.now();
-    //TODO save this logs in database
 
     await this.$connect().then(async () => {
       this.logger.verbose('Database log query enabled: ' + this.env.get('DATABASE_LOG_QUERY'));

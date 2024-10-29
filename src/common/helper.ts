@@ -252,14 +252,6 @@ export const fsCustom = {
         }
       });
     });
-
-    // const fs = require('fs'),
-    //   filename = process.argv[2];
-    // fs.readFile(filename, 'utf8', function (err, data) {
-    //   if (err) throw err;
-    //   console.log('OK: ' + filename);
-    //   console.log(data);
-    // });
   },
 
   async createDir(fsPath: string): Promise<void> {
@@ -329,18 +321,6 @@ export const fsCustom = {
       });
     });
   },
-  //TODO: after moving every file under hub uncomment this part and remove uppper solution
-  // async move(fsSourcePath: string, fsDesinationPath: string): Promise<CustomFsResponse> {
-  //   return new Promise((resolve, reject) => {
-  //     return fs.rename(fsSourcePath, fsDesinationPath, err => {
-  //       if (err) {
-  //         reject({ success: false, err });
-  //       } else {
-  //         resolve({ success: true, err: null });
-  //       }
-  //     });
-  //   });
-  // },
 
   async delete(fsPath: string): Promise<CustomFsResponse> {
     return new Promise((resolve, reject) => {
@@ -475,8 +455,10 @@ export const imageInterceptor = (dto: GeneralClass): NestInterceptor[] => {
       fileTypes: Object.values([
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_GIF,
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_SVG,
       ]),
       maxSize: constants.singleFileMaxSize,
     }),
