@@ -13,15 +13,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
+import { JwtService } from '@global/jwt';
+import { CookieService } from '@global/cookie';
+import { EnvService, InjectEnv } from '@global/env';
+import { PrismaService, PrismaTx } from '@global/prisma';
+
 import { helper, prismaSafeCall } from '../../common/helper';
 import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { encryption } from '../../common/encryption';
 import { UserService } from '../user/user.service';
-import { JwtService } from './modules/jwt/jwt.service';
-import { EnvService } from '../@global/env/env.service';
-import { InjectEnv } from '../@global/env/env.decorator';
-import { CookieService } from '../@global/cookie/cookie.service';
 import { PlatformWrapper } from '../../model/platform.wrapper';
 import { ResetPasswordBodyDto } from './dto/reset-password-body.dto';
 import { ResetPasswordService } from './modules/reset-password/reset-password.service';
@@ -38,8 +39,6 @@ import { GenTokensAndSendResponseParams, RefreshParams, SignInParams } from './a
 import { ResetPasswordAttemptCountService } from './modules/reset-password-attempt-count/reset-password-attempt-count.service';
 import { AuthConfirmQueryDto, AuthenticationPayloadResponseDto, SignUpBodyDto } from './dto';
 import { AuthenticationMailService } from './mail/authenctication-mail.service';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 import { transaction } from '../../common/transaction';
 import { AuthResponseViewJsonParams } from '../../model/types';
 import { AuthPayloadType } from '../../model/auth.types';
@@ -50,13 +49,13 @@ export class AuthenticationService {
 
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
 
     private readonly prismaService: PrismaService,
     private readonly cookieService: CookieService,
     private readonly userService: UserService,
     private readonly refreshTokenService: RefreshTokenService,
-    private readonly jwtUtilService: JwtService,
+    private readonly jwtService: JwtService,
     private readonly recoverPasswordService: RecoverPasswordService,
     private readonly accountVerificationService: AccountVerificationService,
     private readonly userIdentityService: UserIdentityService,
@@ -140,8 +139,8 @@ export class AuthenticationService {
   async signOut(res: Response, authPayload: AuthPayloadType, refreshToken: string): Promise<Response> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       // Decrypt is session is enabled
-      const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-      const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+      const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+      const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
       const refreshTokenString = isEncryptionSessionActive
         ? await encryption.aes256gcm.decrypt(refreshToken, key).catch(() => {
@@ -154,7 +153,7 @@ export class AuthenticationService {
         throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
       }
 
-      const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshTokenString);
+      const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(refreshTokenString);
 
       // delete refresh token from db
       await this.refreshTokenService.deleteByJTI(refreshTokenPayload.jti, tx);
@@ -178,8 +177,8 @@ export class AuthenticationService {
       const { oldRefreshTokenString } = params;
 
       // Decrypt is session is enabled
-      const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-      const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+      const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+      const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
       const finalOldRefreshTokenString = isEncryptionSessionActive
         ? await encryption.aes256gcm.decrypt(oldRefreshTokenString, key)
@@ -189,7 +188,7 @@ export class AuthenticationService {
         throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
       }
 
-      const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(finalOldRefreshTokenString);
+      const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(finalOldRefreshTokenString);
       const refreshTokenFromDB = await this.refreshTokenService.getByJTI(refreshTokenPayload.jti, tx);
 
       // validate user existence from token
@@ -197,7 +196,7 @@ export class AuthenticationService {
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
       // validate signature only (very important)
-      await this.jwtUtilService.validateRefreshTokenSignatureOnly(finalOldRefreshTokenString);
+      await this.jwtService.validateRefreshTokenSignatureOnly(finalOldRefreshTokenString);
 
       // detect refresh token reuse
       if (!refreshTokenFromDB) {
@@ -208,7 +207,7 @@ export class AuthenticationService {
         // send email for resue detection
         if (userIdentity.strictMode) {
           await Promise.all([
-            this.userIdentityService.updateIsLockedById(userIdentity.id, true, tx),
+            this.userIdentityService.updateBy({ id: userIdentity.id }, { isLocked: true }, tx),
             this.authenticationMailService.sendReuse(user.email, true),
           ]);
         } else {
@@ -220,7 +219,7 @@ export class AuthenticationService {
 
       // validate fully
       try {
-        await this.jwtUtilService.validateRefreshToken(finalOldRefreshTokenString, {
+        await this.jwtService.validateRefreshToken(finalOldRefreshTokenString, {
           ...refreshTokenFromDB,
           exp: parseInt(refreshTokenFromDB.exp),
           iat: parseInt(refreshTokenFromDB.iat),
@@ -268,7 +267,7 @@ export class AuthenticationService {
 
       const { email } = user;
       const jti = crypto.randomUUID();
-      const securityToken = this.jwtUtilService.genResetPasswordToken({ email, userId, jti });
+      const securityToken = this.jwtService.genResetPasswordToken({ email, userId, jti });
       const newPasswordHashed = await bcrypt.hash(newPassword, 10);
 
       let resetPassword = await this.resetPasswordService.getByUserId(user.id, tx);
@@ -339,7 +338,7 @@ export class AuthenticationService {
       }
 
       // send backend url on email for backend to confirm
-      const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/reset-password/confirm`;
+      const backendUrl = `${this.env.get('BACKEND_URL')}/auth/reset-password/confirm`;
       const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
 
       this.authenticationMailService.sendPasswordReset(
@@ -356,13 +355,13 @@ export class AuthenticationService {
 
       const { id: userId } = user;
       const jti = crypto.randomUUID();
-      const securityToken = this.jwtUtilService.genRecoverPasswordToken({ email, userId, jti });
+      const securityToken = this.jwtService.genRecoverPasswordToken({ email, userId, jti });
 
       // 4 lowercase, 1 int, 1 symbol
       const newPasswordText =
         random.genRandStringFromCharset(10, constants.LETTERS_LOWERCASE) +
-        random.generateRandomIntStr(0, 9) +
-        random.generateRandomIntStr(0, 9) +
+        random.generateRandomInt(0, 9).toString() +
+        random.generateRandomInt(0, 9).toString() +
         random.genRandStringFromCharset(1, constants.SYMBOLS);
 
       const newPasswordHashed = await bcrypt.hash(newPasswordText, 10);
@@ -435,7 +434,7 @@ export class AuthenticationService {
       }
 
       // send backend url on email for backend to confirm
-      const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/recover-password/confirm`;
+      const backendUrl = `${this.env.get('BACKEND_URL')}/auth/recover-password/confirm`;
       const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
 
       this.authenticationMailService.sendPasswordRecover(
@@ -455,7 +454,7 @@ export class AuthenticationService {
   async resetPasswordConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
-      const { jti, userId } = this.jwtUtilService.getResetPasswordTokenPayload(token);
+      const { jti, userId } = this.jwtService.getResetPasswordTokenPayload(token);
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
@@ -487,7 +486,7 @@ export class AuthenticationService {
           // send email for resue detection
           if (user.userIdentity.strictMode) {
             await Promise.all([
-              this.userIdentityService.updateIsLockedById(user.userIdentity.id, true, tx),
+              this.userIdentityService.updateBy({ id: user.userIdentity.id }, { isLocked: true }, tx),
               this.authenticationMailService.sendReuse(user.email, true),
             ]);
           } else {
@@ -500,7 +499,7 @@ export class AuthenticationService {
         // show success page and button for redirecting to front end
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Reset password already requested',
-          frontEndUrl: constants.frontendPath.resetPassword(this.envService.get('FRONTEND_URL')),
+          frontEndUrl: constants.frontendPath.resetPassword(this.env.get('FRONTEND_URL')),
           pageTabTitle: 'Reset password confirm',
         });
       }
@@ -515,14 +514,14 @@ export class AuthenticationService {
 
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-      await this.jwtUtilService.validateResetPasswordToken(token, {
+      await this.jwtService.validateResetPasswordToken(token, {
         sub: user.email,
         userId: user.id,
         jti: resetPassword.jti,
       });
 
       await Promise.all([
-        this.userIdentityService.updatePasswordById(user.userIdentity.id, resetPassword.newPassword, tx),
+        this.userIdentityService.updateBy({ id: user.userIdentity.id }, { password: resetPassword.newPassword }, tx),
         this.resetPasswordService.softDelete(resetPassword.id, tx),
         this.resetPasswordAttemptCountService.softDelete(resetPassword.id, tx),
       ]);
@@ -530,7 +529,7 @@ export class AuthenticationService {
       // show success page and button for redirecting to front end
       res.render('view/auth-response', <AuthResponseViewJsonParams>{
         text: 'Reset password was successsfull',
-        frontEndUrl: constants.frontendPath.resetPassword(this.envService.get('FRONTEND_URL')),
+        frontEndUrl: constants.frontendPath.resetPassword(this.env.get('FRONTEND_URL')),
         pageTabTitle: 'Reset password confirm',
       });
     });
@@ -539,7 +538,7 @@ export class AuthenticationService {
   async recoverPasswordConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
-      const { jti, userId } = this.jwtUtilService.getRecoverPasswordTokenPayload(token);
+      const { jti, userId } = this.jwtService.getRecoverPasswordTokenPayload(token);
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
@@ -569,7 +568,7 @@ export class AuthenticationService {
           // send email for resue detection
           if (user.userIdentity.strictMode) {
             await Promise.all([
-              this.userIdentityService.updateIsLockedById(user.userIdentity.id, true, tx),
+              this.userIdentityService.updateBy({ id: user.userIdentity.id }, { isLocked: true }, tx),
               this.authenticationMailService.sendReuse(user.email, true),
             ]);
           } else {
@@ -582,7 +581,7 @@ export class AuthenticationService {
         // show success page and button for redirecting to front end
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Recover password already requested',
-          frontEndUrl: constants.frontendPath.recoverPassword(this.envService.get('FRONTEND_URL')),
+          frontEndUrl: constants.frontendPath.recoverPassword(this.env.get('FRONTEND_URL')),
           pageTabTitle: 'Recover password confirm',
         });
       }
@@ -597,14 +596,14 @@ export class AuthenticationService {
 
       this.userService.validateUser(user, { showNotVerifiedErr: true });
 
-      await this.jwtUtilService.validateRecoverPasswordToken(token, {
+      await this.jwtService.validateRecoverPasswordToken(token, {
         sub: user.email,
         userId: user.id,
         jti: recoverPassword.jti,
       });
 
       await Promise.all([
-        this.userIdentityService.updatePasswordById(user.userIdentity.id, recoverPassword.newPassword, tx),
+        this.userIdentityService.updateBy({ id: user.userIdentity.id }, { password: recoverPassword.newPassword }, tx),
         this.recoverPasswordService.softDelete(recoverPassword.id, tx),
         this.recoverPasswordAttemptCountService.softDelete(recoverPassword.id, tx),
       ]);
@@ -612,7 +611,7 @@ export class AuthenticationService {
       // show success page and button for redirecting to front end
       return res.render('view/auth-response', <AuthResponseViewJsonParams>{
         text: 'Recover password was successsfull',
-        frontEndUrl: constants.frontendPath.recoverPassword(this.envService.get('FRONTEND_URL')),
+        frontEndUrl: constants.frontendPath.recoverPassword(this.env.get('FRONTEND_URL')),
         pageTabTitle: 'Recover password confirm',
       });
     });
@@ -621,7 +620,7 @@ export class AuthenticationService {
   async accountVerificationConfirm(body: AuthConfirmQueryDto, res: Response): Promise<void> {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
       const { token } = body;
-      const { jti, userId } = this.jwtUtilService.getAccountVerifyTokenPayload(token);
+      const { jti, userId } = this.jwtService.getAccountVerifyTokenPayload(token);
 
       const user = await this.userService.getByIdIncludeIdentity(userId, tx);
 
@@ -651,7 +650,7 @@ export class AuthenticationService {
           // send email for resue detection
           if (user.userIdentity.strictMode) {
             await Promise.all([
-              this.userIdentityService.updateIsLockedById(user.userIdentity.id, true, tx),
+              this.userIdentityService.updateBy({ id: user.userIdentity.id }, { isLocked: true }, tx),
               this.authenticationMailService.sendReuse(user.email, true),
             ]);
           } else {
@@ -664,7 +663,7 @@ export class AuthenticationService {
         // show already verified page
         return res.render('view/auth-response', <AuthResponseViewJsonParams>{
           text: 'Account verify already requested',
-          frontEndUrl: constants.frontendPath.accountVerify(this.envService.get('FRONTEND_URL')),
+          frontEndUrl: constants.frontendPath.accountVerify(this.env.get('FRONTEND_URL')),
           pageTabTitle: 'Account verify confirm',
         });
       }
@@ -679,26 +678,26 @@ export class AuthenticationService {
 
       this.userService.validateUser(user, { showIsVerifiedErr: true });
 
-      await this.jwtUtilService.validateAccountVerifyToken(token, {
+      await this.jwtService.validateAccountVerifyToken(token, {
         sub: user.email,
         userId: user.id,
         jti: accountVerify.jti,
       });
 
       await Promise.all([
-        //TODO same method combine
-        this.userIdentityService.updateIsAccVerified(userId, true, tx),
-        this.userIdentityService.updateIsLockedById(user.userIdentity.id, false, tx),
+        this.userIdentityService.updateBy(
+          { id: user.userIdentity.id },
+          { isAccountVerified: true, isLocked: false },
+          tx,
+        ),
         this.accountVerificationService.softDelete(accountVerify.id, tx),
         this.accVerifyAttemptCountService.softDelete(accountVerify.id, tx),
       ]);
 
-      //TODO on success for user create every folder with user {uuid} unser user-content, user-bin, etc ...
-
       // show success page and button for redirecting to front end
       res.render('view/auth-response', <AuthResponseViewJsonParams>{
         text: 'Account verify was successsfull',
-        frontEndUrl: constants.frontendPath.accountVerify(this.envService.get('FRONTEND_URL')),
+        frontEndUrl: constants.frontendPath.accountVerify(this.env.get('FRONTEND_URL')),
         pageTabTitle: 'Account verify confirm',
       });
     });
@@ -710,7 +709,7 @@ export class AuthenticationService {
 
     const { id: userId } = user;
     const jti = crypto.randomUUID();
-    const securityToken = this.jwtUtilService.genAccountVerifyToken({ email, userId, jti });
+    const securityToken = this.jwtService.genAccountVerifyToken({ email, userId, jti });
 
     let accountVerify = await this.accountVerificationService.getByUserId(userId, outsideTransaction);
 
@@ -768,7 +767,7 @@ export class AuthenticationService {
     }
 
     // send backend url on email for backend to confirm
-    const backendUrl = `${this.envService.get('BACKEND_URL')}/auth/account-verify/confirm`;
+    const backendUrl = `${this.env.get('BACKEND_URL')}/auth/account-verify/confirm`;
     const params: AuthConfirmQueryDto = { id: user.id, token: securityToken };
 
     this.authenticationMailService.sendAccountVerify(
@@ -781,14 +780,14 @@ export class AuthenticationService {
     const { platform, res, isAccountVerified, email, userId, tx } = params;
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtUtilService.genAccessToken({ userId, email }),
-      this.jwtUtilService.genRefreshToken({ userId, email }),
+      this.jwtService.genAccessToken({ userId, email, platform }),
+      this.jwtService.genRefreshToken({ userId, email, platform }),
     ]);
 
-    const refreshTokenPayload = this.jwtUtilService.getRefreshTokenPayload(refreshToken);
+    const refreshTokenPayload = this.jwtService.getRefreshTokenPayload(refreshToken);
 
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+    const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
     const [finalAccessToken, finalRefreshToken] = await Promise.all([
       isEncryptionSessionActive ? await encryption.aes256gcm.encrypt(accessToken, key) : accessToken,

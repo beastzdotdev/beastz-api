@@ -10,17 +10,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
+import { PrismaTx } from '@global/prisma';
 import { CreateUserParams, UserIncludeIdentity, UserWithRelations } from './user.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { UserRepository } from './user.repository';
 import { UserBlockedException } from '../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../exceptions/user-locked.exception';
 import { ValidateUserForAccVerifyFlags } from '../authentication/authentication.types';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 import { UpdateUserDetailsDto } from './dto/update-user-details.dto';
 import { UpdateUserProfileImageDto } from './dto/update-user-image.dto';
 import { AuthPayloadType } from '../../model/auth.types';
-import { constants } from '../../common/constants';
 import { fsCustom } from '../../common/helper';
 import { absUserUploadPath } from '../file-structure/file-structure.helper';
 
@@ -89,6 +88,16 @@ export class UserService {
     }
 
     return userId;
+  }
+
+  async getUUIDById(id: number): Promise<string> {
+    const uuid = await this.userRepository.getUUIDById(id);
+
+    if (!uuid) {
+      throw new NotFoundException(ExceptionMessageCode.USER_NOT_FOUND);
+    }
+
+    return uuid;
   }
 
   async validateUserById(id: number): Promise<void> {

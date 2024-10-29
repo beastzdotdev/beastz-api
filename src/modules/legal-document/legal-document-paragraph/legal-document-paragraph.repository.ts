@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LegalDocumentParagraph, Prisma } from '@prisma/client';
-import { PrismaService } from '../../@global/prisma/prisma.service';
+import { PrismaService } from '@global/prisma';
 import { prismaSafeCall } from '../../../common/helper';
 import {
   CreateLegalDocumentParagraphParams,

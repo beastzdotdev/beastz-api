@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FileStructure, Prisma } from '@prisma/client';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import {
   CreateFileStructureParams,
   ExistsByIdsReturnType,
@@ -67,6 +66,25 @@ export class FileStructureRepository {
     });
   }
 
+  async getByIdSelect<T extends Prisma.FileStructureSelect>(
+    id: number,
+    params: { userId?: number; isInBin?: boolean },
+    select: T,
+    tx?: PrismaTx,
+  ): Promise<Prisma.FileStructureGetPayload<{ select: T }> | null> {
+    const db = tx ?? this.prismaService;
+    const { userId, isInBin } = params;
+
+    return db.fileStructure.findFirst({
+      where: {
+        id,
+        userId,
+        isInBin: isInBin ?? false,
+      },
+      select,
+    });
+  }
+
   async getTotalFilesSize(userId: number, params: { isInBin?: boolean }, tx?: PrismaTx): Promise<number> {
     const db = tx ?? this.prismaService;
     const { isInBin } = params;
@@ -87,7 +105,7 @@ export class FileStructureRepository {
   async getBy(params: GetByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure | null> {
     const db = tx ?? this.prismaService;
 
-    const { depth, isFile, title, userId, path, parentId, fileExstensionRaw, mimeTypeRaw } = params;
+    const { depth, isFile, title, userId, path, parentId, fileExstensionRaw, mimeTypeRaw, sharedUniqueHash } = params;
 
     if (!Object.values(params).length) {
       return null;
@@ -104,6 +122,7 @@ export class FileStructureRepository {
         parentId,
         fileExstensionRaw,
         isInBin: false,
+        sharedUniqueHash,
       },
     });
   }
@@ -111,7 +130,7 @@ export class FileStructureRepository {
   async getManyBy(params: GetManyByMethodParamsInRepo, tx?: PrismaTx): Promise<FileStructure[]> {
     const db = tx ?? this.prismaService;
 
-    const { depth, isFile, title, userId, titleStartsWith, parentId } = params;
+    const { titleStartsWith, title, fileTypes, orderBy, ...restOfParams } = params;
 
     if (!Object.values(params).length) {
       return [];
@@ -119,13 +138,12 @@ export class FileStructureRepository {
 
     return db.fileStructure.findMany({
       where: {
-        depth,
-        isFile,
-        userId,
-        parentId,
         isInBin: false,
+        ...restOfParams,
+        ...(fileTypes?.length ? { mimeType: { in: fileTypes } } : {}),
         ...(titleStartsWith ? { title: { startsWith: titleStartsWith } } : { title }),
       },
+      ...(!!orderBy && { orderBy }),
     });
   }
 

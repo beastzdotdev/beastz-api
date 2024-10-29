@@ -2,6 +2,7 @@ import moment from 'moment';
 import crypto from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserSupport, UserSupportTicketStatus } from '@prisma/client';
+import { PrismaTx } from '@global/prisma';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { AuthPayloadType } from '../../model/auth.types';
 import { UserSupportRepository } from './user-support.repository';
@@ -9,7 +10,6 @@ import { UserSupportQueryAllDto } from './dto/user-support-get-all-query.dto';
 import { Pagination } from '../../model/types';
 import { UserSupportCreateDto } from './dto/user-support-create.dto';
 import { UserSupportUpdateDto } from './dto/user-support-update.dto';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserSupportService {

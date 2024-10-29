@@ -7,15 +7,16 @@ import { promisify as toPromiseNative } from 'util';
 import { ValidationError, isNotEmptyObject, isObject } from 'class-validator';
 import { HttpStatus, InternalServerErrorException, Logger, NestInterceptor } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { constants as OsConstants } from 'os';
 
-import { SafeCallResult, ExceptionType, GeneralEnumType, CustomFsResponse, GeneralClass } from '../model/types';
+import { constants } from './constants';
 import { PrismaExceptionCode } from '../model/enum/prisma-exception-code.enum';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
 import { ImportantExceptionBody } from '../model/exception.type';
 import { MulterFileInterceptor } from '../interceptor/multer-file.interceptor';
 import { PlainToInstanceInterceptor } from '../interceptor/plain-to-instance.interceptor';
 import { fileStructureHelper } from '../modules/file-structure/file-structure.helper';
-import { constants } from './constants';
+import { SafeCallResult, ExceptionType, GeneralEnumType, CustomFsResponse, GeneralClass } from '../model/types';
 
 const helperLogger = new Logger('Helper logger');
 
@@ -69,9 +70,11 @@ export async function promisify<T>(callback: () => T): Promise<T> {
   });
 }
 
-export function cyanLog<T>(val: T): void {
-  console.log('\x1b[36m%s\x1b[0m', val);
-}
+export const appLogger = {
+  cyanLog<T>(val: T): void {
+    console.log('\x1b[36m%s\x1b[0m', val);
+  },
+};
 
 export function getBoolExact(value: unknown): boolean | null {
   const valueIsTrue = value === 'true' || value === true;
@@ -104,7 +107,7 @@ export function notExists<T>(value: T): boolean {
   return !exists(value);
 }
 
-export function fields<T>() {
+export function fields<T>(): { [P in keyof T]: P } {
   return new Proxy(
     {},
     {
@@ -112,9 +115,7 @@ export function fields<T>() {
         return prop;
       },
     },
-  ) as {
-    [P in keyof T]: P;
-  };
+  ) as { [P in keyof T]: P };
 }
 
 export function removeDuplicates<T>(arr: T[]): T[] {
@@ -162,7 +163,10 @@ export function getMessageAsExceptionMessageCode(error: ImportantExceptionBody):
   }
 
   if (
-    enumValueIncludes(ExceptionMessageCode, error?.message?.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString())
+    enumValueIncludes(
+      ExceptionMessageCode,
+      error?.message?.toString() ?? ExceptionMessageCode.HTTP_EXCEPTION.toString(),
+    )
   ) {
     message = error?.message as ExceptionMessageCode;
   }
@@ -220,6 +224,12 @@ export const batchPromisesAndResponse = async <T>(promises: Promise<T>[], batchS
   return response;
 };
 
+type SignalObject = Record<keyof typeof OsConstants.signals, string>;
+export const signals: SignalObject = Object.keys(OsConstants.signals).reduce(
+  (acc, key) => ({ ...acc, [key]: key }),
+  <SignalObject>{},
+);
+
 //===================================================
 //  ______ _ _      _          _
 // |  ____(_) |    | |        | |
@@ -232,6 +242,18 @@ export const batchPromisesAndResponse = async <T>(promises: Promise<T>[], batchS
 //===================================================
 
 export const fsCustom = {
+  async readFile(fsPath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      return fs.readFile(fsPath, 'utf8', (err, data) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
+  },
+
   async createDir(fsPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       return fs.mkdir(fsPath, { recursive: true }, err => {
@@ -299,18 +321,6 @@ export const fsCustom = {
       });
     });
   },
-  //TODO: after moving every file under hub uncomment this part and remove uppper solution
-  // async move(fsSourcePath: string, fsDesinationPath: string): Promise<CustomFsResponse> {
-  //   return new Promise((resolve, reject) => {
-  //     return fs.rename(fsSourcePath, fsDesinationPath, err => {
-  //       if (err) {
-  //         reject({ success: false, err });
-  //       } else {
-  //         resolve({ success: true, err: null });
-  //       }
-  //     });
-  //   });
-  // },
 
   async delete(fsPath: string): Promise<CustomFsResponse> {
     return new Promise((resolve, reject) => {
@@ -445,8 +455,10 @@ export const imageInterceptor = (dto: GeneralClass): NestInterceptor[] => {
       fileTypes: Object.values([
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_JPG,
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_PNG,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_GIF,
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_WEBP,
         fileStructureHelper.fileTypeEnumToRawMime.IMAGE_BMP,
+        fileStructureHelper.fileTypeEnumToRawMime.IMAGE_SVG,
       ]),
       maxSize: constants.singleFileMaxSize,
     }),

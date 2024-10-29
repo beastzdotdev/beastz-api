@@ -1,10 +1,12 @@
-version: '3'
-
 volumes:
-  local_postgres_data:
+  redis_master:
+  redis_slave:
+  postgres_data:
+  beastz_api_data:
 
 services:
-  beastz:
+  beastz-api:
+    container_name: beastz-api
     build: ./
     ports:
       - '4000:4000'
@@ -39,22 +41,49 @@ services:
       RESET_PASSWORD_TOKEN_SECRET: ${RESET_PASSWORD_TOKEN_SECRET}
 
     depends_on:
-      - db
+      - beastz-database
+      - redis-master
+      - redis-slave
     volumes:
-      - /beastz-data/hub:/app/hub
-      - /beastz-data/user-bin:/app/user-bin
-      - /beastz-data/user-content:/app/user-content
-      - /beastz-data/user-upload:/app/user-upload
-      - /beastz-data/user-deleted-forever:/app/user-deleted-forever
+      - beastz_api_data:/app/hub
+      - beastz_api_data:/app/user-bin
+      - beastz_api_data:/app/user-content
+      - beastz_api_data:/app/user-upload
+      - beastz_api_data:/app/user-deleted-forever
 
-  db:
+  beastz-database:
     image: postgres:14.5-alpine
+    container_name: beastz-database
     ports:
       - '5433:5432'
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
       POSTGRES_DB: ${POSTGRES_DB}
-
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_DB}']
+      interval: 10s
+      retries: 10
+      start_period: 30s
+      timeout: 10s
     volumes:
-      - local_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+
+  redis-master:
+    image: redis:7.4.0
+    container_name: redis-master
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_master:/data
+
+  redis-slave:
+    image: redis:7.4.0
+    container_name: redis-slave
+    restart: always
+    command: redis-server --slaveof redis-master 6379
+    ports:
+      - 6479:6379
+    volumes:
+      - redis_slave:/data

@@ -52,3 +52,11 @@ export type AuthResponseViewJsonParams = BaseViewJsonParams & {
 export type AuthResponseErrorViewJsonParams = BaseViewJsonParams & {
   text: string;
 };
+
+export type FsCollabRedisBody = {
+  masterSocketId: string | null;
+  masterUserId: number;
+  doc: string;
+  servants: JSON | string;
+  updates: JSON | string;
+};

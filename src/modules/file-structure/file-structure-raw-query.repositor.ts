@@ -1,8 +1,7 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { FileStructureFromRaw } from './model/file-structure-from-raw';
 
 @Injectable()

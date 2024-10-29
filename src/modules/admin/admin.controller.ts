@@ -13,17 +13,18 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { PrismaService, PrismaTx } from '@global/prisma';
+import { OnEvent } from '@nestjs/event-emitter';
+import { EmitterEventFields, EmitterEvents } from '@global/event-emitter';
 import { AdminService } from './admin.service';
-import { NoEmailVerifyValidate } from '../../decorator/no-email-verify-validate.decorator';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { CreateSupportTicketsDto } from './dto/create-support-ticket.dto';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 import { NoAuth } from '../../decorator/no-auth.decorator';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { AdminBasicGuard } from './admin-basic-guard';
+import { NotEmptyPipe } from '../../pipe/not-empty.pipe';
 
 @NoAuth()
 @UseGuards(AdminBasicGuard)
@@ -36,6 +37,11 @@ export class AdminController {
     private readonly prismaService: PrismaService,
   ) {}
 
+  @Get()
+  async healthAdmin() {
+    return 'yes you are admin';
+  }
+
   @Get('test-envs')
   async testEnvs() {
     return this.adminService.testEnvs();
@@ -46,9 +52,41 @@ export class AdminController {
     return this.adminService.getTickets(queryParams);
   }
 
+  @Get('get-password')
+  async getBcryptPassword(@Query('password', NotEmptyPipe) password: string): Promise<string> {
+    return this.adminService.getBcryptPassword(password);
+  }
+
+  @Get('test/event-emitter')
+  async testEventEmitter() {
+    return this.adminService.testEventEmitter();
+  }
+
+  @Get('test/socket')
+  async testSocket() {
+    return this.adminService.testSocket();
+  }
+
   @Post('send-mail')
   async senMail(@Body() dto: SendMailDto) {
     return this.adminService.sendMail(dto);
+  }
+
+  @Post('test/redis')
+  testRedis() {
+    return this.adminService.testRedis();
+  }
+
+  @Post('user-demo-create')
+  createDemoUser() {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const affected = await this.adminService.createDemoUser(tx);
+
+      return {
+        msg: 'success',
+        affected,
+      };
+    });
   }
 
   @Post('user-support-ticket/answer-ticket')
@@ -80,7 +118,6 @@ export class AdminController {
     };
   }
 
-  @NoEmailVerifyValidate()
   @Delete('user/:userId')
   async deleteUserInfo(@Param('userId', ParseIntPipe) userId: number) {
     const affected = await this.adminService.deleteUserInfo(userId);
@@ -91,7 +128,6 @@ export class AdminController {
     };
   }
 
-  @NoEmailVerifyValidate()
   @Delete('user/:userId/fs')
   async deleteUserFsInfo(@Param('userId', ParseIntPipe) userId: number) {
     return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
@@ -104,5 +140,8 @@ export class AdminController {
     });
   }
 
-  //TODO create demo user
+  @OnEvent(EmitterEventFields['admin.test'], { async: true })
+  async onAdminTest(payload: EmitterEvents['admin.test']) {
+    console.log(payload);
+  }
 }

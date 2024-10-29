@@ -1,11 +1,11 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { HttpAdapterHost } from '@nestjs/core';
-import { Request } from 'express';
 import path from 'path';
+import { Request } from 'express';
+import { HttpAdapterHost } from '@nestjs/core';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { EnvService, InjectEnv } from '@global/env';
+
 import { AllExceptionBody, ImportantExceptionBody } from '../model/exception.type';
 import { ExceptionMessageCode } from '../model/enum/exception-message-code.enum';
-import { EnvService } from '../modules/@global/env/env.service';
-import { InjectEnv } from '../modules/@global/env/env.decorator';
 import { getMessageAsExceptionMessageCode } from '../common/helper';
 import { constants } from '../common/constants';
 
@@ -15,13 +15,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
+
     private readonly httpAdapterHost: HttpAdapterHost,
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    // console.log(exception);
-
     if (
       (exception instanceof HttpException && exception.getStatus() === HttpStatus.INTERNAL_SERVER_ERROR) ||
       !(exception instanceof HttpException)
@@ -32,13 +31,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const url = ctx.getRequest<Request>().url;
 
-    const isDev = this.envService.isDev();
+    const isDev = this.env.isDev();
 
     let errorBody: AllExceptionBody;
 
-    // console.log(url);
-
-    //TODO needs some check for example can be moved to hub
     if (
       url.startsWith(path.join('/', constants.assets.userContentFolderName)) ||
       url.startsWith(path.join('/', constants.assets.userUploadFolderName)) ||

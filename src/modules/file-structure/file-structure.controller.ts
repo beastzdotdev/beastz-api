@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Param, ParseIntPipe, Query, Patch, Res, Logger, Delete } from '@nestjs/common';
 import { Response } from 'express';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { FileStructureService } from './file-structure.service';
 import { UploadFileStructureDto } from './dto/upload-file-structure.dto';
 import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
@@ -18,10 +19,11 @@ import { GetDetailsQueryDto } from './dto/get-details-query.dto';
 import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
 import { fileInterceptors } from '../../common/helper';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
 import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
+import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
+import { NoAuth } from '../../decorator/no-auth.decorator';
+import { UploadDocumentImagePreviewPathDto } from './dto/upload-document-image-preview-path.dto';
 
 @Controller('file-structure')
 export class FileStructureController {
@@ -31,6 +33,15 @@ export class FileStructureController {
     private readonly fileStructureService: FileStructureService,
     private readonly prismaService: PrismaService,
   ) {}
+
+  @Get()
+  async getAll(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Query() queryParams: FsGetAllQueryDto,
+  ): Promise<BasicFileStructureResponseDto[]> {
+    const response = await this.fileStructureService.getAll(authPayload, queryParams);
+    return BasicFileStructureResponseDto.mapArr(response);
+  }
 
   @Get('search')
   async search(
@@ -83,6 +94,20 @@ export class FileStructureController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.fileStructureService.downloadById(res, authPayload, id);
+  }
+
+  @Get('document-text/:id')
+  async getDocumentTextById(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<string> {
+    return this.fileStructureService.getDocumentTextById(authPayload, id);
+  }
+
+  @NoAuth()
+  @Get('document-text-public/:sharedUniqueHash')
+  async getDocumentTextByIdPublic(@Param('sharedUniqueHash') sharedUniqueHash: string): Promise<string> {
+    return this.fileStructureService.getDocumentTextByIdPublic(sharedUniqueHash);
   }
 
   @Post('duplicate-status')
@@ -144,6 +169,19 @@ export class FileStructureController {
   ): Promise<BasicFileStructureResponseDto> {
     const response = await this.fileStructureService.replaceText(id, dto, authPayload);
     return BasicFileStructureResponseDto.map(response);
+  }
+
+  @FileUploadInterceptor(...fileInterceptors(UploadDocumentImagePreviewPathDto))
+  @Patch('upload-document-image-preview-path/:id')
+  async uploadDocumentImagePreviewPath(
+    @AuthPayload() authPayload: AuthPayloadType,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UploadDocumentImagePreviewPathDto,
+  ): Promise<string> {
+    return transaction.handle(this.prismaService, this.logger, async (tx: PrismaTx) => {
+      const response = await this.fileStructureService.uploadDocumentImagePreviewPath(id, dto, authPayload, tx);
+      return response;
+    });
   }
 
   @Patch('move-to-bin/:id')

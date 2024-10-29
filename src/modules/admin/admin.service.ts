@@ -1,57 +1,99 @@
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+
+import { Redis } from 'ioredis';
 import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
-import { PrismaService } from '../@global/prisma/prisma.service';
+
+import { MailService } from '@global/mail';
+import { InjectEnv, EnvService } from '@global/env';
+import { PrismaService, PrismaTx } from '@global/prisma';
+import { EventEmitterService } from '@global/event-emitter';
+
 import { fsCustom } from '../../common/helper';
-import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
-import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
-import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
-import { PrismaTx } from '../@global/prisma/prisma.type';
-import { InjectEnv } from '../@global/env/env.decorator';
-import { EnvService } from '../@global/env/env.service';
-import { MailService } from '../@global/mail/mail.service';
 import { SendMailDto } from './dto/send-mail-admin.dto';
+import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
+import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
+import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
 
 @Injectable()
 export class AdminService {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
+
+    @InjectRedis()
+    private readonly redis: Redis,
 
     private readonly prismaService: PrismaService,
     private readonly mailService: MailService,
+    private readonly eventEmitterService: EventEmitterService,
   ) {}
 
   async sendMail(data: SendMailDto) {
     await this.mailService.send(data);
   }
 
+  async testRedis() {
+    const key = 'seomtihng';
+
+    await this.redis.set(key, 123);
+    await this.redis.set(key, 321, 'EX', 100);
+    await this.redis.set(key, 321, 'EX', 200);
+
+    const z = await this.redis.del('non existsant');
+    console.log(z);
+
+    const q = await this.redis.del(key);
+    console.log(q);
+
+    await this.redis.set('test', '123');
+    await this.redis.set('test2', '123');
+
+    console.log(await this.redis.del('test', 'test2'));
+
+    // overwrites
+    await this.redis.hset('testing-hash-table', { message: 'test 1' });
+    await this.redis.hset('testing-hash-table', { message: 'test 2' });
+  }
+
   async testEnvs() {
+    return this.env.getInstance();
+  }
+
+  async createDemoUser(tx: PrismaTx) {
+    const demoMail = 'demo@demo.com';
+    const existingDemo = await tx.user.findFirst({ where: { email: demoMail } });
+
+    if (existingDemo) {
+      await this.deleteUserFsInfo(existingDemo.id, tx);
+      await tx.userIdentity.delete({ where: { userId: existingDemo.id } });
+      await tx.user.delete({ where: { id: existingDemo.id } });
+    }
+
+    const user = await tx.user.create({
+      data: {
+        userName: 'DemoUsername',
+        gender: 'OTHER',
+        uuid: crypto.randomUUID(),
+        birthDate: new Date(),
+        email: 'demo@demo.com',
+        userIdentity: {
+          create: {
+            password: await bcrypt.hash('demo123@', 10),
+            isAccountVerified: true,
+            isBlocked: false,
+            isLocked: false,
+            strictMode: false,
+          },
+        },
+      },
+    });
+
     return {
-      instance: this.envService.getInstance(),
-      DEBUG: this.envService.get('DEBUG'),
-      PORT: this.envService.get('PORT'),
-      DATABASE_LOG_QUERY: this.envService.get('DATABASE_LOG_QUERY'),
-      ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION'),
-      FRONTEND_URL: this.envService.get('FRONTEND_URL'),
-      BACKEND_URL: this.envService.get('BACKEND_URL'),
-      COOKIE_SECRET: this.envService.get('COOKIE_SECRET'),
-      MAIL_URL: this.envService.get('MAIL_URL'),
-      MAIL_USERNAME: this.envService.get('MAIL_USERNAME'),
-      MAIL_FROM: this.envService.get('MAIL_FROM'),
-      DATABASE_URL: this.envService.get('DATABASE_URL'),
-      ACCESS_TOKEN_SECRET: this.envService.get('ACCESS_TOKEN_SECRET'),
-      REFRESH_TOKEN_SECRET: this.envService.get('REFRESH_TOKEN_SECRET'),
-      ACCESS_TOKEN_EXPIRATION_IN_SEC: this.envService.get('ACCESS_TOKEN_EXPIRATION_IN_SEC'),
-      REFRESH_TOKEN_EXPIRATION_IN_SEC: this.envService.get('REFRESH_TOKEN_EXPIRATION_IN_SEC'),
-      RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC: this.envService.get('RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
-      RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC: this.envService.get('RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC'),
-      ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: this.envService.get('ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC'),
-      MAX_FEEDBACK_PER_DAY_COUNT: this.envService.get('MAX_FEEDBACK_PER_DAY_COUNT'),
-      PRISMA_ENGINE_PROTOCOL: this.envService.get('PRISMA_ENGINE_PROTOCOL'),
-      ACCOUNT_VERIFY_TOKEN_SECRET: this.envService.get('ACCOUNT_VERIFY_TOKEN_SECRET'),
-      RECOVER_PASSWORD_TOKEN_SECRET: this.envService.get('RECOVER_PASSWORD_TOKEN_SECRET'),
-      RESET_PASSWORD_TOKEN_SECRET: this.envService.get('RESET_PASSWORD_TOKEN_SECRET'),
-      SESSION_JWT_ENCRYPTION_KEY: this.envService.get('SESSION_JWT_ENCRYPTION_KEY'),
+      recreated: !!existingDemo,
+      user,
     };
   }
 
@@ -96,9 +138,11 @@ export class AdminService {
     const allBinFsIds = allBinFs.map(e => e.id);
     const allFsIds = allFs.map(e => e.id);
 
-    await tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } });
-
-    await tx.fileStructureEncryption.deleteMany({ where: { fileStructureId: { in: allFsIds } } });
+    await Promise.all([
+      tx.fileStructureBin.deleteMany({ where: { id: { in: allBinFsIds } } }),
+      tx.fileStructureEncryption.deleteMany({ where: { fileStructureId: { in: allFsIds } } }),
+      tx.fileStructurePublicShare.deleteMany({ where: { fileStructureId: { in: allFsIds } } }),
+    ]);
 
     // must be after
     await tx.fileStructure.deleteMany({ where: { id: { in: allFsIds } } });
@@ -165,6 +209,31 @@ export class AdminService {
         include: { userSupportMessages: true, userSupportImages: true },
       }),
     });
+  }
+
+  async getBcryptPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
+  }
+
+  async testEventEmitter() {
+    const promises: Promise<unknown>[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      promises.push(this.eventEmitterService.emitAsync('admin.test', { message: `Hello for admin index at ${i}` }));
+    }
+
+    await Promise.all(promises);
+
+    console.log('finished test event emitter');
+  }
+
+  async testSocket() {
+    await Promise.all([
+      this.eventEmitterService.emitAsync('admin.socket.test', { message: 'test all', type: 'all' }),
+      this.eventEmitterService.emitAsync('admin.socket.test', { message: 'test broadcast', type: 'namespace' }),
+    ]);
+
+    console.log('finished test event emitter');
   }
 
   async updateTicket(id: number, dto: UpdateSupportTicketDto) {

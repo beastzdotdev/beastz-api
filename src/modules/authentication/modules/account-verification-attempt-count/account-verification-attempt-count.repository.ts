@@ -1,9 +1,8 @@
 import moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { AccountVerificationAttemptCount } from '@prisma/client';
-import { PrismaService } from '../../../@global/prisma/prisma.service';
+import { PrismaTx, PrismaService } from '@global/prisma';
 import { AccVerifyAttemptCountCreate, AccVerifyAttemptCountUpdate } from './account-verification-attempt-count.type';
-import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class AccountVerificationAttemptCountRepository {

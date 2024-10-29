@@ -103,23 +103,22 @@ model User {
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   profileImagePath String?   @map("profile_image_path") @db.VarChar(2047)
 
-  userIdentity                    UserIdentity?
-  feedbacks                       Feedback[]
-  refreshTokens                   RefreshToken[]
-  recoverPasswords                RecoverPassword[]
-  accountVerifications            AccountVerification[]
-  resetPasswords                  ResetPassword[]
-  fileStructure                   FileStructure[]
-  fileStructureBookmark           FileStructureBookmark[]
-  fileStructureEncryption         FileStructureEncryption[]
-  toFileShared                    FileStructureShare[]              @relation(name: "toUser")
-  fromFileShared                  FileStructureShare[]              @relation(name: "fromUser")
-  fileStructureSharePulicLink     FileStructureSharePulicLink[]
-  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
-  fileStructureBin                FileStructureBin[]
-  userSupport                     UserSupport[]
-  userSupportMessages             UserSupportMessage[]
-  userSupportImages               UserSupportImage[]
+  userIdentity             UserIdentity?
+  userSupport              UserSupport[]
+  userSupportMessages      UserSupportMessage[]
+  userSupportImages        UserSupportImage[]
+  feedbacks                Feedback[]
+  refreshTokens            RefreshToken[]
+  recoverPasswords         RecoverPassword[]
+  accountVerifications     AccountVerification[]
+  resetPasswords           ResetPassword[]
+  fileStructure            FileStructure[]
+  fileStructureEncryption  FileStructureEncryption[]
+  toFileShared             FileStructureShare[]       @relation(name: "toUser")
+  fromFileShared           FileStructureShare[]       @relation(name: "fromUser")
+  fileStructureBookmark    FileStructureBookmark[]
+  fileStructurePublicShare FileStructurePublicShare[]
+  fileStructureBin         FileStructureBin[]
 
   @@index([email])
   @@index([uuid], type: BTree)
@@ -288,25 +287,27 @@ model Feedback {
 }
 
 model FileStructure {
-  id                Int           @id @default(autoincrement())
-  path              String        @db.Text
-  title             String        @db.VarChar(255)
-  color             String?       @db.VarChar(9) // only hex
-  depth             Int           @map("depth") // which level is folder/file from root level
-  userId            Int           @map("user_id")
-  sizeInBytes       Int?          @map("size_in_bytes")
-  fileExstensionRaw String?       @map("file_exstension_raw") // like .ts, .js, .heic, ...
-  mimeTypeRaw       String?       @map("mime_type_raw") // mimetype just as string
-  mimeType          FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
-  isFile            Boolean       @map("is_file") // if false then is folder (boolean is fastest)
-  isShortcut        Boolean       @map("is_shortcut")
-  isInBin           Boolean       @map("is_in_bin")
-  isEncrypted       Boolean       @map("is_encrypted") // for files basic, for folders zip must be created
-  isEditable        Boolean?      @map("is_editable") // self explanatory (not intended for folders)
-  isLocked          Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
-  lastModifiedAt    DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
-  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
-  uuid              String        @map("uuid") @db.Uuid // can be used for various reason e.g. unique name for object storage
+  id                       Int           @id @default(autoincrement())
+  path                     String        @db.Text
+  title                    String        @db.VarChar(255)
+  color                    String?       @db.VarChar(9) // only hex
+  depth                    Int           @map("depth") // which level is folder/file from root level
+  userId                   Int           @map("user_id")
+  sizeInBytes              Int?          @map("size_in_bytes")
+  fileExstensionRaw        String?       @map("file_exstension_raw") // like .ts, .js, .heic, ...
+  mimeTypeRaw              String?       @map("mime_type_raw") // mimetype just as string
+  mimeType                 FileMimeType? @map("mime_type") // mimetype enum for most common mimetypes
+  isFile                   Boolean       @map("is_file") // if false then is folder (boolean is fastest)
+  isShortcut               Boolean       @map("is_shortcut")
+  isInBin                  Boolean       @map("is_in_bin")
+  isEncrypted              Boolean       @map("is_encrypted") // for files basic, for folders zip must be created
+  isEditable               Boolean?      @map("is_editable") // self explanatory (not intended for folders)
+  isLocked                 Boolean       @map("is_locked") // if locked no moving, no editing, no deleting
+  lastModifiedAt           DateTime?     @map("last_modified_at") @db.Timestamptz() // only content modify
+  createdAt                DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  uuid                     String        @map("uuid") @db.Uuid // can be used for various reason e.g. unique name for object storage
+  sharedUniqueHash         String        @unique @map("shared_unique_hash") @db.VarChar(16)
+  documentImagePreviewPath String?       @map("document_image_preview_path") @db.Text
 
   // recursive properties
   rootParentId Int?            @map("root_parent_id")
@@ -314,13 +315,14 @@ model FileStructure {
   parent       FileStructure?  @relation("parentId", fields: [parentId], references: [id])
   children     FileStructure[] @relation("parentId")
 
-  user                        User                         @relation(fields: [userId], references: [id])
-  fileStructureBookmark       FileStructureBookmark[]
-  fileStructureShare          FileStructureShare[]
-  fileStructureEncryption     FileStructureEncryption?
-  FileStructureSharePulicLink FileStructureSharePulicLink?
-  fileStructureBin            FileStructureBin?
+  user                     User                      @relation(fields: [userId], references: [id])
+  fileStructureBookmark    FileStructureBookmark[]
+  fileStructureShare       FileStructureShare[]
+  fileStructureEncryption  FileStructureEncryption?
+  fileStructurePublicShare FileStructurePublicShare?
+  fileStructureBin         FileStructureBin?
 
+  @@index([sharedUniqueHash], type: Hash)
   @@index([uuid], type: BTree)
   @@map("file_structure")
 }
@@ -366,36 +368,22 @@ model FileStructureShare {
   @@map("file_structure_share")
 }
 
-model FileStructureSharePulicLink {
-  id                      Int       @id @default(autoincrement())
-  userId                  Int       @map("user_id") // who owns
-  fileStructureId         Int       @unique @map("file_structure_id")
-  uniqueHash              String    @map("unique_hash")
-  isDownloadable          Boolean   @default(false) @map("is_downloadable")
-  isRestrictedToOnlyUsers Boolean   @default(false) @map("is_restricted_to_only_users") // if so use table
-  isPasswordProtected     Boolean   @default(false) @map("is_password_protected")
-  password                String?   @map("password")
-  customTitle             String?   @map("custom_title")
-  expiresAt               DateTime? @map("expires_at")
-  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+model FileStructurePublicShare {
+  id                  Int       @id @default(autoincrement())
+  userId              Int       @map("user_id") // who owns
+  fileStructureId     Int       @unique @map("file_structure_id")
+  isDownloadable      Boolean   @default(false) @map("is_downloadable")
+  isPasswordProtected Boolean   @default(false) @map("is_password_protected")
+  expiresAt           DateTime? @map("expires_at")
+  password            String?   @map("password")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  isDisabled          Boolean   @default(false) @map("is_disabled")
 
-  user                            User                              @relation(fields: [userId], references: [id])
-  fileStructure                   FileStructure                     @relation(fields: [fileStructureId], references: [id])
-  fileStructureSharePulicLinkUser FileStructureSharePulicLinkUser[]
+  user          User          @relation(fields: [userId], references: [id])
+  fileStructure FileStructure @relation(fields: [fileStructureId], references: [id])
 
-  @@map("file_structure_share_public_link")
-}
-
-model FileStructureSharePulicLinkUser {
-  id                            Int      @id @default(autoincrement())
-  userId                        Int      @map("user_id") // for who is shared for only
-  fileStructureSharePulicLinkId Int      @map("file_structure_share_public_link_id")
-  createdAt                     DateTime @default(now()) @map("created_at") @db.Timestamptz()
-
-  user                        User                        @relation(fields: [userId], references: [id])
-  fileStructureSharePulicLink FileStructureSharePulicLink @relation(fields: [fileStructureSharePulicLinkId], references: [id])
-
-  @@map("file_structure_share_public_link_user")
+  @@index([fileStructureId], type: BTree)
+  @@map("file_structure_public_share")
 }
 
 model FileStructureBin {

@@ -37,10 +37,37 @@ export const constants = Object.freeze({
   HEX: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
   ASCII: '!#$%&*?@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
 
+  socket: {
+    DOC_NAMESPACE: 'document',
+
+    events: {
+      PushDoc: 'push_doc',
+      PullDoc: 'pull_doc',
+      PullDocFull: 'pull_doc_full',
+      UserLeft: 'user_left',
+      UserJoined: 'user_joined',
+      RetryConnection: 'retry_connection',
+      DocumentShareDisabled: 'document_share_disabled',
+    },
+  },
+
+  redis: {
+    twoDayInSec: 172800,
+
+    buildFSLockName: (fsId: number) => `fs::lock::${fsId}`,
+    buildUserIdName: (userId: number) => `user::${userId}`,
+    buildServantsName: (socketId: string) => `servant::${socketId}`,
+    buildFSCollabName: (sharedUniqueHash: string) => `fs::collab::${sharedUniqueHash}`,
+  },
+
   frontendPath: {
     resetPassword: (base: string) => base,
     accountVerify: (base: string) => base,
     recoverPassword: (base: string) => `${base}/auth/sign-in`,
+
+    document: {
+      collabJoin: '/collab-join',
+    },
   },
 
   singleFileMaxSize: 30 * 1024 * 1024, // ~30mb

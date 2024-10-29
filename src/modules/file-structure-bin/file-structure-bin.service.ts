@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { FileStructureBin, Prisma } from '@prisma/client';
+import { PrismaTx } from '@global/prisma';
 import { CreateFileStructureBinParams, FileStructureBinWithRelation } from './file-structure-bin.type';
 import { FileStructureBinRepository } from './file-structure-bin.repository';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
 import { AuthPayloadType } from '../../model/auth.types';
 import { Pagination } from '../../model/types';
 import { GetFromBinQueryDto } from './dto/get-from-bin-query.dto';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class FileStructureBinService {

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UserSupportImage } from '@prisma/client';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { CreateUserSupportImageParams, DeleteUserSupportImageParams } from './user-support-image.type';
 
 @Injectable()

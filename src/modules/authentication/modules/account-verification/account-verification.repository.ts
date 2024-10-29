@@ -1,9 +1,8 @@
 import moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { AccountVerification } from '@prisma/client';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { CreateAccountVerificationParams, UpdateAccountVerificationParams } from './account-verification.type';
-import { PrismaService } from '../../../@global/prisma/prisma.service';
-import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class AccountVerificationRepository {

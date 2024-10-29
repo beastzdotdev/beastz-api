@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../@global/prisma/prisma.service';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { PrismaService, PrismaTx } from '@global/prisma';
+import { Prisma, UserIdentity } from '@prisma/client';
 import { CreateUserIdentityParams } from './user-identity.type';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserIdentityRepository {
@@ -23,30 +23,25 @@ export class UserIdentityRepository {
     return db.userIdentity.create({ data: params });
   }
 
-  async updatePasswordById(id: number, newHashedPassword: string, tx?: PrismaTx) {
+  async updateBy(
+    condition: { id?: number; userId?: number },
+    data: Prisma.UserIdentityUpdateInput,
+    tx?: PrismaTx,
+  ): Promise<UserIdentity | null> {
     const db = tx ?? this.prismaService;
 
-    return db.userIdentity.update({
-      where: { id },
-      data: { password: newHashedPassword },
-    });
-  }
+    if (!Object.values(condition).length) {
+      throw new InternalServerErrorException('Condition empty');
+    }
 
-  async updateIsLockedById(id: number, value: boolean, tx?: PrismaTx) {
-    const db = tx ?? this.prismaService;
+    const { id, userId } = condition;
 
     return db.userIdentity.update({
-      where: { id },
-      data: { isLocked: value },
-    });
-  }
-
-  async updateIsAccVerified(userId: number, isAccountVerified: boolean, tx?: PrismaTx) {
-    const db = tx ?? this.prismaService;
-
-    return db.userIdentity.update({
-      where: { userId },
-      data: { isAccountVerified },
+      where: {
+        id,
+        userId,
+      },
+      data,
     });
   }
 }

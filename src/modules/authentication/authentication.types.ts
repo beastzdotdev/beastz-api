@@ -1,6 +1,6 @@
 import { Response } from 'express';
+import { PrismaTx } from '@global/prisma';
 import { PlatformWrapper } from '../../model/platform.wrapper';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 export type SignInParams = {
   email: string;

@@ -1,12 +1,23 @@
+import fs from 'fs';
 import path from 'path';
 import moment from 'moment';
 import mime from 'mime';
+import crypto from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
-import crypto from 'crypto';
-import { createReadStream } from 'fs';
+
+import { Redis } from 'ioredis';
 import { Response } from 'express';
-import { EncryptionAlgorithm, EncryptionType, FileMimeType, FileStructure, FileStructureBin } from '@prisma/client';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { PrismaService, PrismaTx } from '@global/prisma';
+import {
+  EncryptionAlgorithm,
+  EncryptionType,
+  FileMimeType,
+  FileStructure,
+  FileStructureBin,
+  Prisma,
+} from '@prisma/client';
 import {
   BadRequestException,
   ForbiddenException,
@@ -17,6 +28,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { EnvService, InjectEnv } from '@global/env';
+import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
 import { FileStructureRepository } from './file-structure.repository';
@@ -32,10 +45,15 @@ import { UpdateFolderStructureDto } from './dto/update-folder-structure.dto';
 import { batchPromises, fsCustom } from '../../common/helper';
 import { FileStructureBinService } from '../file-structure-bin/file-structure-bin.service';
 import { RestoreFromBinDto } from './dto/restore-from-bin.dto';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 import { FileStructureRawQueryRepository } from './file-structure-raw-query.repositor';
+import { GetDetailsQueryDto } from './dto/get-details-query.dto';
+import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
+import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
+import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
+import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
+import { ImportantExceptionBody } from '../../model/exception.type';
+import { FsGetAllQueryDto } from './dto/fs-get-all-query.dto';
 import {
   constFileStructureNameDuplicateRegex,
   extractNumber,
@@ -46,26 +64,56 @@ import {
   absUserContentPath,
   absUserDeletedForeverPath,
   absUserTempFolderZipPath,
+  absUserUploadPath,
 } from './file-structure.helper';
-import { GetDetailsQueryDto } from './dto/get-details-query.dto';
-import { UploadEncryptedFileStructureDto } from './dto/upload-encrypted-file-structure.dto';
-import { FileStructureEncryptionService } from '../file-structure-encryption/file-structure-encryption.service';
-import { ReplaceTextFileStructure } from './dto/replace-text-file-structure';
-import { SearchFileStructureQueryDto } from './dto/search-file-structure-query.dto';
-import { ImportantExceptionBody } from '../../model/exception.type';
+import { UserService } from '../user/user.service';
+import { UploadDocumentImagePreviewPathDto } from './dto/upload-document-image-preview-path.dto';
 
 @Injectable()
 export class FileStructureService {
   private readonly logger = new Logger(FileStructureService.name);
 
   constructor(
-    private readonly prismaService: PrismaService,
+    @InjectRedis()
+    private readonly redis: Redis,
 
+    @InjectEnv()
+    private readonly env: EnvService,
+
+    private readonly prismaService: PrismaService,
     private readonly fsRepository: FileStructureRepository,
     private readonly fsRawQueryRepository: FileStructureRawQueryRepository,
     private readonly fsBinService: FileStructureBinService,
     private readonly fsEncryptionService: FileStructureEncryptionService,
+    private readonly userService: UserService,
   ) {}
+
+  async checkDocEditingCurrently(fsId: number): Promise<void> {
+    const keyBuilder = constants.redis.buildFSLockName(fsId);
+    const value = await this.redis.get(keyBuilder);
+
+    if (value) {
+      throw new BadRequestException(ExceptionMessageCode.DOCUMENT_CURRENTLY_IN_EDIT_MODE);
+    }
+  }
+
+  async getAll(authPayload: AuthPayloadType, queryParams: FsGetAllQueryDto) {
+    const { isFile, fileTypes, orderByLastModifiedAt } = queryParams;
+
+    return this.fsRepository.getManyBy({
+      fileTypes,
+      isFile,
+      userId: authPayload.user.id,
+      isEditable: true,
+      isEncrypted: false,
+      isLocked: false,
+      isShortcut: false,
+
+      orderBy: {
+        lastModifiedAt: orderByLastModifiedAt,
+      },
+    });
+  }
 
   async search(authPayload: AuthPayloadType, queryParams: SearchFileStructureQueryDto) {
     return this.fsRepository.search(queryParams.search, { userId: authPayload.user.id });
@@ -169,7 +217,7 @@ export class FileStructureService {
     return fileStructures;
   }
 
-  async getById(authPayload: AuthPayloadType, id: number, tx?: PrismaTx) {
+  async getById(authPayload: AuthPayloadType | { user: { id: number } }, id: number, tx?: PrismaTx) {
     const fileStructure = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id }, tx);
 
     if (!fileStructure) {
@@ -179,27 +227,49 @@ export class FileStructureService {
     return fileStructure;
   }
 
+  async getByIdSelect<T extends Prisma.FileStructureSelect>(
+    authPayload: AuthPayloadType | { user: { id: number } } | null,
+    id: number,
+    select: T,
+    tx?: PrismaTx,
+  ): Promise<Prisma.FileStructureGetPayload<{ select: T }>> {
+    const fileStructure = await this.fsRepository.getByIdSelect(
+      id,
+      { userId: authPayload ? authPayload.user.id : undefined },
+      select,
+      tx,
+    );
+
+    if (!fileStructure) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    return fileStructure;
+  }
+
   async downloadById(res: Response, authPayload: AuthPayloadType, id: number) {
-    const fs = await this.getById(authPayload, id);
-    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
-    const contentTitle = fs.isFile ? fs.title + (fs.fileExstensionRaw ?? '') : fs.title + '.zip';
+    await this.checkDocEditingCurrently(id);
+
+    const fst = await this.getById(authPayload, id);
+    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fst.path);
+    const contentTitle = fst.isFile ? fst.title + (fst.fileExstensionRaw ?? '') : fst.title + '.zip';
 
     res.setHeader('Content-Disposition', `attachment; filename=${contentTitle}`);
     res.setHeader('Content-Title', contentTitle);
 
-    if (fs.mimeTypeRaw) {
-      res.setHeader('Content-Type', fs.mimeTypeRaw);
+    if (fst.mimeTypeRaw) {
+      res.setHeader('Content-Type', fst.mimeTypeRaw);
     }
 
-    if (fs.sizeInBytes) {
-      res.setHeader('Content-Length', fs.sizeInBytes);
+    if (fst.sizeInBytes) {
+      res.setHeader('Content-Length', fst.sizeInBytes);
     }
 
-    if (fs.isFile) {
-      const readStream = createReadStream(absPath);
+    if (fst.isFile) {
+      const readStream = fs.createReadStream(absPath);
       readStream.pipe(res);
       readStream.on('error', err => {
-        this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+        this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
         this.logger.debug('Error in stream download');
         this.logger.debug(err);
 
@@ -240,11 +310,11 @@ export class FileStructureService {
         });
 
         if (err) {
-          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
           this.logger.debug(err);
 
           fsCustom.delete(outputZip).catch(err => {
-            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
             this.logger.debug(err);
           });
 
@@ -263,17 +333,17 @@ export class FileStructureService {
       }
 
       if (outputZipPath) {
-        const readStream = createReadStream(outputZipPath);
+        const readStream = fs.createReadStream(outputZipPath);
 
         readStream.on('close', () => {
           fsCustom.delete(outputZipPath).catch(err => {
-            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+            this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
             this.logger.debug(err);
           });
         });
 
         readStream.on('error', err => {
-          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fs.path });
+          this.logger.debug({ userId: authPayload.user.id, fsId: id, path: fst.path });
           this.logger.debug('Error in stream download');
           this.logger.debug(err);
 
@@ -289,6 +359,51 @@ export class FileStructureService {
         return readStream.pipe(res);
       }
     }
+  }
+
+  async getDocumentTextById(authPayload: AuthPayloadType, id: number): Promise<string> {
+    const { sharedUniqueHash, path: fsPath } = await this.getByIdSelect(authPayload, id, {
+      sharedUniqueHash: true,
+      path: true,
+    });
+
+    const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
+    const text = await this.redis.hget(fsCollabKeyName, 'doc');
+
+    if (text === null) {
+      const sourceContentPath = path.join(absUserContentPath(authPayload.user.uuid), fsPath);
+      const documentText = await fsCustom.readFile(sourceContentPath).catch(() => {
+        throw new BadRequestException('File not found');
+      });
+
+      return documentText;
+    }
+
+    return text;
+  }
+
+  async getDocumentTextByIdPublic(sharedUniqueHash: string) {
+    const fileStructure = await this.fsRepository.getBy({ sharedUniqueHash });
+
+    if (!fileStructure) {
+      throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
+    }
+
+    const uuid = await this.userService.getUUIDById(fileStructure.userId);
+
+    const fsCollabKeyName = constants.redis.buildFSCollabName(sharedUniqueHash);
+    const text = await this.redis.hget(fsCollabKeyName, 'doc');
+
+    if (text === null) {
+      const sourceContentPath = path.join(absUserContentPath(uuid), fileStructure.path);
+      const documentText = await fsCustom.readFile(sourceContentPath).catch(() => {
+        throw new BadRequestException('File not found');
+      });
+
+      return documentText;
+    }
+
+    return text;
   }
 
   async uploadFile(dto: UploadFileStructureDto, authPayload: AuthPayloadType, tx?: PrismaTx) {
@@ -412,6 +527,8 @@ export class FileStructureService {
         isEditable: true,
         isLocked: false,
         lastModifiedAt: lastModifiedAt ?? null,
+        sharedUniqueHash: random.getRandomString(16),
+        documentImagePreviewPath: null,
 
         //! important
         rootParentId: rootParentId ?? null,
@@ -627,6 +744,8 @@ export class FileStructureService {
       isEditable: true,
       isLocked: false,
       lastModifiedAt: new Date(Date.now()),
+      sharedUniqueHash: random.getRandomString(16),
+      documentImagePreviewPath: null,
 
       //! important
       rootParentId: rootParentId ?? null,
@@ -652,9 +771,22 @@ export class FileStructureService {
     return response;
   }
 
-  async replaceText(id: number, dto: ReplaceTextFileStructure, authPayload: AuthPayloadType): Promise<FileStructure> {
+  async replaceText(
+    id: number,
+    dto: ReplaceTextFileStructure,
+    authPayload: AuthPayloadType | { user: { id: number; uuid: string } },
+    tx?: PrismaTx,
+  ): Promise<FileStructure> {
+    const { checkEditMode = true } = dto;
+
+    if (checkEditMode) {
+      await this.checkDocEditingCurrently(id);
+    }
+
+    const { id: userId, uuid } = authPayload.user;
+
     const { text } = dto;
-    const fs = await this.fsRepository.getByIdForUser(id, { userId: authPayload.user.id });
+    const fs = await this.fsRepository.getByIdForUser(id, { userId }, tx);
 
     if (!fs) {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_NOT_FOUND);
@@ -664,11 +796,11 @@ export class FileStructureService {
       throw new NotFoundException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
     }
 
-    if (fs.mimeType !== FileMimeType.TEXT_PLAIN) {
+    if (fs.mimeType !== FileMimeType.TEXT_PLAIN && fs.mimeType !== FileMimeType.TEXT_MARKDOWN) {
       throw new NotFoundException(ExceptionMessageCode.FS_MUST_BE_TEXT_PLAIN);
     }
 
-    const absPath = path.join(absUserContentPath(authPayload.user.uuid), fs.path);
+    const absPath = path.join(absUserContentPath(uuid), fs.path);
 
     await fsCustom.access(absPath).catch(e => {
       this.logger.debug(e);
@@ -676,11 +808,7 @@ export class FileStructureService {
     });
 
     const [updatedFs] = await Promise.all([
-      this.fsRepository.updateByIdAndReturn(
-        id,
-        { userId: authPayload.user.id, isInBin: false },
-        { lastModifiedAt: moment().toDate() },
-      ),
+      this.fsRepository.updateByIdAndReturn(id, { userId, isInBin: false }, { lastModifiedAt: moment().toDate() }, tx),
       fsCustom.writeFile(absPath, text).catch(e => {
         this.logger.debug(e);
         throw new InternalServerErrorException(ExceptionMessageCode.INTERNAL_ERROR);
@@ -688,6 +816,78 @@ export class FileStructureService {
     ]);
 
     return updatedFs;
+  }
+
+  async uploadDocumentImagePreviewPath(
+    id: number,
+    dto: UploadDocumentImagePreviewPathDto,
+    authPayload: AuthPayloadType,
+    tx?: PrismaTx,
+  ): Promise<string> {
+    const { img } = dto;
+    const fs = await this.getById(authPayload, id, tx);
+
+    if (!fs.isFile) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_NOT_FILE);
+    }
+
+    if (fs.isEncrypted) {
+      throw new BadRequestException(ExceptionMessageCode.FILE_STRUCTURE_IS_ALREADY_ENCRYPTED);
+    }
+
+    const ext = mime.extension(img.mimetype);
+
+    if (!ext) {
+      this.logger.debug(`File has no extension ${ext}`);
+      throw new BadRequestException('Sorry, something went wrong. Please try again.');
+    }
+
+    const newPath = `image-preview-fsId-${id}-${moment().valueOf()}.${ext}`;
+    const newAbsFilePath = path.join(absUserUploadPath(authPayload.user.uuid), newPath);
+
+    // check if folder exists before creation
+    const folderCreationSuccess = await fsCustom.checkDirOrCreate(newAbsFilePath, {
+      isFile: true,
+      createIfNotExists: true,
+    });
+
+    if (!folderCreationSuccess) {
+      this.logger.debug(`Folder check error ${newAbsFilePath}`);
+      throw new InternalServerErrorException('Something went wrong');
+    }
+
+    await fsCustom.writeFile(newAbsFilePath, img.buffer).catch(e => {
+      this.logger.debug(e);
+      throw new InternalServerErrorException('Something went wrong');
+    });
+
+    if (fs.documentImagePreviewPath) {
+      const existingAbsFilePath = path.join(absUserUploadPath(authPayload.user.uuid), fs.documentImagePreviewPath);
+
+      fsCustom.delete(existingAbsFilePath).catch(err => {
+        this.logger.debug(`Error happend in file delete ${existingAbsFilePath}`);
+        this.logger.error(err);
+
+        throw new InternalServerErrorException('Something went wrong');
+      });
+    }
+
+    await this.fsRepository.updateById(
+      id,
+      {
+        documentImagePreviewPath: newPath,
+      },
+      {
+        userId: authPayload.user.id,
+        isInBin: false,
+      },
+      tx,
+    );
+
+    const url = new URL(this.env.get('BACKEND_URL'));
+    url.pathname = path.join(constants.assets.userUploadFolderName, newPath);
+
+    return url.toString();
   }
 
   async moveToBin(id: number, authPayload: AuthPayloadType): Promise<FileStructureBin> {

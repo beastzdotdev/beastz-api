@@ -1,26 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { Feedback, Prisma } from '@prisma/client';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { FeedbackCreateDto } from './dto/feedback-create.dto';
 import { FilterFeedbackParams } from './feedback.type';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { Pagination } from '../../model/types';
 
 @Injectable()
 export class FeedbackRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async create(userId: number, body: FeedbackCreateDto) {
-    return this.prismaService.feedback.create({
+  async create(userId: number, body: FeedbackCreateDto, tx: PrismaTx) {
+    const db = tx ?? this.prismaService;
+    const { review, text, images } = body;
+    const imagesFilter = images?.map(el => el.path)?.filter(Boolean);
+
+    return db.feedback.create({
       data: {
-        ...body,
+        review,
+        text,
         userId,
-        images: body.images?.map(el => el.path),
+        ...(imagesFilter?.length && { imagesFilter }),
       },
     });
   }
 
-  async getAllByUserIdAndDatesCount(userId: number, startDate: Date, endDate: Date) {
-    return this.prismaService.feedback.count({
+  async getAllByUserIdAndDatesCount(userId: number, startDate: Date, endDate: Date, tx: PrismaTx) {
+    const db = tx ?? this.prismaService;
+
+    return db.feedback.count({
       where: {
         userId,
         createdAt: {

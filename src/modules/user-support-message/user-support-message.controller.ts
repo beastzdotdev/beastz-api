@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Logger, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { UserSupportMessageResponseDto } from './dto/user-support-message-response.dto';
 import { UserSupportMessageService } from './user-support-message.service';
 import { AuthPayload } from '../../decorator/auth-payload.decorator';
@@ -8,13 +9,8 @@ import { UserSupportMessageQueryAllDto } from './dto/user-support-message-get-al
 import { Pagination } from '../../model/types';
 import { UserSupportMessageCreateDto } from './dto/user-support-message-create.dto';
 import { FileUploadInterceptor } from '../../decorator/file-upload.decorator';
-import { constants } from '../../common/constants';
-import { MulterFileInterceptor } from '../../interceptor/multer-file.interceptor';
-import { PlainToInstanceInterceptor } from '../../interceptor/plain-to-instance.interceptor';
-import { OnlyImgMimetypeRaw } from '../file-structure/file-structure.helper';
-import { PrismaService } from '../@global/prisma/prisma.service';
 import { transaction } from '../../common/transaction';
-import { PrismaTx } from '../@global/prisma/prisma.type';
+import { imageInterceptor } from '../../common/helper';
 
 @Controller('user-support-message')
 export class UserSupportMessageController {
@@ -41,13 +37,7 @@ export class UserSupportMessageController {
   }
 
   @Post(':userSupportId')
-  @FileUploadInterceptor(
-    new PlainToInstanceInterceptor(UserSupportMessageCreateDto),
-    new MulterFileInterceptor({
-      fileTypes: OnlyImgMimetypeRaw,
-      maxSize: constants.singleFileMaxSize,
-    }),
-  )
+  @FileUploadInterceptor(...imageInterceptor(UserSupportMessageCreateDto))
   async create(
     @Param('userSupportId', ParseIntPipe) userSupportId: number,
     @Body() dto: UserSupportMessageCreateDto,

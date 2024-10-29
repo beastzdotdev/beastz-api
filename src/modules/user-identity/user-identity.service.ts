@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaTx } from '@global/prisma';
+import { Prisma, UserIdentity } from '@prisma/client';
 import { UserIdentityRepository } from './user-identity.repository';
 import { CreateUserIdentityParams } from './user-identity.type';
 import { ExceptionMessageCode } from '../../model/enum/exception-message-code.enum';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserIdentityService {
@@ -32,15 +33,11 @@ export class UserIdentityService {
     return this.userIdentityRepository.create(params, tx);
   }
 
-  async updatePasswordById(id: number, newHashedPassword: string, tx?: PrismaTx) {
-    return this.userIdentityRepository.updatePasswordById(id, newHashedPassword, tx);
-  }
-
-  async updateIsLockedById(id: number, value: boolean, tx?: PrismaTx) {
-    return this.userIdentityRepository.updateIsLockedById(id, value, tx);
-  }
-
-  async updateIsAccVerified(userId: number, isVerified: boolean, tx?: PrismaTx) {
-    return this.userIdentityRepository.updateIsAccVerified(userId, isVerified, tx);
+  async updateBy(
+    condition: { id?: number; userId?: number },
+    data: Prisma.UserIdentityUpdateInput,
+    tx?: PrismaTx,
+  ): Promise<UserIdentity | null> {
+    return this.userIdentityRepository.updateBy(condition, data, tx);
   }
 }

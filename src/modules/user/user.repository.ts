@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { CreateUserParams, UpdateUserParams, UserWithRelations } from './user.type';
-import { PrismaService } from '../@global/prisma/prisma.service';
-import { PrismaTx } from '../@global/prisma/prisma.type';
 
 @Injectable()
 export class UserRepository {
@@ -119,6 +118,11 @@ export class UserRepository {
     });
 
     return result?.id ?? null;
+  }
+
+  async getUUIDById(id: number): Promise<string | null> {
+    const result = await this.prismaService.user.findFirst({ where: { id }, select: { uuid: true } });
+    return result?.uuid ?? null;
   }
 
   async existsById(id: number): Promise<boolean> {

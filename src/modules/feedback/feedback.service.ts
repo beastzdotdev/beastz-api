@@ -1,19 +1,20 @@
 import moment from 'moment';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Feedback } from '@prisma/client';
-import { TooManyRequestException } from 'src/exceptions/too-many-request.exception';
+import { EnvService, InjectEnv } from '@global/env';
+import { PrismaTx } from '@global/prisma';
 import { FeedbackCreateDto } from './dto/feedback-create.dto';
 import { FeedbackRepository } from './feedback.repository';
 import { FilterFeedbackParams } from './feedback.type';
 import { Pagination } from '../../model/types';
-import { EnvService } from '../@global/env/env.service';
-import { InjectEnv } from '../@global/env/env.decorator';
+import { TooManyRequestException } from '../../exceptions/too-many-request.exception';
 
 @Injectable()
 export class FeedbackService {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
+
     private readonly feedbackRepository: FeedbackRepository,
   ) {}
 
@@ -21,17 +22,19 @@ export class FeedbackService {
     return this.feedbackRepository.filter(params);
   }
 
-  async create(userId: number, body: FeedbackCreateDto) {
+  async create(userId: number, body: FeedbackCreateDto, tx: PrismaTx) {
     // check if user has requested more than {some number in env} times for feedback
     const startDate = moment().startOf('day').toDate();
     const endDate = moment().endOf('day').toDate();
 
-    const feedbacksCount = await this.feedbackRepository.getAllByUserIdAndDatesCount(userId, startDate, endDate);
+    const feedbacksCount = await this.feedbackRepository.getAllByUserIdAndDatesCount(userId, startDate, endDate, tx);
 
-    if (feedbacksCount >= this.envService.get('MAX_FEEDBACK_PER_DAY_COUNT')) {
+    if (feedbacksCount >= this.env.get('MAX_FEEDBACK_PER_DAY_COUNT')) {
       throw new TooManyRequestException();
     }
 
-    return this.feedbackRepository.create(userId, body);
+    throw new InternalServerErrorException('Method not implemented yet');
+
+    return this.feedbackRepository.create(userId, body, tx);
   }
 }

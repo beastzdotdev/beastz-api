@@ -9,14 +9,14 @@ import { constants } from '../../../common/constants';
 export class CookieService {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
   ) {}
 
   public clearCookie(res: Response): void {
     let cookieOptions: CookieOptions | undefined;
 
-    if (this.envService.isProd()) {
-      cookieOptions = { domain: this.envService.get('FRONTEND_URL') };
+    if (this.env.isProd()) {
+      cookieOptions = { domain: this.env.get('FRONTEND_URL') };
     }
 
     res.clearCookie(constants.COOKIE_ACCESS_NAME, cookieOptions);
@@ -30,16 +30,16 @@ export class CookieService {
       signed: true,
     };
 
-    if (this.envService.isDev()) {
+    if (this.env.isDev()) {
       cookieOptions.sameSite = 'none';
       cookieOptions.secure = true;
     }
 
-    if (this.envService.isProd()) {
+    if (this.env.isProd()) {
       cookieOptions.httpOnly = true;
       cookieOptions.sameSite = true;
       cookieOptions.secure = true;
-      cookieOptions.domain = this.envService.get('COOKIE_DOMAIN');
+      cookieOptions.domain = this.env.get('COOKIE_DOMAIN');
     }
 
     const expires = moment().add(10, 'year').toDate();

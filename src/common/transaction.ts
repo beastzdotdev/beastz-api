@@ -1,7 +1,6 @@
 import { HttpException, InternalServerErrorException, Logger } from '@nestjs/common';
-import { PrismaService } from '../modules/@global/prisma/prisma.service';
-import { PrismaTx } from '../modules/@global/prisma/prisma.type';
-import { cyanLog } from './helper';
+import { PrismaService, PrismaTx } from '@global/prisma';
+import { appLogger } from './helper';
 
 export const transaction = Object.freeze({
   async handle<T>(prismaService: PrismaService, _logger: Logger, callback: (tx: PrismaTx) => T): Promise<T> {
@@ -15,9 +14,9 @@ export const transaction = Object.freeze({
       }
 
       // only log non http exceptions
-      cyanLog('-'.repeat(50));
+      appLogger.cyanLog('-'.repeat(50));
       console.error(error);
-      cyanLog('-'.repeat(50));
+      appLogger.cyanLog('-'.repeat(50));
 
       throw new InternalServerErrorException('Something went wrong');
     }

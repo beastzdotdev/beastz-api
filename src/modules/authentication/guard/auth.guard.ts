@@ -1,3 +1,6 @@
+import path from 'path';
+import { Reflector } from '@nestjs/core';
+import { PlatformForJwt } from '@prisma/client';
 import {
   BadRequestException,
   CanActivate,
@@ -6,13 +9,12 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PlatformForJwt } from '@prisma/client';
-import { GuardsConsumer } from '@nestjs/core/guards';
-import path from 'path';
+
+import { JwtService } from '@global/jwt';
+import { InjectEnv, EnvService } from '@global/env';
+
 import { NO_AUTH_KEY } from '../../../decorator/no-auth.decorator';
 import { ExceptionMessageCode } from '../../../model/enum/exception-message-code.enum';
-import { JwtService } from '../modules/jwt/jwt.service';
 import { constants } from '../../../common/constants';
 import { UserService } from '../../user/user.service';
 import { AuthPayloadAndRequest } from '../../../model/auth.types';
@@ -20,8 +22,6 @@ import { enumValueIncludes } from '../../../common/helper';
 import { PlatformWrapper } from '../../../model/platform.wrapper';
 import { UserBlockedException } from '../../../exceptions/user-blocked.exception';
 import { UserLockedException } from '../../../exceptions/user-locked.exception';
-import { InjectEnv } from '../../@global/env/env.decorator';
-import { EnvService } from '../../@global/env/env.service';
 import { encryption } from '../../../common/encryption';
 import { AccessTokenExpiredException } from '../../../exceptions/access-token-expired.exception';
 import { TokenExpiredException } from '../../../exceptions/token-expired-forbidden.exception';
@@ -30,10 +30,10 @@ import { TokenExpiredException } from '../../../exceptions/token-expired-forbidd
 export class AuthGuard implements CanActivate {
   constructor(
     @InjectEnv()
-    private readonly envService: EnvService,
+    private readonly env: EnvService,
 
     private readonly reflector: Reflector,
-    private readonly jwtUtilService: JwtService,
+    private readonly jwtService: JwtService,
     private readonly userService: UserService,
   ) {}
 
@@ -63,8 +63,8 @@ export class AuthGuard implements CanActivate {
     }
 
     // Decrypt is session is enabled
-    const isEncryptionSessionActive = this.envService.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
-    const key = this.envService.get('SESSION_JWT_ENCRYPTION_KEY');
+    const isEncryptionSessionActive = this.env.get('ENABLE_SESSION_ACCESS_JWT_ENCRYPTION');
+    const key = this.env.get('SESSION_JWT_ENCRYPTION_KEY');
 
     const finalAccessToken = isEncryptionSessionActive
       ? await encryption.aes256gcm.decrypt(accessToken, key)
@@ -74,7 +74,7 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException(ExceptionMessageCode.INVALID_TOKEN);
     }
 
-    const accessTokenPayload = this.jwtUtilService.getAccessTokenPayload(finalAccessToken);
+    const accessTokenPayload = this.jwtService.getAccessTokenPayload(finalAccessToken);
     const user = await this.userService.getByIdIncludeIdentity(accessTokenPayload.userId);
 
     if (user.userIdentity.isBlocked) {
@@ -86,7 +86,7 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      await this.jwtUtilService.validateAccessToken(finalAccessToken, {
+      await this.jwtService.validateAccessToken(finalAccessToken, {
         platform: platform.getPlatform(),
         sub: user.email,
         userId: user.id,
@@ -112,7 +112,6 @@ export class AuthGuard implements CanActivate {
       <string>request.headers[constants.AUTH_HEADER_NAME];
     let platformValue = request.headers?.[constants.PLATFORM_HEADER_NAME] as PlatformForJwt;
 
-    //TODO needs some check for example can be moved to hub
     if (
       request.url.startsWith(path.join('/', constants.assets.userContentFolderName)) ||
       request.url.startsWith(path.join('/', constants.assets.userUploadFolderName)) ||

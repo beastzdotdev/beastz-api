@@ -1,9 +1,8 @@
 import moment from 'moment';
 import { Injectable } from '@nestjs/common';
 import { RecoverPassword } from '@prisma/client';
+import { PrismaService, PrismaTx } from '@global/prisma';
 import { CreateRecoverPasswordParams, UpdateRecoverPasswordParams } from './recover-password.type';
-import { PrismaService } from '../../../@global/prisma/prisma.service';
-import { PrismaTx } from '../../../@global/prisma/prisma.type';
 
 @Injectable()
 export class RecoverPasswordRepository {
