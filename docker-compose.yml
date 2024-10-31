@@ -46,7 +46,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       DATABASE_LOG_QUERY: ${DATABASE_LOG_QUERY}
     ports:
-      - '33000:4000'
+      - 33000:4000
     depends_on:
       beastz_postgres:
         condition: service_healthy

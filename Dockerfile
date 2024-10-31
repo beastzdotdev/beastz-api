@@ -15,7 +15,7 @@ FROM node:${NODE_VERSION}-bullseye as deps
 WORKDIR /app
 COPY --from=build /root/.npm /root/.npm
 COPY ./package.json ./package-lock.json ./
-RUN set -ex; npm ci --production
+RUN set -ex; npm ci --omit=dev
 
 FROM node:${NODE_VERSION}-bullseye-slim
 WORKDIR /app
