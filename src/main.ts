@@ -26,7 +26,6 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const envService = app.get<string, EnvService>(ENV_SERVICE_TOKEN);
 
   const assetsPath = path.join(__dirname, './assets');
-  const hostname = envService.isDev() ? '0.0.0.0' : 'localhost';
 
   const nunjuckMainRenderer = nunjucks.configure(assetsPath, {
     express: app,
@@ -65,7 +64,7 @@ NestFactory.create<NestExpressApplication>(AppModule).then(async app => {
   const documentSocketAdapter = new DocumentSocketAdapter(app, envService);
   app.useWebSocketAdapter(documentSocketAdapter);
 
-  await app.listen(envService.get('PORT'), hostname);
+  await app.listen(envService.get('PORT'));
 
   // Measure startup time
   const totalTimeInMs = (performance.now() - startingTime).toFixed(3) + ' ms';
