@@ -1,3 +1,6 @@
+# https://github.com/prisma/prisma/issues/10204
+# https://stackoverflow.com/questions/72004347/github-actions-build-docker-image-with-a-secret-json-file-and-env-file
+
 on:
   push:
     branches: ['master']
@@ -55,6 +58,3 @@ jobs:
       POSTGRES_PASSWORD: ${{vars.POSTGRES_PASSWORD}}
       POSTGRES_USERNAME: ${{vars.POSTGRES_USERNAME}}
       POSTGRES_DB: ${{vars.POSTGRES_DB}}
-#
-# https://github.com/prisma/prisma/issues/10204
-# https://stackoverflow.com/questions/72004347/github-actions-build-docker-image-with-a-secret-json-file-and-env-file
