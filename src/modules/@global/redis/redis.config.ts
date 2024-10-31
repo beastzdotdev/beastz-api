@@ -1,11 +1,6 @@
-import { RedisModuleOptions } from '@nestjs-modules/ioredis';
 import { EnvService } from '@global/env';
+import { RedisClientOptions } from 'redis';
 
-export const redisConfig = (env: EnvService): RedisModuleOptions => ({
-  type: 'single',
+export const redisConfig = (env: EnvService): RedisClientOptions => ({
   url: env.get('REDIS_URL'),
-  options: {
-    lazyConnect: false,
-    host: env.get('REDIS_HOST'),
-  },
 });

@@ -89,7 +89,7 @@ export class BasicFileStructureResponseDto {
     this.documentImagePreviewPath = url.toString();
   }
 
-  public setAbsRelativePathBin(binPath: string): void {
+  setAbsRelativePathBin(binPath: string): void {
     const url = new URL(envService.get('BACKEND_URL'));
     url.pathname = path.join(constants.assets.userBinFolderName, binPath);
 

@@ -29,11 +29,10 @@
     "prisma:gen": "prisma generate",
     "migration:gen": "prisma migrate dev --create-only",
     "migration:run": "prisma migrate dev && npm run prisma:gen",
-    "start:migrate:prod": "npx prisma migrate deploy && npm run start:prod"
+    "start:migrate:prod": "prisma migrate deploy && npm run start:prod"
   },
   "dependencies": {
     "@codemirror/state": "^6.4.1",
-    "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/class-validator": "^0.13.4",
     "@nestjs/common": "^10.2.10",
     "@nestjs/config": "^3.1.1",
@@ -55,7 +54,6 @@
     "fast-folder-size": "^2.2.0",
     "figlet": "^1.7.0",
     "helmet": "^7.1.0",
-    "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.29.4",
     "nunjucks": "^3.2.4",

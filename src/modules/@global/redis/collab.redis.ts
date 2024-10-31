@@ -1,14 +1,10 @@
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Injectable } from '@nestjs/common';
-import { Redis } from 'ioredis';
-import { FsCollabRedisBody } from '../../../model/types';
+import { FsCollabRedisBody, HSETObject } from '../../../model/types';
+import { RedisService } from './redis.service';
 
 @Injectable()
 export class CollabRedis {
-  constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
-  ) {}
+  constructor(private readonly redis: RedisService) {}
 
   async getMasterSocketId(key: string): Promise<string | null> {
     const masterSocketId = await this.redis.hget(key, 'masterSocketId');
@@ -23,7 +19,7 @@ export class CollabRedis {
       return;
     }
 
-    await this.redis.hset(key, 'servants', JSON.stringify([...servants, id]));
+    await this.redis.hsetsingle(key, 'servants', JSON.stringify([...servants, id]));
   }
 
   async getServants(key: string): Promise<string[]> {
@@ -41,11 +37,11 @@ export class CollabRedis {
   }
 
   async setServants(key: string, newServants: string[]) {
-    return this.redis.hset(key, 'servants', JSON.stringify(newServants));
+    return this.redis.hsetsingle(key, 'servants', JSON.stringify(newServants));
   }
 
   async removeMasterSocketId(fsCollabKeyName: string) {
-    await this.redis.hset(fsCollabKeyName, 'masterSocketId', JSON.stringify(null));
+    await this.redis.hsetsingle(fsCollabKeyName, 'masterSocketId', JSON.stringify(null));
   }
 
   async createFsCollabHashTable(
@@ -60,13 +56,15 @@ export class CollabRedis {
   ): Promise<void> {
     const { doc, masterUserId, servants, updates, masterSocketId } = params;
 
-    // create hash table
-    await this.redis.hset(key, <FsCollabRedisBody>{
+    const object: FsCollabRedisBody = {
       doc,
       masterSocketId: masterSocketId === null ? JSON.stringify(null) : masterSocketId,
       masterUserId,
       servants: JSON.stringify(servants),
       updates: JSON.stringify(updates),
-    });
+    };
+
+    // create hash table
+    await this.redis.hsetobject(key, object as HSETObject);
   }
 }

@@ -1,7 +1,5 @@
 import path from 'path';
-import Redis from 'ioredis';
 import { Namespace } from 'socket.io';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { DocumentSocket } from './document-socket.type';
@@ -11,17 +9,17 @@ import { CollabRedis } from '../../redis';
 import { absUserContentPath } from '../../../file-structure/file-structure.helper';
 import { fsCustom } from '../../../../common/helper';
 import { FileStructureService } from '../../../file-structure/file-structure.service';
+import { RedisService } from '../../redis/redis.service';
 
 @Injectable()
 export class DocumentSocketService {
   /**
    * @description This variable is only reference to actual document socket gateway server namespace
    */
-  public wss: Namespace;
+  wss: Namespace;
 
   constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
+    private readonly redis: RedisService,
 
     private readonly collabRedis: CollabRedis,
     private readonly fsService: FileStructureService,
@@ -33,14 +31,9 @@ export class DocumentSocketService {
       ? constants.redis.buildFSLockName(socket.handshake.data.filesStructureId)
       : constants.redis.buildFSLockName(socket.handshake.auth.filesStructureId);
 
-    await this.redis.set(
-      // expire after 2 day if something happens
-      // also this will override if there is dangling key in redis
-      lockKeyName,
-      socket.id,
-      'EX',
-      constants.redis.twoDayInSec,
-    );
+    // expire after 2 day if something happens
+    // also this will override if there is dangling key in redis
+    await this.redis.set(lockKeyName, socket.id, { EX: constants.redis.twoDayInSec });
   }
 
   async removeLock(socket: DocumentSocket) {
@@ -91,7 +84,7 @@ export class DocumentSocketService {
       });
     } else {
       // update socket id
-      await this.redis.hset(fsCollabKeyName, 'masterSocketId', socket.id);
+      await this.redis.hsetsingle(fsCollabKeyName, 'masterSocketId', socket.id);
     }
 
     // notify everyone the join

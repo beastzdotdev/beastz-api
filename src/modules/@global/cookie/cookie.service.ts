@@ -12,7 +12,7 @@ export class CookieService {
     private readonly env: EnvService,
   ) {}
 
-  public clearCookie(res: Response): void {
+  clearCookie(res: Response): void {
     let cookieOptions: CookieOptions | undefined;
 
     if (this.env.isProd()) {
@@ -23,7 +23,7 @@ export class CookieService {
     res.clearCookie(constants.COOKIE_REFRESH_NAME, cookieOptions);
   }
 
-  public createCookie(res: Response, params: { accessToken?: string; refreshToken?: string }): void {
+  createCookie(res: Response, params: { accessToken?: string; refreshToken?: string }): void {
     const { accessToken, refreshToken } = params;
 
     const cookieOptions: CookieOptions = {

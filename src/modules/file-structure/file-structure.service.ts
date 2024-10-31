@@ -6,9 +6,7 @@ import crypto from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
 
-import { Redis } from 'ioredis';
 import { Response } from 'express';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { PrismaService, PrismaTx } from '@global/prisma';
 import {
   EncryptionAlgorithm,
@@ -68,14 +66,14 @@ import {
 } from './file-structure.helper';
 import { UserService } from '../user/user.service';
 import { UploadDocumentImagePreviewPathDto } from './dto/upload-document-image-preview-path.dto';
+import { RedisService } from '../@global/redis/redis.service';
 
 @Injectable()
 export class FileStructureService {
   private readonly logger = new Logger(FileStructureService.name);
 
   constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
+    private readonly redis: RedisService,
 
     @InjectEnv()
     private readonly env: EnvService,
