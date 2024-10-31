@@ -9,12 +9,12 @@ import { InjectEnv, EnvService } from '@global/env';
 import { PrismaService, PrismaTx } from '@global/prisma';
 import { EventEmitterService } from '@global/event-emitter';
 
+import { RedisService } from '@global/redis';
 import { fsCustom } from '../../common/helper';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { absUserBinPath, absUserContentPath } from '../file-structure/file-structure.helper';
-import { RedisService } from '../@global/redis/redis.service';
 
 @Injectable()
 export class AdminService {

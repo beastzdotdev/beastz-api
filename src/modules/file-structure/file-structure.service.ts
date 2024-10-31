@@ -27,6 +27,7 @@ import {
 } from '@nestjs/common';
 
 import { EnvService, InjectEnv } from '@global/env';
+import { RedisService } from '@global/redis';
 import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
@@ -66,7 +67,6 @@ import {
 } from './file-structure.helper';
 import { UserService } from '../user/user.service';
 import { UploadDocumentImagePreviewPathDto } from './dto/upload-document-image-preview-path.dto';
-import { RedisService } from '../@global/redis/redis.service';
 
 @Injectable()
 export class FileStructureService {

@@ -17,6 +17,7 @@ import { PrismaService, PrismaTx } from '@global/prisma';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EmitterEventFields, EmitterEvents } from '@global/event-emitter';
 import { createClient, RedisClientType } from 'redis';
+import { RedisService, InjectRedis } from '@global/redis';
 import { AdminService } from './admin.service';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
@@ -27,8 +28,6 @@ import { SendMailDto } from './dto/send-mail-admin.dto';
 import { AdminBasicGuard } from './admin-basic-guard';
 import { NotEmptyPipe } from '../../pipe/not-empty.pipe';
 import { FsCollabRedisBody, HSETObject, NonNullableProperties } from '../../model/types';
-import { RedisService } from '../@global/redis/redis.service';
-import { InjectRedis } from '../@global/redis/redis.decorator';
 
 @NoAuth()
 @UseGuards(AdminBasicGuard)

@@ -4,6 +4,7 @@ import { FileStructure, FileStructurePublicShare } from '@prisma/client';
 import { PrismaTx } from '@global/prisma';
 import { CollabRedis } from '@global/redis';
 import { EventEmitterService } from '@global/event-emitter';
+import { RedisService } from '@global/redis';
 import { FileStructurePublicShareRepository } from './file-structure-public-share.repository';
 import { FileStructureService } from '../file-structure/file-structure.service';
 import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-ignore.dto';
@@ -19,7 +20,6 @@ import {
   FsPublicShareWithRelations,
   GetByMethodParamsInFsPublicShare,
 } from './file-structure-public-share.type';
-import { RedisService } from '../@global/redis/redis.service';
 
 @Injectable()
 export class FileStructurePublicShareService {
