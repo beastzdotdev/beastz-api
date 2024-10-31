@@ -9,11 +9,9 @@ volumes:
     name: 'beastz_api__beastz_api_data'
 
 services:
-  beastz-api:
-    container_name: beastz-api
+  beastz_api:
+    container_name: beastz_api
     build: ./
-    ports:
-      - '4000:4000'
     environment:
       DEBUG: ${DEBUG}
       PORT: ${PORT}
@@ -47,11 +45,15 @@ services:
       REDIS_URL: ${REDIS_URL}
       DATABASE_URL: ${DATABASE_URL}
       DATABASE_LOG_QUERY: ${DATABASE_LOG_QUERY}
-
+    ports:
+      - '33000:4000'
     depends_on:
-      - beastz-database
-      - redis-master
-      - redis-slave
+      beastz_postgres:
+        condition: service_healthy
+      beastz_redis_master:
+        condition: service_healthy
+      beastz_redis_slave:
+        condition: service_healthy
     volumes:
       - beastz_api_data:/app/hub
       - beastz_api_data:/app/user-bin
