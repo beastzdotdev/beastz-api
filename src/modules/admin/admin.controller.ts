@@ -27,7 +27,6 @@ import { NoAuth } from '../../decorator/no-auth.decorator';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { AdminBasicGuard } from './admin-basic-guard';
 import { NotEmptyPipe } from '../../pipe/not-empty.pipe';
-import { FsCollabRedisBody, HSETObject, NonNullableProperties } from '../../model/types';
 
 @NoAuth()
 @UseGuards(AdminBasicGuard)
