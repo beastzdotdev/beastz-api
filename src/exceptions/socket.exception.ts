@@ -6,7 +6,7 @@ type SocketErrorData = {
 };
 
 export class SocketError extends Error {
-  public readonly data: SocketErrorData;
+  readonly data: SocketErrorData;
 
   constructor(message: ExceptionMessageCode | string, data: SocketErrorData = {}) {
     super(message);

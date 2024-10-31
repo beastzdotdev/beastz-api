@@ -1,8 +1,12 @@
 volumes:
-  redis_master:
-  redis_slave:
-  postgres_data:
+  beastz_redis_master_data:
+    name: 'beastz_api__beastz_redis_master_data'
+  beastz_redis_slave_data:
+    name: 'beastz_api__beastz_redis_slave_data'
+  beastz_postgres_data:
+    name: 'beastz_api__beastz_postgres_data'
   beastz_api_data:
+    name: 'beastz_api__beastz_api_data'
 
 services:
   beastz-api:
@@ -21,10 +25,6 @@ services:
       ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: ${ENABLE_SESSION_ACCESS_JWT_ENCRYPTION}
       ADMIN_BASIC_PASSWORD: ${ADMIN_BASIC_PASSWORD}
       ENABLE_MAIL_SANDBOX: ${ENABLE_MAIL_SANDBOX}
-      DATABASE_URL: ${DATABASE_URL}
-      DATABASE_LOG_QUERY: ${DATABASE_LOG_QUERY}
-      REDIS_URL: ${REDIS_URL}
-      REDIS_HOST: ${REDIS_HOST}
       MAIL_URL: ${MAIL_URL}
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_FROM: ${MAIL_FROM}
@@ -43,6 +43,11 @@ services:
       RECOVER_PASSWORD_TOKEN_SECRET: ${RECOVER_PASSWORD_TOKEN_SECRET}
       RESET_PASSWORD_TOKEN_SECRET: ${RESET_PASSWORD_TOKEN_SECRET}
 
+      # important variables
+      REDIS_URL: ${REDIS_URL}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_LOG_QUERY: ${DATABASE_LOG_QUERY}
+
     depends_on:
       - beastz-database
       - redis-master
@@ -54,11 +59,11 @@ services:
       - beastz_api_data:/app/user-upload
       - beastz_api_data:/app/user-deleted-forever
 
-  beastz-database:
+  beastz_postgres:
     image: postgres:14.5-alpine
-    container_name: beastz-database
+    container_name: beastz_postgres
     ports:
-      - '5433:5432'
+      - 33001:5432
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USERNAME}
@@ -70,23 +75,41 @@ services:
       start_period: 30s
       timeout: 10s
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - beastz_postgres_data:/var/lib/postgresql/data
 
-  redis-master:
+  beastz_redis_master:
     image: redis:7.4.0
-    container_name: redis-master
+    container_name: beastz_redis_master
     restart: always
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: /bin/sh -c "redis-server --requirepass $$REDIS_PASSWORD"
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -h beastz_redis_master -a $$REDIS_PASSWORD ping || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
-      - 6379:6379
+      - 33002:6379
     volumes:
-      - redis_master:/data
+      - beastz_redis_master_data:/data
 
-  redis-slave:
+  beastz_redis_slave:
     image: redis:7.4.0
-    container_name: redis-slave
+    container_name: beastz_redis_slave
     restart: always
-    command: redis-server --slaveof redis-master 6379
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: /bin/sh -c "redis-server --slaveof beastz_redis_master 6379 --masterauth $${REDIS_PASSWORD} --requirepass $${REDIS_PASSWORD}"
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -h beastz_redis_slave -a $$REDIS_PASSWORD ping || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
-      - 6479:6379
+      - '33003:6379'
+    depends_on:
+      beastz_redis_master:
+        condition: service_healthy
     volumes:
-      - redis_slave:/data
+      - beastz_redis_slave_data:/data

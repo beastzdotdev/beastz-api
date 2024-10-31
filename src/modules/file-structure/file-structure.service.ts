@@ -6,9 +6,7 @@ import crypto from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import sanitizeFileName from 'sanitize-filename';
 
-import { Redis } from 'ioredis';
 import { Response } from 'express';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { PrismaService, PrismaTx } from '@global/prisma';
 import {
   EncryptionAlgorithm,
@@ -29,6 +27,7 @@ import {
 } from '@nestjs/common';
 
 import { EnvService, InjectEnv } from '@global/env';
+import { RedisService } from '@global/redis';
 import { random } from '../../common/random';
 import { constants } from '../../common/constants';
 import { AuthPayloadType } from '../../model/auth.types';
@@ -74,8 +73,7 @@ export class FileStructureService {
   private readonly logger = new Logger(FileStructureService.name);
 
   constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
+    private readonly redis: RedisService,
 
     @InjectEnv()
     private readonly env: EnvService,

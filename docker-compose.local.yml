@@ -1,0 +1,123 @@
+#* Helper commands
+# docker compose -f docker-compose.local.yml down && docker image prune --all --force && docker compose -f docker-compose.local.yml build --no-cache && docker compose -f docker-compose.local.yml up -d
+# docker compose -f docker-compose.local.yml down -v && docker compose -f docker-compose.local.yml up -d
+# psql -h localhost -p 5800 -U postgres -d beastz
+# npx prisma db pull --url postgresql://postgres:A08X5fh4A5YZZZ@db:5432/beastz?schema=public
+
+volumes:
+  beastz_redis_master_data:
+    name: 'beastz_api__beastz_redis_master_data'
+  beastz_redis_slave_data:
+    name: 'beastz_api__beastz_redis_slave_data'
+  beastz_postgres_data:
+    name: 'beastz_api__beastz_postgres_data'
+  beastz_api_data:
+    name: 'beastz_api__beastz_api_data'
+
+services:
+  beastz_api:
+    container_name: beastz_api
+    build: ./
+    environment:
+      DEBUG: DEV
+      PORT: 4000
+      PRISMA_ENGINE_PROTOCOL: json
+      MAX_FEEDBACK_PER_DAY_COUNT: 90000000
+      FRONTEND_URL: http://localhost:5173
+      FRONTEND_DOCUMENT_URL: http://localhost:3000
+      BACKEND_URL: http://localhost:4000
+      ENABLE_SESSION_ACCESS_JWT_ENCRYPTION: false
+      ADMIN_BASIC_PASSWORD: noneed
+      ENABLE_MAIL_SANDBOX: false
+      MAIL_URL: smtp.resend.com
+      MAIL_USERNAME: noneed
+      MAIL_FROM: noneed
+      MAIL_PASSWORD: noneed
+      COOKIE_SECRET: noneed
+      COOKIE_DOMAIN: noneed
+      ACCESS_TOKEN_EXPIRATION_IN_SEC: 90000000
+      REFRESH_TOKEN_EXPIRATION_IN_SEC: 90000000
+      RECOVER_PASSWORD_REQUEST_TIMEOUT_IN_SEC: 90000000
+      RESET_PASSWORD_REQUEST_TIMEOUT_IN_SEC: 90000000
+      ACCOUNT_VERIFICATION_TOKEN_EXPIRATION_IN_SEC: 90000000
+      ACCESS_TOKEN_SECRET: noneed
+      REFRESH_TOKEN_SECRET: noneed
+      SESSION_JWT_ENCRYPTION_KEY: noneed
+      ACCOUNT_VERIFY_TOKEN_SECRET: noneed
+      RECOVER_PASSWORD_TOKEN_SECRET: noneed
+      RESET_PASSWORD_TOKEN_SECRET: noneed
+
+      # important variables
+      REDIS_URL: redis://:redis_password@beastz_redis_master:6379
+      DATABASE_URL: postgresql://beastz_admin:A08X5fh4A5YZZZ@beastz_postgres:5432/beastz?schema=public
+      DATABASE_LOG_QUERY: false
+    ports:
+      - 33000:4000
+    depends_on:
+      beastz_postgres:
+        condition: service_healthy
+      beastz_redis_master:
+        condition: service_healthy
+      beastz_redis_slave:
+        condition: service_healthy
+    volumes:
+      - beastz_api_data:/app/hub
+      - beastz_api_data:/app/user-bin
+      - beastz_api_data:/app/user-content
+      - beastz_api_data:/app/user-upload
+      - beastz_api_data:/app/user-deleted-forever
+
+  beastz_postgres:
+    image: postgres:14.5-alpine
+    container_name: beastz_postgres
+    ports:
+      - 33001:5432
+    environment:
+      POSTGRES_PASSWORD: A08X5fh4A5YZZZ
+      POSTGRES_USER: beastz_admin
+      POSTGRES_DB: beastz
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U beastz_admin -d beastz']
+      interval: 10s
+      retries: 10
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - beastz_postgres_data:/var/lib/postgresql/data
+
+  beastz_redis_master:
+    image: redis:7.4.0
+    container_name: beastz_redis_master
+    restart: always
+    environment:
+      REDIS_PASSWORD: redis_password
+    command: /bin/sh -c "redis-server --requirepass $$REDIS_PASSWORD"
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -h beastz_redis_master -a $$REDIS_PASSWORD ping || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 33002:6379
+    volumes:
+      - beastz_redis_master_data:/data
+
+  beastz_redis_slave:
+    image: redis:7.4.0
+    container_name: beastz_redis_slave
+    restart: always
+    environment:
+      REDIS_PASSWORD: redis_password
+    command: /bin/sh -c "redis-server --slaveof beastz_redis_master 6379 --masterauth $${REDIS_PASSWORD} --requirepass $${REDIS_PASSWORD}"
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -h beastz_redis_slave -a $$REDIS_PASSWORD ping || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - '33003:6379'
+    depends_on:
+      beastz_redis_master:
+        condition: service_healthy
+    volumes:
+      - beastz_redis_slave_data:/data

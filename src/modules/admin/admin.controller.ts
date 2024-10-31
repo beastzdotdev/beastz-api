@@ -16,6 +16,8 @@ import {
 import { PrismaService, PrismaTx } from '@global/prisma';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EmitterEventFields, EmitterEvents } from '@global/event-emitter';
+import { createClient, RedisClientType } from 'redis';
+import { RedisService, InjectRedis } from '@global/redis';
 import { AdminService } from './admin.service';
 import { GetSupportTicketsQueryDto } from './dto/get-support-tickets-query.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
@@ -35,6 +37,11 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly prismaService: PrismaService,
+
+    @InjectRedis()
+    private readonly redis: RedisClientType,
+
+    private readonly redisService: RedisService,
   ) {}
 
   @Get()
@@ -75,6 +82,26 @@ export class AdminController {
   @Post('test/redis')
   testRedis() {
     return this.adminService.testRedis();
+  }
+
+  @Post('test/redis-connection-only')
+  async testRedisConnectionOnly(@Body() body: any) {
+    return new Promise(resolve => {
+      const client = createClient(body);
+
+      client.on('error', err => resolve(err));
+
+      (async () => {
+        await client.connect();
+
+        const aclList = await client.sendCommand(['ACL', 'LIST']);
+        console.log('ACL List:', aclList);
+
+        await client.disconnect();
+
+        resolve(aclList);
+      })();
+    });
   }
 
   @Post('user-demo-create')

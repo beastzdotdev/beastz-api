@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { Controller, Get, Req, Res } from '@nestjs/common';
 import { HealthCheck, HealthCheckService, PrismaHealthIndicator } from '@nestjs/terminus';
-import { RedisHealthIndicator } from '@nestjs-modules/ioredis';
 import { PrismaService } from '@global/prisma';
 
 import { NoAuth } from '../decorator/no-auth.decorator';
@@ -28,7 +27,6 @@ export class AppController {
 
     private readonly health: HealthCheckService,
     private readonly prismaHealth: PrismaHealthIndicator,
-    private readonly redisHealth: RedisHealthIndicator,
   ) {}
 
   @NoAuth()
@@ -36,8 +34,8 @@ export class AppController {
   @HealthCheck()
   healthCheck() {
     return this.health.check([
+      //
       () => this.prismaHealth.pingCheck('database', this.prismaService),
-      () => this.redisHealth.isHealthy('redis'),
     ]);
   }
 

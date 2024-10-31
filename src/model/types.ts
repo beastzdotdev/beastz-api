@@ -7,6 +7,9 @@ export type Debug = 'dev' | 'prod' | 'development' | 'production';
 export interface GeneralClass {
   new (...args: any[]): any;
 }
+export type NonNullableProperties<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};
 
 export interface BasicMessage<T = string> {
   message: T;
@@ -60,3 +63,5 @@ export type FsCollabRedisBody = {
   servants: JSON | string;
   updates: JSON | string;
 };
+
+export type HSETObject = Record<string | string, string | number | Buffer>;

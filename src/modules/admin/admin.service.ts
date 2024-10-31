@@ -1,9 +1,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 
-import { Redis } from 'ioredis';
 import { Injectable } from '@nestjs/common';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { UserSupportMessage, UserSupportTicketStatus } from '@prisma/client';
 
 import { MailService } from '@global/mail';
@@ -11,6 +9,7 @@ import { InjectEnv, EnvService } from '@global/env';
 import { PrismaService, PrismaTx } from '@global/prisma';
 import { EventEmitterService } from '@global/event-emitter';
 
+import { RedisService } from '@global/redis';
 import { fsCustom } from '../../common/helper';
 import { SendMailDto } from './dto/send-mail-admin.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-tickets.dto';
@@ -23,8 +22,7 @@ export class AdminService {
     @InjectEnv()
     private readonly env: EnvService,
 
-    @InjectRedis()
-    private readonly redis: Redis,
+    private readonly redis: RedisService,
 
     private readonly prismaService: PrismaService,
     private readonly mailService: MailService,
@@ -39,8 +37,8 @@ export class AdminService {
     const key = 'seomtihng';
 
     await this.redis.set(key, 123);
-    await this.redis.set(key, 321, 'EX', 100);
-    await this.redis.set(key, 321, 'EX', 200);
+    await this.redis.set(key, 321, { EX: 100 });
+    await this.redis.set(key, 321, { EX: 200 });
 
     const z = await this.redis.del('non existsant');
     console.log(z);
@@ -51,11 +49,11 @@ export class AdminService {
     await this.redis.set('test', '123');
     await this.redis.set('test2', '123');
 
-    console.log(await this.redis.del('test', 'test2'));
+    console.log(await this.redis.del(['test', 'test2']));
 
     // overwrites
-    await this.redis.hset('testing-hash-table', { message: 'test 1' });
-    await this.redis.hset('testing-hash-table', { message: 'test 2' });
+    await this.redis.hsetobject('testing-hash-table', { message: 'test 1' });
+    await this.redis.hsetobject('testing-hash-table', { message: 'test 2' });
   }
 
   async testEnvs() {

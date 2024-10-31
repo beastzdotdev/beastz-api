@@ -9,13 +9,13 @@ import { envConfig } from './env.config';
 @Global()
 @Module({})
 export class EnvConfigModule {
-  public static readonly envLogger = new Logger(EnvConfigModule.name);
+  private static readonly envLogger = new Logger(EnvConfigModule.name);
 
   /**
    * @default isGlobal:true
    * @default ignoreEnvVars:true
    */
-  public static forRoot(options?: EnvModuleOptions): DynamicModule {
+  static forRoot(options?: EnvModuleOptions): DynamicModule {
     const time = performance.now();
 
     this.envLogger.verbose('Started initializing enviroment variables');

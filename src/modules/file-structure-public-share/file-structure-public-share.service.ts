@@ -1,11 +1,10 @@
-import { Redis } from 'ioredis';
+import path from 'path';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { FileStructure, FileStructurePublicShare } from '@prisma/client';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import path from 'path';
 import { PrismaTx } from '@global/prisma';
 import { CollabRedis } from '@global/redis';
 import { EventEmitterService } from '@global/event-emitter';
+import { RedisService } from '@global/redis';
 import { FileStructurePublicShareRepository } from './file-structure-public-share.repository';
 import { FileStructureService } from '../file-structure/file-structure.service';
 import { FsPublicShareCreateOrIgnoreDto } from './dto/fs-public-share-create-or-ignore.dto';
@@ -27,8 +26,7 @@ export class FileStructurePublicShareService {
   private readonly logger = new Logger(FileStructurePublicShareService.name);
 
   constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
+    private readonly redis: RedisService,
 
     private readonly fsPublicShareRepository: FileStructurePublicShareRepository,
     private readonly fsService: FileStructureService,

@@ -1,6 +1,5 @@
 import { APP_PIPE, APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { Module } from '@nestjs/common';
-import { RedisHealthModule } from '@nestjs-modules/ioredis';
 import { TerminusModule } from '@nestjs/terminus';
 
 import { JwtConfigModule } from '@global/jwt';
@@ -34,11 +33,10 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
   imports: [
     //* third party packages
     TerminusModule,
-    RedisHealthModule,
 
     //* from global directory
+    RedisConfigModule.forRootAsync(),
     EnvConfigModule.forRoot(),
-    RedisConfigModule.forRoot(),
     EventEmitterConfigModule.forRoot(),
     JwtConfigModule,
     MailConfigModule,
@@ -46,6 +44,7 @@ import { FileStructurePublicShareModule } from './file-structure-public-share/fi
     CookieConfigModule,
     SocketConfigModule,
 
+    //* from non-global directory
     AccountVerificationModule,
     UserModule,
     AuthenticationModule,

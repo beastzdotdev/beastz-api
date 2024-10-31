@@ -1,10 +1,8 @@
-import { Redis } from 'ioredis';
 import { performance } from 'node:perf_hooks';
 import { Namespace } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Logger } from '@nestjs/common';
 import { ChangeSet, Text } from '@codemirror/state';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
   WebSocketGateway,
   ConnectedSocket,
@@ -26,6 +24,7 @@ import { EmitterEventFields, EmitterEvents } from '../../event-emitter';
 import { SocketError } from '../../../../exceptions/socket.exception';
 import { assertDocumentSocketForUser } from './document-socket.helper';
 import { CollabRedis } from '../../redis';
+import { RedisService } from '../../redis/redis.service';
 
 /**
  * @description Namespace for Document, Extra configurations are in adapter
@@ -48,9 +47,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
   @WebSocketServer() private wss: Namespace;
 
   constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
-
+    private readonly redis: RedisService,
     private readonly documentSocketInitMiddleware: DocumentSocketInitMiddleware,
     private readonly documentSocketService: DocumentSocketService,
     private readonly collabRedis: CollabRedis,
@@ -80,7 +77,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
       ? socket.handshake.data.sharedUniqueHash
       : socket.handshake.accessTokenPayload.userId;
 
-    await this.redis.set(keyName, keyValue, 'EX', constants.redis.twoDayInSec);
+    await this.redis.set(keyName, keyValue, { EX: constants.redis.twoDayInSec });
 
     try {
       await Promise.all([
@@ -195,7 +192,7 @@ export class DocumentSocketGateway implements OnGatewayConnection, OnGatewayDisc
           .apply(Text.of(doc.split('\n')))
           .toString();
 
-        await this.redis.hset(fsCollabKeyName, 'doc', newDoc);
+        await this.redis.hsetsingle(fsCollabKeyName, 'doc', newDoc);
       } else {
         const [{ servants }, masterSocketId] = await Promise.all([
           this.documentSocketService.getServantsBySharedUniqueHash(sharedUniqueHash),
