@@ -45,125 +45,6 @@ export class AdminController {
     private readonly redisService: RedisService,
   ) {}
 
-  @Get('redis3')
-  async testRedisX3(@Body() body: any) {
-    return new Promise(resolve => {
-      const client = createClient(body);
-
-      client.on('error', err => resolve(err));
-
-      (async () => {
-        await client.connect();
-
-        const aclList = await client.sendCommand(['ACL', 'LIST']);
-        console.log('ACL List:', aclList);
-
-        await client.disconnect();
-
-        resolve(aclList);
-      })();
-    });
-  }
-
-  @Get('redis4')
-  async testRedisX4() {
-    const x = await this.redisService.set('test', '123');
-    const z = await this.redis.set('test1', 123);
-
-    const x1 = await this.redis.get('test');
-    const z1 = await this.redis.get('test1');
-
-    console.log(x);
-    console.log(z);
-
-    console.log(x1);
-    console.log(z1);
-    console.log(typeof z1 === 'number');
-    console.log('='.repeat(20) + 'end');
-
-    const object: NonNullableProperties<FsCollabRedisBody> = {
-      doc: 'asd',
-      masterSocketId: 'null',
-      masterUserId: 123123,
-      servants: JSON.stringify([123123, 1231231]),
-      updates: JSON.stringify([]),
-    };
-
-    const f = await this.redisService.hsetobject('testx', object as HSETObject);
-    const val = await this.redisService.hget('testx', 'masterUserId');
-
-    console.log(f);
-    console.log(val);
-    console.log(parseInt(val as string));
-    console.log(typeof val === 'number');
-    console.log('='.repeat(20));
-
-    // const y = await this.redisService.hgetall('test');
-    // console.log(y);
-    // console.log('='.repeat(20));
-
-    // const z = await this.redisService.hgetall('testx');
-    // console.log(z);
-    // console.log('='.repeat(20) + 'end');
-
-    // const d = await this.redisService.hget('test', 'doc');
-    // console.log(d);
-    // console.log('='.repeat(20) + 'end');
-
-    // const t = await this.redisService.hget('test', 'docx-not-exis');
-    // console.log(t);
-    // console.log('='.repeat(20) + 'end');
-
-    // const aclList = await this.redis.sendCommand(['ACL', 'LIST']);
-    // console.log('ACL List:', aclList);
-
-    // const object: NonNullableProperties<FsCollabRedisBody> = {
-    //   doc: 'asd',
-    //   masterSocketId: 'null',
-    //   masterUserId: 123123,
-    //   servants: JSON.stringify([123123, 1231231]),
-    //   updates: JSON.stringify([]),
-    // };
-
-    // const x = await this.redis.HSET('test', object as HSETObject);
-
-    // console.log(x);
-    // console.log('='.repeat(20));
-
-    // const doc = await this.redis.hGet('test', 'doc');
-    // const masterSocketId = await this.redis.HGET('test', 'masterSocketId');
-    // const masterUserId = await this.redis.HGET('test', 'masterUserId');
-    // const servants = await this.redis.HGET('test', 'servants');
-    // const updates = await this.redis.HGET('test', 'updates');
-
-    // console.log(doc, masterSocketId, masterUserId, servants, updates);
-    // console.log('='.repeat(20));
-
-    // const whole = await this.redis.HGETALL('test');
-    // console.log(whole);
-    // console.log('='.repeat(20));
-
-    // const somethin = await this.redis.HGETALL('test-nonexistsn');
-    // const somethin2 = await this.redis.HGET('test', 'nonexistsn');
-    // const somethin3 = await this.redis.get('test-nonexistsn');
-
-    // console.log(somethin);
-    // console.log(somethin === null);
-    // console.log(!!somethin);
-    // console.log(somethin2);
-    // console.log(somethin3);
-
-    // console.log('='.repeat(20));
-
-    // await this.redis.HSET('test', <FsCollabRedisBody>{
-    //   doc: 'asd'
-    //   masterSocketId: null,
-    //   masterUserId: 123123,
-    //   servants: ['123123', '1231231'],
-    //   updates: [],
-    // });
-  }
-
   @Get()
   async healthAdmin() {
     return 'yes you are admin';
@@ -202,6 +83,26 @@ export class AdminController {
   @Post('test/redis')
   testRedis() {
     return this.adminService.testRedis();
+  }
+
+  @Post('test/redis-connection-only')
+  async testRedisConnectionOnly(@Body() body: any) {
+    return new Promise(resolve => {
+      const client = createClient(body);
+
+      client.on('error', err => resolve(err));
+
+      (async () => {
+        await client.connect();
+
+        const aclList = await client.sendCommand(['ACL', 'LIST']);
+        console.log('ACL List:', aclList);
+
+        await client.disconnect();
+
+        resolve(aclList);
+      })();
+    });
   }
 
   @Post('user-demo-create')
